@@ -1,5 +1,14 @@
 # Interaktywna analiza klas i domen na podstawie v0.4
 
+**Aktualizacja kierunku — 2026-11-02:** użytkownik wykluczył wczytywanie
+modeli i wyników v0.4. Kod paczki jest wzorem implementowanej metody;
+aplikacja ma obliczać klasy i domeny z otwartych danych. Obowiązuje
+[zmieniony plan](implementation/interactive-v04/README.md): 05 daje własne
+obliczenia jednej klatki z bazowym K5, 07 ręczne K i wspólny zakres, 08
+analizę serii, 12 Auto. Dawny 04 oraz dublujący 11 usunięto; kod 04 wycofano.
+Poniższa ocena opisuje możliwości i ograniczenia źródłowego prototypu,
+nie wymagania importu jego artefaktów do nowej aplikacji.
+
 Data: **2026-11-02**. Użytkownik chce dostosowywać parametry w UI, uruchamiać
 analizę serii albo pojedynczej klatki i od razu oglądać wynik. Oczekuje
 ręcznego zadawania liczby klas oraz pracy bez znajomości tej liczby.
@@ -121,12 +130,13 @@ położeń wymaga dodatkowego etapu detekcji molekuł. Pierwszy zakres powinien
 wykorzystać obecny MPP/JSON; obsługa innych rozmiarów, skal i wariantów
 formatu potrzebuje usunięcia założeń TTMAPP, opisanych w przeglądzie paczek.
 
-Proponowana kolejność budowy: import i prosty podgląd → obliczenia z pełną
-konfiguracją → wspólny model i analiza jednej klatki/zakresu → ręczne K/Auto
-oraz samodzielne odkrywanie na jednej klatce → sprawdzenie GUI i wyników.
-Warto zachować v0.4 jako odtwarzalny punkt odniesienia dla domyślnych ustawień.
+Aktualna kolejność budowy: istniejący import i podgląd 01–03 → samodzielne
+obliczenia jednej klatki 05 → strojenie 06 → ręczne K i zakres 07 → seria 08
+→ Auto 12. Wspólny model jest wyliczany wewnętrznie z wybranego zakresu.
+Porównania zmian korzystają z własnego wyniku bazowej metody aplikacji;
+identyczność ze starym eksportem nie jest kryterium odbioru nowych dopasowań.
 
-Wykonano statyczną analizę kodu i wklejonej notatki, bez nowych obliczeń,
-instalacji albo implementacji UI. Nie utworzono ticketów i nie zmieniono
-statusów odbioru metody 04/13. Interaktywny program będzie narzędziem
+Pierwotna ocena obejmowała statyczną analizę kodu i wklejonej notatki,
+bez nowych obliczeń. Późniejszą implementację UI i tickety opisuje aktualny
+indeks; statusy badawczego odbioru metody 04/13 pozostają odrębne. Program będzie narzędziem
 eksploracji; samo dostarczenie suwaków nie potwierdza trafności segmentacji.

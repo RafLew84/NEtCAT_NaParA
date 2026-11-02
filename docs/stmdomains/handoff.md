@@ -1,53 +1,70 @@
-# STM Domains — wykonano SD-V4-04: zapisane domeny v0.4
+# STM Domains — wycofanie 04, plan własnych obliczeń
 
-Data: **2026-11-02**, polecenie `implement 04`. [SD-V4-04](implementation/interactive-v04/04-open-v04-results.md)
-ma status `done`; **ręczny odbiór użytkownika pozostaje do wykonania**.
-Odbiory 01–03 zachowane. [Uruchomienie, scenariusz ręczny i raport](implementation/interactive-v04/acceptance-04.md).
+Data: **2026-11-02**. Użytkownik polecił całkowicie pominąć wczytywanie
+modeli/wyników v0.4, usunąć poprzedni ticket i zmodyfikować plan. Kod v0.4
+ma być wzorem metody, którą implementujemy i następnie rozszerzamy.
 
-W **netcat**: `python -m stmdomains.main`. Otwórz
-`data/TTMAPP/detection_full.moltrack.json`, potem **Otwórz wynik v0.4…** →
-`data/new_code/stm_domains_prototype_v04.zip` (pełny wynik) lub rozpakowany
-`MANIFEST_v04.json`. Domyślne kolory konkretnych domen, przełącznik końcowych
-klas, legenda/liczniki i odmowy po kliknięciu. Wynik zerowy, brak analizy
-oraz pominięty duplikat mają osobne znaczenie. Domeny/kolory są lokalne
-w klatce; nie oznaczają śledzenia. Nie uruchomiono nowej analizy ani treningu.
+**Wykonano rollback SD-V4-04:** odwrócono `c13b291` oraz `b6159ac`,
+zachowując historię Git. Kod `stmdomains/` i testy `tests/stmdomains/`
+są identyczne z **`24625f2`**, czyli odebranym 03 po poprawkach układu
+`0745e4e` i wyjścia `3dd8b47`. Usunięto przycisk/importer wyników v0.4,
+model podglądu i testy dodane w 04 oraz jego ticket/raport odbioru.
+Lokalne dane, ZIP, modele i artefakty badawcze pozostały bez zmian.
+Nie usuwano historii commitów ani nie zmieniano innych worktree.
 
-Importer sprawdza SHA-256 źródeł i wymaganych plików paczki, rzeczywiste obrazy,
-mapy klatek, ID, współrzędne oraz zgodność liczników. Nie ładuje pickle/joblib.
-Niepoprawna lub anulowana paczka zachowuje poprzedni wynik. Wynik i obraz
-są publikowane razem; nowa seria odrzuca spóźnione wyniki poprzedniej.
+**[Aktualny plan](implementation/interactive-v04/README.md):**
 
-**Sprawdzenia:** 355 testów STM Domains PASS, bez pominięć, 16,12 s, w tym
-47 nowych przypadków. Pełny zestaw uruchomiono raz po poprawkach przeglądu.
-Mypy produkcyjnego core/io/ui/tools: **35 plików PASS**. Szerszy mypy całego
-katalogu zgłasza **112 historycznych błędów w 25 plikach badań**; potwierdzono
-ten sam wynik na czystej bazie `24625f2`. Kod/testy: **19 plików, maksimum
-395 linii**, PASS. Przegląd Standards znalazł 2 P2 (stara seria w pamięci,
-zakres NPZ sprawdzany po alokacji) i drobną korektę instrukcji demo: naprawione,
-regresje RED→GREEN, recenzent potwierdził. Spec: bez uwag. **0 otwartych uwag.**
+- **05**: obrazy i oznaczenia → opisy otoczeń → klasy PCA/KMeans (bazowe K5)
+  → domeny na jednej klatce → kolory, legenda i odmowy w UI. Model powstaje
+  wewnętrznie; nie ma importu paczki ani ręcznego wyboru pliku modelu.
+- **06**: strojenie tworzenia domen i porównanie własnego wyniku bazowego.
+- **07**: ręczne K1–8 i zakres odkrywania, jedna klatka lub wspólny zakres.
+- **08**: wspólne klasy i analiza domen zakresu/serii; wymaga 07.
+- **12**: Auto na danych jednej klatki lub zakresu; wymaga 07, może poprzedzić 08.
 
-Rzeczywiste GUI X11 sterowane Qt: wszystkie **56 klatek**, porównanie ID,
-współrzędnych, kolorów i liczników z niezależnie odczytanym CSV; **4190
-przypisań / 122 domeny**. Kluczowe klatki 7/120/160/259/268 i 11 w raw/aligned,
-odmowa po kliknięciu, zoom/gamma, odtwarzanie 7–13, stabilny układ 900×650.
-SHA-256 JSON/MPP/ZIP bez zmian; wyjście 0, pule zakończone. Obejrzano zrzuty.
-Import ZIP i manifestu zgodny. Techniczne sprawdzenie agenta jest odrębne
-od oczekującego odbioru użytkownika. Lokalne artefakty:
-`.scratch/stmdomains-ui-04/`; demo: `python -m stmdomains.tools.result_demo`.
+Usunięto dawny **11** jako dublujący nowe 05/07. Numery 04/11 pozostają
+historycznie zarezerwowane, pozostałe ID bez zmian. **18 aktywnych ticketów**:
+01–03 done, 05–10 i 12–18 ready-for-agent po zależnościach, 19–20 deferred.
+09 wymaga 07 (K1), 14 wymaga 05. Uaktualniono także zapis projektu, eksport
+oraz rozszerzenia 15–20: punktem porównania są obliczenia metody bazowej
+naszej aplikacji. Własny projekt z 13 pozostaje dozwolony i opcjonalny.
 
-Ograniczenia: około **1227 MiB** szczyt RSS lokalnej próby (JSON/MPP w całości,
-plus weryfikacja wyniku); import MolTrack 0,82 s, wyniku 0,49 s. W małym
-oknie kontrolki zostawiają małą przestrzeń obrazu — użyj zoomu lub maksymalizacji.
-Podgląd nie ocenia trafności domen. Kalibracja/rejestracja zachowują ograniczenia
-źródła. Wynik zawiera 56 z 268 klatek; pozostałe jawnie nie były analizowane.
+Nie wolno zastąpić ręcznego importu automatycznym kopiowaniem dawnego modelu.
+Przenoszona metoda musi działać bez dawnych modeli, etykiet, cech, katalogu
+pierwszych dziesięciu klatek, plików kalibracji i stałego rozstawu TTMAPP.
+Pochodzenie skali, kontrola porządku i zakres dopasowania są jawne. Nowe
+wyniki nie muszą odtwarzać etykiet/liczników starego eksportu. Samo grupowanie
+K5 ani wzrost przypisań nie potwierdzają domen fizycznych. Każdy ticket ma
+ręczny scenariusz w uruchamialnym UI; limit kodu 1000/1500 linii zachowany.
 
-Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/interactive-v04-ui`,
-baza **`24625f2`**, implementacja **`b6159ac`**. Commit poprawek i dokumentacji
-podano w odpowiedzi końcowej. Zmiany tylko w aplikacji, testach i dokumentacji;
-bez instalacji. Wspólne zależności NumPy/SciPy/pytest-qt pozostają wcześniejszym
-zgłoszeniem integracyjnym, `netcat` jest gotowy. **Następny ticket: SD-V4-05 —
-oblicz domeny na bieżącej klatce.** Historyczny odbiór szkieletu i badawcze
-04/13 pozostają odrębnymi, otwartymi zadaniami. Poniżej historia wcześniejszych etapów.
+**Sprawdzenia w istniejącym netcat:**
+
+- `git diff 24625f2 -- stmdomains tests/stmdomains`: pusta różnica.
+- Pełny zestaw STM Domains: **308 passed, bez pominięć, 16,31 s**.
+  Komenda: `QT_QPA_PLATFORM=offscreen OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python -m pytest -q tests/stmdomains`.
+- Mypy core/io/ui/tools: **27 plików PASS**. Sprawdzenie nie obejmuje
+  historycznego katalogu experiments z wcześniejszymi błędami typowania.
+- Kontrola rozmiaru przywróconego kodu/testów: **7 plików, maksimum 341 linii**.
+- Niezależny przegląd planu bez otwartych uwag po doprecyzowaniu słownika w 07.
+  **347 lokalnych odnośników PASS**, graf 18 ticketów bez cykli i zależności
+  od usuniętych 04/11; każdy ticket ma test ręczny. `git diff --check` PASS.
+  Nie ponawiano ręcznego odbioru GUI:
+  przywrócono dokładnie kod już zaakceptowany przez użytkownika w 03.
+
+Uruchomienie: `conda activate netcat`, następnie `python -m stmdomains.main`.
+Ręczna kontrola zakresu rollbacku: otwórz MPP/JSON, przełączaj klatki suwakiem
+lub miniaturami, odtwórz, zmień gamma i zamknij aplikację. Powinny działać
+funkcje 01–03, bez przycisku Otwórz wynik v0.4. Ta instrukcja nie oznacza
+wykonania nowego testu ręcznego. Własna analiza pozostaje do zaimplementowania.
+
+**Następne zadanie: SD-V4-05 — oblicz klasy i domeny bieżącej klatki z danych.**
+Nie rozpoczęto go tym zleceniem. Odbiór 01–03 jest zachowany; badawcze 04/13
+oraz historyczny odbiór całego szkieletu pozostają odrębne, otwarte.
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/interactive-v04-ui`.
+Commit rollbacku i aktualizacji planu podano w odpowiedzi końcowej.
+Bez instalacji ani nowych wspólnych zmian; wcześniejsze zgłoszenie
+NumPy/SciPy/pytest-qt integratorowi pozostaje aktualne. Poniżej historia
+poprzednich etapów — ich wskazania kolejnego ticketu nie zastępują tego planu.
 
 ---
 

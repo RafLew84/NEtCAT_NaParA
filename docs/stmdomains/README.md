@@ -5,17 +5,21 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-02
 
-**Wykonano SD-V4-04:** otwieranie pełnego wyniku v0.4 (ZIP lub manifest),
-końcowe kolory domen/klas, legenda, liczniki i przyczyny odmów po kliknięciu.
-Importer weryfikuje źródła, obrazy, ID, współrzędne i podsumowania.
-Zerowy wynik, brak analizy oraz pominięte duplikaty mają odrębne znaczenie.
-[Uruchomienie i test ręczny 04](implementation/interactive-v04/acceptance-04.md).
-Rzeczywisty wynik sprawdzono w GUI dla wszystkich 56 klatek, 4190 przypisań
-i 122 domen. Implementacja **`b6159ac`**; szczegóły końcowych sprawdzeń
-i poprawek w raporcie. **Odbiór ręczny użytkownika 04 pozostaje do wykonania.**
-**Następny ticket: SD-V4-05 — oblicz domeny na bieżącej klatce.**
-Poniżej zachowano historię 01–03 i badań; dawne wskazania następnego ticketu
-opisują stan z chwili wpisu. Badawcze 04/13 pozostają osobnymi zadaniami.
+**Zmiana kierunku na polecenie użytkownika:** usunięto ticket SD-V4-04
+i wycofano jego funkcję wczytywania paczek wyników v0.4. Kod oraz testy
+aplikacji odpowiadają odebranemu stanowi po 03 (`24625f2`), z poprawkami
+układu i wyjścia. **308 testów PASS**, mypy **27 plików PASS**; największy
+przywrócony plik ma **341 linii**. Lokalnych danych i paczek nie usuwano.
+
+[Aktualny plan](implementation/interactive-v04/README.md) przewiduje
+obliczenia od danych: **05 — klasy i domeny jednej klatki**, **06 — strojenie**,
+**07 — ręczne K i zakres odkrywania**, **08 — seria**, **12 — Auto**.
+V0.4 jest wzorem kodu metody; nie wczytujemy jego modeli ani wyników.
+05 obejmuje bazowe K5 i czytelny wynik na molekułach; model powstaje wewnętrznie.
+Dawny 11 wchłonięto w 05/07, bez renumeracji pozostałych zadań.
+**Następny ticket: SD-V4-05.** Zmieniono plan, własnych obliczeń jeszcze
+nie zaimplementowano. Odbiory 01–03 są zachowane; badawcze 04/13 pozostają
+otwarte. Wpisy poniżej zachowują historię wcześniejszych etapów i planów.
 
 **Odbiór 03 potwierdzony; poprawiono także błąd wyjścia:** po potwierdzeniu
 testów ręcznych wersji `0745e4e` użytkownik zgłosił crash `TaskSignals has
@@ -37,7 +41,8 @@ klatek i zatrzymuje się bez spóźnionego kroku. Zapisany tryb widoku jest
 przywracany przy otwarciu. [Uruchomienie i test ręczny 03](implementation/interactive-v04/acceptance-03.md).
 W `netcat`: **300 testów PASS**, mypy **27 plików PASS**, największy zmieniony
 plik ma **327 linii**. Przegląd kodu zakończony po poprawkach. Rzeczywiste GUI:
-wszystkie 268 klatek TTMAPP, bez pomijania. **Następny ticket to SD-V4-04**;
+wszystkie 268 klatek TTMAPP, bez pomijania. Planowany wtedy SD-V4-04 został
+później wycofany zgodnie z aktualizacją powyżej;
 uwagę z ręcznego sprawdzenia 03 i poprawkę opisano powyżej. Implementacja `93701af`,
 poprawki i raport `c5deb59`. Historyczne wpisy poniżej
 zachowują wyniki wcześniejszych etapów.

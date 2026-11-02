@@ -221,6 +221,8 @@ pokazanej klatce. Bilans po poprawce: **0 otwartych uwag**.
 Zmiany dotyczą aplikacji, jej testów i dokumentacji. Ticket 03 nie wymaga
 nowych zależności. Nadal obowiązuje przekazane wcześniej integratorowi
 uzupełnienie wspólnych zależności o NumPy/SciPy oraz testów o pytest-qt.
-Lokalny `netcat` ma potrzebne pakiety. Następny ticket to **SD-V4-04 —
-otwarcie wyniku v0.4 i przynależność molekuł**. Historyczny odbiór całego
+Lokalny `netcat` ma potrzebne pakiety. **Aktualizacja planu 2026-11-02:**
+następny ticket to **SD-V4-05 — klasy i domeny obliczane z danych**.
+Późniejszy import wyników 04 został wycofany na polecenie użytkownika;
+aktualny kod odpowiada odebranemu 03 z poprawkami. Historyczny odbiór całego
 szkieletu oraz badawcze 04/13 pozostają osobnymi, otwartymi zadaniami.

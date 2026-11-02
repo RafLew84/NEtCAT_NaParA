@@ -104,13 +104,6 @@ class ImageView(QGraphicsView):
         self._mask_picture.setOpacity(opacity)
         self._overlay.update()
 
-    def set_assignment_mode(self, mode: str) -> None:
-        """Recolour the current frame without changing its image or zoom."""
-        if mode not in ("domains", "classes", "input"):
-            raise ValueError("Unknown assignment display mode")
-        self._overlay.assignment_mode = mode
-        self._overlay.update()
-
     def mousePressEvent(self, event: QMouseEvent | None) -> None:
         if event is not None and event.button() == Qt.MouseButton.LeftButton:
             self._press_position = event.position().toPoint()

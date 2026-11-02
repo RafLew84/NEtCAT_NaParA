@@ -3,11 +3,12 @@
 Data: **2026-11-02**. Użytkownik wybrał prosty sposób oglądania wyników:
 kolejne obrazy STM z oznaczonymi molekułami i ich przynależnością do domen.
 Dotychczasowe rozbudowane galerie diagnostyczne są dla niego nieczytelne.
-Ten dokument ustala prezentację przyszłych prób. **Aktualizacja SD-V4-04:**
-działa natywna przeglądarka istniejącego wyniku v0.4 z końcowymi przypisaniami
-molekuł — [uruchomienie i test ręczny](implementation/interactive-v04/acceptance-04.md).
-Nie uruchomiono nowego eksperymentu. Obsługa wyników kolejnych metod będzie
-korzystać z poniższych zasad.
+Ten dokument ustala prezentację przyszłych prób. **Aktualizacja 2026-11-02:**
+import zapisanych wyników v0.4 z SD-V4-04 został wycofany na polecenie
+użytkownika. Przeglądanie obrazów i oznaczeń z 01–03 pozostaje dostępne;
+widok obliczonych domen będzie częścią [nowego 05](implementation/interactive-v04/05-analyze-current-frame.md).
+V0.4 służy jako wzór metody. Podstawowym wejściem są obrazy i oznaczenia,
+a klasy i domeny powstają w aplikacji. Nie uruchomiono nowego eksperymentu.
 
 ## Podstawowy widok
 
@@ -25,7 +26,7 @@ korzystać z poniższych zasad.
 Dobór metody do pokazanego wyniku jest jawny. Jeżeli porównujemy metody,
 prosty przełącznik zachowuje bieżącą klatkę i powiększenie. Wybór ziaren,
 warstw, parametrów grafu, wykresy i porównanie przed/po odmowach należą do
-osobnej diagnostyki. Otwierając wynik, użytkownik od razu widzi obraz
+osobnej diagnostyki. Po analizie lub otwarciu własnego projektu użytkownik widzi obraz
 z przynależnością molekuł, bez konfigurowania eksperymentu.
 
 ## Znaczenie oznaczeń

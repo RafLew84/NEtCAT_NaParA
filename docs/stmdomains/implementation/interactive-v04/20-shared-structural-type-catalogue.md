@@ -15,7 +15,8 @@ Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) or
 ## Kryteria akceptacji
 
 - [ ] Użytkownik jawnie wybiera zakres budowy katalogu; model jest następnie zamrożony podczas analizy kolejnych klatek. Przełączenie obrazu nie dopasowuje katalogu ponownie ani nie zmienia znaczenia kolorów.
-- [ ] Typ jest niezależny od obrotu i jednolitego przesunięcia, zgodnie ze słownikiem projektu. Orientacja, robocza klasa v0.4, typ struktury i lokalny identyfikator domeny są osobnymi polami; dawnych q/w/e/r/t nie przemianowuje się automatycznie na fizyczne typy.
+- [ ] Typ jest niezależny od obrotu i jednolitego przesunięcia, zgodnie ze słownikiem projektu. Orientacja, robocza klasa metody bazowej, typ struktury i lokalny identyfikator domeny są osobnymi polami; roboczych numerów klas nie przemianowuje się automatycznie na fizyczne typy.
+- [ ] Katalog, skala i parametry opisu powstają z jawnie wybranego wejścia aplikacji. Nie odczytuje się modeli ani słownika q/w/e/r/t z dawnego eksperymentu v0.4 i nie wymaga jego pierwszych dziesięciu klatek.
 - [ ] Widok Typy używa wspólnej legendy serii, a Domeny zachowuje lokalne instancje. Dwie domeny o tym samym typie mogą być rozdzielone przerwą lub granicą niedopasowania. Kolor typu nie oznacza śledzenia konkretnej domeny w czasie.
 - [ ] Rozpoznany porządek bez zgodnego wzorca ma status nieznanego typu/kandydata; szum i brak danych nie tworzą nowych typów. Kryterium zgodności i minimalne poparcie są jawne i zapisane w katalogu.
 - [ ] Jawne Rozszerz katalog analizuje wskazany zakres i tworzy nową wersję dopiero po spełnieniu kryteriów dla kandydatów. Dotychczasowe typy zachowują identyfikatory, a historyczne wyniki wersję katalogu. Nie wykonuje się ukrytego scalenia lub przenumerowania; nierozstrzygnięty konflikt pozostaje opisany.
@@ -25,7 +26,7 @@ Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) or
 
 ## Test ręczny użytkownika
 
-1. Wybierz zakres budowy katalogu w dostarczonym przykładzie, utwórz go i przeanalizuj kolejne klatki. Obrócone oraz przesunięte kopie tej samej struktury mają zachować typ przy osobnej informacji o orientacji.
+1. Otwórz dane dostarczonego przykładu, wybierz zakres budowy katalogu, utwórz go w aplikacji i przeanalizuj kolejne klatki. Nie wczytuj zewnętrznego modelu. Obrócone oraz przesunięte kopie tej samej struktury mają zachować typ przy osobnej informacji o orientacji.
 2. Przełącz Typy/Domeny na dwóch rozdzielonych fragmentach tej samej struktury. Typ jest wspólny, identyfikatory domen lokalne; nie ma sugestii śledzenia obiektów.
 3. Otwórz przykład nowej struktury i szumu. Pierwszy może zostać kandydatem, drugi nie powinien tworzyć typu. Wykonaj jawne rozszerzenie i sprawdź zachowanie wcześniejszych identyfikatorów oraz wyników.
 4. Zapisz projekt, zamknij aplikację i otwórz zapis bez oryginalnych źródeł. Katalog, kolory i przypisania mają odtworzyć się bez nowych obliczeń.

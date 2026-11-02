@@ -1,28 +1,31 @@
-# Interaktywne STM Domains na bazie v0.4
+# Interaktywne STM Domains — obliczenia z danych
 
 Gałąź implementacji: **`domains/interactive-v04-ui`**, utworzona z
 `domains/start` na commicie `b21e0ca`. Worktree:
 `/home/rlew/projekty/NEtCAT-domains`.
 
-Stan: **20 osobnych ticketów**, 2026-11-02. **01–04 wykonano (`done`)**:
-działa otwieranie MolTrack/MPP, podgląd oryginałów i nawigacja z suwakiem;
-[raport 01](acceptance-01.md). **02** dodaje oznaczenia, maski i zapisaną
-geometrię raw/aligned — [uruchomienie i odbiór 02](acceptance-02.md).
-**03** dodaje miniatury, odtwarzanie i gamma — [raport i test ręczny 03](acceptance-03.md).
-300 testów PASS; GUI sprawdzone na pełnej serii TTMAPP. Ręczny odbiór 03
-i poprawki układu `0745e4e` potwierdzony przez użytkownika. Późniejsza
-[poprawka błędu wyjścia](acceptance-03.md#poprawka-wyjścia-z-programu) `3dd8b47`
-również odebrana ręcznie 2026-11-02.
-**04** dodaje otwieranie pełnej paczki v0.4, kolory końcowych domen/klas,
-legendę i odmowy — [raport i test ręczny 04](acceptance-04.md). Wszystkie
-56 klatek wyniku sprawdzono w GUI; ręczny odbiór użytkownika pozostaje
-do wykonania. **Następny ticket: 05**.
-05–15 zachowują status `draft`. Na polecenie użytkownika dodano omówione rozszerzenia:
-16–18 mają status `ready-for-agent` i wymagają ukończenia zależności,
-a dalsze 19–20 status `deferred` z jawnym warunkiem wyboru.
-Pozostałe funkcje są planem implementacji. Użytkownik potwierdził ręczny odbiór
-01 oraz suwaka (`ee54638`), a następnie oznaczeń i wyrównania z 02 (`3572b6d`).
-Analiza pozostaje do wykonania.
+**Decyzja użytkownika — 2026-11-02:** całkowicie pomijamy wczytywanie
+wyników i modeli v0.4. Dostarczony kod służy jako wzór metody, którą
+implementujemy w aplikacji i następnie rozszerzamy. Użytkownik otwiera
+obrazy z oznaczeniami, wybiera zakres i ustawienia, klika **Analizuj**.
+Parametry klas powstają wewnętrznie z wybranych danych, bez pliku modelu.
+
+Stan: **18 ticketów w aktualnym planie**. **01–03 są wykonane i odebrane
+ręcznie**: [obrazy i suwak](acceptance-01.md), [oznaczenia i geometria](acceptance-02.md),
+[miniatury, odtwarzanie i gamma](acceptance-03.md), wraz z poprawkami układu
+`0745e4e` i wyjścia `3dd8b47`. Kod i testy przywrócono do stanu `24625f2`:
+po wycofaniu 04 **308 testów PASS**. Aktualny program pozostaje przeglądarką
+wejściowych obrazów i oznaczeń; własna analiza jeszcze nie jest zaimplementowana.
+
+**04 usunięto z planu**, a jego implementację `b6159ac` i `c13b291`
+wycofano bez przepisywania historii Git. **11 usunięto jako dublujący**:
+dopasowanie jednej klatki przejmują 05 (bazowe K5) i 07 (ręczne K i zakres).
+Numerów 04/11 nie wykorzystujemy ponownie; pozostałe ID i ścieżki zachowano.
+Historia usuniętych ticketów pozostaje w Git.
+
+**Następny ticket: 05.** 05–10 oraz 12–18 mają zakres `ready-for-agent`
+z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
+wyboru. Zlecenie zmiany planu nie oznacza rozpoczęcia implementacji 05.
 
 ## Tickety i kolejność
 
@@ -35,30 +38,28 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [01 — Otwórz zapis i przeglądaj obrazy](01-open-images.md) | brak | Otwórz MPP z zapisem MolTrack i przejdź po klatkach. |
 | [02 — Pokaż molekuły i poprawną geometrię obrazu](02-molecules-and-geometry.md) | SD-V4-01 | Włącz oznaczenia i sprawdź, czy leżą na molekułach. |
 | [03 — Przeglądaj serię przez miniatury i odtwarzanie](03-filmstrip-and-playback.md) | SD-V4-01 | Wybierz miniaturę, odtwórz serię i zatrzymaj. |
-| [04 — Otwórz wynik v0.4 i zobacz przynależność molekuł](04-open-v04-results.md) | SD-V4-02 | Otwórz zapisany wynik i przełącz kolory klas/domen. |
-| [05 — Oblicz domeny na bieżącej klatce](05-analyze-current-frame.md) | SD-V4-04 | Kliknij Analizuj klatkę i obejrzyj nowy wynik. |
+| [05 — Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md) | SD-V4-02 | Kliknij Analizuj klatkę; klasy K5 i domeny powstają z jej danych, bez pliku modelu. |
 | [06 — Strojenie tworzenia domen i porównanie wyniku](06-tune-domain-formation.md) | SD-V4-05 | Zmień progi domen i porównaj poprzedni/nowy wynik. |
-| [07 — Odkryj wspólne klasy z ręcznie podanym K](07-fit-shared-classes.md) | SD-V4-05 | Wybierz zakres, wpisz K i odkryj wspólne klasy. |
-| [08 — Przelicz zakres lub całą serię](08-analyze-series.md) | SD-V4-05 | Przelicz zakres, przeglądaj wyniki, anuluj pozostałe. |
-| [09 — Reguluj akceptację klasy i zobacz przyczynę odmowy](09-tune-class-acceptance.md) | SD-V4-05 | Zmień progi akceptacji i sprawdź powody odmowy. |
+| [07 — Wybierz liczbę klas i zakres ich odkrywania](07-fit-shared-classes.md) | SD-V4-05 | Wpisz K1–8, wybierz jedną klatkę lub wspólny zakres i obejrzyj nowy wynik. |
+| [08 — Przelicz zakres lub całą serię](08-analyze-series.md) | SD-V4-07 | Dopasuj wspólne klasy i przelicz zakres; przeglądaj wyniki i anuluj pozostałe. |
+| [09 — Reguluj akceptację klasy i zobacz przyczynę odmowy](09-tune-class-acceptance.md) | SD-V4-07 | Zmień progi akceptacji i sprawdź powody odmowy, także dla K1. |
 | [10 — Reguluj test porządku z prawidłową kalibracją](10-tune-order-test.md) | SD-V4-05 | Zmień test porządku i obejrzyj wynik po kalibracji. |
-| [11 — Odkryj klasy wyłącznie na jednej klatce](11-fit-single-frame.md) | SD-V4-07 | Dopasuj klasy wyłącznie na wybranej klatce. |
-| [12 — Wybierz liczbę klas automatycznie](12-automatic-class-count.md) | SD-V4-11 | Wybierz Auto i porównaj z ręcznie zadanym K. |
+| [12 — Wybierz liczbę klas automatycznie](12-automatic-class-count.md) | SD-V4-07 | Wybierz Auto dla jednej klatki lub zakresu odkrywania i porównaj z ręcznym K. |
 | [13 — Zapisz projekt i otwórz wynik bez ponownych obliczeń](13-save-open-project.md) | SD-V4-05 | Zapisz projekt i otwórz go bez plików źródłowych. |
-| [14 — Wyeksportuj przypisania i widok do CSV oraz PNG](14-export-csv-png.md) | SD-V4-04 | Otwórz CSV i PNG poza aplikacją i porównaj z widokiem. |
+| [14 — Wyeksportuj przypisania i widok do CSV oraz PNG](14-export-csv-png.md) | SD-V4-05 | Wyeksportuj obliczony wynik i porównaj CSV/PNG z widokiem. |
 | [15 — Dostosuj opis otoczenia i bariery obrazu](15-advanced-descriptors-barriers.md) | SD-V4-07 | Zmień opis otoczenia/barier i sprawdź ich wpływ. |
 | [16 — Zobacz kierunek, rozstaw i jakość geometrii na obrazie](16-inspect-local-geometry.md) | SD-V4-05 | Kliknij molekułę i zobacz jej pomiary oraz kierunek na obrazie. |
-| [17 — Porównaj domeny tworzone według tolerancji geometrycznych](17-segment-geometric-tolerances.md) | SD-V4-06, SD-V4-16 | Zmień tolerancje kąta i rozstawu, porównaj domeny z v0.4. |
+| [17 — Porównaj domeny tworzone według tolerancji geometrycznych](17-segment-geometric-tolerances.md) | SD-V4-06, SD-V4-16 | Zmień tolerancje kąta i rozstawu, porównaj domeny z metodą bazową. |
 | [18 — Porównaj otoczenia molekuł metodą freud bez zadawania K](18-compare-freud-environments.md) | SD-V4-06, SD-V4-16 | Przelicz jedną klatkę metodą freud i obejrzyj końcowe przypisania. |
 | [19 — Porównaj domeny z lokalnego FFT i NMF obrazu](19-compare-local-fft-nmf.md) | SD-V4-06, SD-V4-16; warunek wyboru | Zmień okno analizy obrazu i porównaj wynik na molekułach. |
 | [20 — Zachowaj wspólny katalog typów struktury w serii](20-shared-structural-type-catalogue.md) | SD-V4-08, SD-V4-13, SD-V4-16; warunek wyboru | Sprawdź wspólne typy na kolejnych klatkach i po otwarciu zapisanego projektu. |
 
-Można realizować w kolejności numerów. Zależności pozwalają jednak wybrać
-wcześniej inną gotową funkcję: po 02 można zrobić 04, bez czekania na 03;
-po 04 można zrobić eksport 14; po 05 dostępne są 06–10 oraz zapis 13.
-Najkrótsza droga do regulacji parametrów i rzeczywistego wyniku to
-**01 → 02 → 04 → 05 → 06**. Ręczne K wymaga potem 07, a Auto — 11 i 12.
-Analiza serii 08 może korzystać z dostarczonego modelu jeszcze przed 07.
+Rekomendowana kolejność od obecnego stanu: **05 → 06 → 07 → 08 → 12**:
+własny wynik jednej klatki → strojenie domen → ręczne K i zakres odkrywania
+→ analiza serii → Auto. 12 można wykonać już po 07, jeśli Auto ma pierwszeństwo
+przed analizą całej serii. Po 05 dostępne są niezależnie 06, 07, 10, 13,
+14 i 16; po 07 także 08, 09, 12 i 15. 08 wymaga wspólnego dopasowania
+z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności od usuniętych 04/11.
 
 Rozszerzenia można zacząć od **16 po 05**, bez czekania na wszystkie 01–15.
 Po 06 i 16 dostępne są niezależne 17 oraz 18. Jako pierwszą próbę nowej
@@ -68,7 +69,8 @@ opis struktur oraz analizę serii i zapis projektu. Numeracja nie wymusza
 ukończenia wszystkich wcześniejszych numerów.
 
 Nie tworzymy osobnych etapów „sam backend” lub „sam refaktor”. Potrzebne
-wydzielenie operacji v0.4 należy do pierwszego ticketu, który z nich korzysta.
+wydzielenie operacji metody na wzór v0.4 należy do pierwszego ticketu,
+który z nich korzysta. Aplikacja nie uruchamia zewnętrznych skryptów paczki.
 Każdy ukończony ticket pozostawia uruchamialny program i zachowuje wcześniejsze
 funkcje. Wykonawca wybiera ticket o uzgodnionym zakresie, którego wszystkie
 zależności są ukończone. `ready-for-agent` oznacza przygotowany zakres,
@@ -118,7 +120,10 @@ porażką; nie znika przez nazwanie dwóch obszarów jedną klasą.
 **Znaczenie wyniku:** typ struktury jest niezależny od obrotu; orientacja
 i konkretna domena są osobnymi informacjami. Jeden kierunek periodyczności
 nie potwierdza sieci 2D. Dla nowych metod wymagane są końcowe przypisania
-na rzeczywistych molekułach, szare odmowy i możliwość powrotu do v0.4.
+na rzeczywistych molekułach, szare odmowy i możliwość powrotu do bazowej
+metody aplikacji przy porównywalnym wejściu. „Metoda bazowa” oznacza
+obliczenia wdrożone w 05 na wzór v0.4, z klasami dopasowanymi z danych.
+Nie oznacza importu starego modelu lub gotowych przypisań.
 Pomiary i diagnostyka są opcjonalne, żeby zachować prosty widok podstawowy.
 
 Gwyddion może pomagać w kontrolnym pomiarze kilku fragmentów, bez osobnego
@@ -157,7 +162,12 @@ Dokumentacja kandydatów:
   przemalowuje starego wyniku przed ponownym obliczeniem.
 - **Pochodzenie wyniku:** wynik zachowuje faktycznie użyte parametry,
   źródło, zakres i model. Nowe dopasowanie nie przemianowuje starych klas.
-  Pliki źródłowe i bazowy wynik v0.4 pozostają dostępne bez nadpisywania.
+  Pliki źródłowe oraz wcześniejsze własne wyniki pozostają bez nadpisywania.
+- **Samodzielne obliczenia:** aplikacja oblicza cechy, klasy i domeny z wejścia.
+  Próbę odbioru wykonuje się także bez dostępu do dostarczonych paczek i ich
+  modeli/wyników. Zapisane własne projekty z 13 są osobną funkcją; nie są
+  warunkiem rozpoczęcia analizy. Modele robocze są szczegółem obliczeń,
+  a podstawowy przepływ nie wymaga szukania ani ładowania pliku modelu.
 - **Czytelny widok:** podstawą są rzeczywiste molekuły na obrazie,
   kolor konkretnej domeny i szare nieprzypisane oznaczenia. Klasa,
   domena, brak analizy i wynik z zerem domen są rozróżnione. Diagnostyka
@@ -178,25 +188,28 @@ Punktem odniesienia jest [przegląd v0.4](../../new-code-v04-review.md).
   serii i niezależne odkrywanie klas jednej klatki to dwa jawne tryby.
 - Auto wybiera liczbę klas w ograniczonym zakresie; potrzebuje obsługi
   jednej klasy i niewystarczających danych. Nie gwarantuje liczby faz fizycznych.
-- Najpierw odtwarzamy zapisany wynik v0.4, potem umożliwiamy eksperymenty
-  z jego parametrami. Metoda dopuszcza jeden kierunek periodyczności.
+- Najpierw implementujemy metodę wzorowaną na kodzie v0.4 i obliczamy nowy
+  wynik, potem umożliwiamy eksperymenty z jej parametrami i rozszerzeniami.
+  Nowe dopasowanie nie musi odtwarzać historycznych etykiet lub liczników.
+  Metoda v0.4 dopuszcza jeden kierunek periodyczności.
   Wzrost liczby przypisań nie stanowi sam w sobie walidacji domen 2D.
 - Nie przenosimy skryptów paczki w postaci jednego dużego pliku GUI.
   Ustawienia mają trafiać do wykonywanych obliczeń, bez ukrytych
   zależności od pierwszych dziesięciu klatek lub katalogu agenta.
 
-Lokalne materiały do odbioru:
+Lokalne dane do odbioru:
 
 - MPP: `data/TTMAPP/MOVIE_23raw_TTMAPP_I_AU111.MPP`.
 - Oznaczenia: `data/TTMAPP/detection_full.moltrack.json`.
-- Dostarczone archiwa: `data/new_code/`; ich zawartość i identyczność
-  danych opisano w przeglądzie v0.4.
-- Rozpakowane kopie robocze: `.scratch/new-code-v04-review/`.
-  Ścieżki służą odnalezieniu materiałów, a nie są stałymi w aplikacji.
 
-Wynik v0.4 obejmuje 56 spośród 268 klatek. Odbiór ma obejmować różnicę
-między zapisanym zerowym wynikiem (np. klatka 160) a klatką bez analizy.
-Przypadki importu obejmują również brak masek i brak oznaczeń.
+Materiały dla implementatora: archiwa w `data/new_code/` i rozpakowane kopie
+w `.scratch/new-code-v04-review/`, opisane w przeglądzie v0.4. Służą analizie
+kodu metody; aplikacja nie wymaga ich podczas uruchomienia. Dane, modele
+i lokalne artefakty z wcześniejszych prób pozostają na dysku bez zmian.
+
+Odbiór odróżnia klatkę jeszcze nieanalizowaną, poprawnie obliczone zero domen
+i niemożliwe dopasowanie. Nie przejmujemy listy 56 klatek ani zer z dawnego
+eksportu jako własnego wyniku. Przypadki importu obejmują brak masek i oznaczeń.
 
 ## Relacja do wcześniejszej mapy
 

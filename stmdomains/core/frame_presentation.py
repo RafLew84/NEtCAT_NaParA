@@ -8,7 +8,6 @@ import numpy as np
 
 from stmdomains.core.annotations import FrameAnnotations
 from stmdomains.core.display import RenderedImage, contrast_limits, render_image
-from stmdomains.core.domain_results import DomainResult, FrameResult
 from stmdomains.core.registration import parse_registration
 from stmdomains.core.series import FrameData, Series
 from stmdomains.io.annotations import AnnotationStore
@@ -25,17 +24,13 @@ class PresentedFrame:
     registration_text: str
     masks: RenderedImage | None
     gamma: float = 1.0
-    result: FrameResult | None = None
 
 
 class FramePresenter:
     """Bound image cache independently from the store's lazy mask cache."""
 
-    def __init__(self, series: Series, *, result: DomainResult | None = None) -> None:
-        if result is not None and result.series_id != series.identity:
-            raise ValueError("Wynik należy do innej serii.")
+    def __init__(self, series: Series) -> None:
         self.series = series
-        self.result = result
         self.registration = parse_registration(
             series.raw_payload.get("registration"), series.frame_count, series.frame_shape,
         )
@@ -92,5 +87,4 @@ class FramePresenter:
                 self.series.identity, frame, rendered, mode,
                 self.registration.field_rect(index, mode), annotations,
                 self.registration.describe(index), masks, gamma,
-                None if self.result is None else self.result.frame(index),
             )

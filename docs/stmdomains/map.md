@@ -14,15 +14,17 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
-**Implementacja SD-V4-04 — 2026-11-02:** wykonano otwieranie zapisanych
-wyników v0.4 i kolory końcowych domen/klas na rzeczywistych molekułach,
-z odmowami i jawnym brakiem analizy. Import odrzuca niezgodne źródła,
-mapy, ID, współrzędne i podsumowania. GUI sprawdzono na wszystkich
-56 analizowanych klatkach TTMAPP. Implementacja `b6159ac`;
-[raport i test ręczny](implementation/interactive-v04/acceptance-04.md).
-Ręczny odbiór użytkownika 04 pozostaje do wykonania. **Następny ticket
-nowego planu: SD-V4-05.** Wpisy poniżej są historią wcześniejszych etapów;
-nie zamykamy badawczych 04/13 ani historycznego odbioru całego szkieletu.
+**Zmiana planu — 2026-11-02, decyzja użytkownika:** SD-V4-04 usunięto,
+a jego implementację cofnięto do odebranego stanu po 03 (`24625f2`).
+Kod v0.4 pozostaje wzorem metody. Aplikacja ma samodzielnie obliczać
+klasy i domeny z obrazów i oznaczeń, bez importu paczki/modelu v0.4.
+[Aktualny indeks](implementation/interactive-v04/README.md): 05 obliczenia
+jednej klatki i podgląd, 06 strojenie, 07 ręczne K i wspólny zakres,
+08 analiza serii, 12 Auto. Dawny 11 wchłonięto w 05/07; 04/11 nie mają
+już aktywnych ticketów. Numerację pozostałych zachowano.
+**Następny ticket: SD-V4-05.** Po rollbacku: 308 testów PASS, mypy 27 plików
+PASS. Własne obliczenia są planem; 01–03 pozostają odebrane, historyczny
+odbiór całego szkieletu i badawcze 04/13 nadal odrębne. Poniżej historia.
 
 **Odbiór 03 i poprawka wyjścia — 2026-11-02:** użytkownik potwierdził
 ręczne testy wersji `0745e4e`. Następnie zgłoszony crash przy zamykaniu
@@ -31,7 +33,7 @@ testów PASS, 4 próby procesów na X11 PASS, mypy PASS.
 [Raport i test wyjścia](implementation/interactive-v04/acceptance-03.md#poprawka-wyjścia-z-programu).
 Użytkownik potwierdził również ręczny odbiór poprawki wyjścia `3dd8b47`:
 „testy manualne ok”. Odbiór 03 z poprawkami jest zakończony;
-kolejny ticket nadal SD-V4-04.
+planowany wtedy SD-V4-04 został później wycofany; aktualna kolejność powyżej.
 
 **Poprawka SD-V4-03 po zgłoszeniu użytkownika — 2026-11-02:** usunięto
 zmianę geometrii obrazu/nawigacji przy pokazywaniu postępu. 13 celowanych
@@ -42,8 +44,8 @@ Użytkownik potwierdził pomyślne ręczne sprawdzenie poprawki `0745e4e`.
 **Implementacja SD-V4-03 — 2026-11-02:** wykonano miniatury, odtwarzanie
 z pauzą/restartem i gamma. [Raport i test ręczny](implementation/interactive-v04/acceptance-03.md).
 300 testów PASS, mypy PASS, pełna seria 268 klatek TTMAPP sprawdzona w GUI.
-Odbiór ręczny użytkownika 03 potwierdzono dla `0745e4e`. Kolejny ticket nowego
-planu to SD-V4-04; historyczny odbiór całego szkieletu pozostaje osobny.
+Odbiór ręczny użytkownika 03 potwierdzono dla `0745e4e`; historyczny odbiór
+całego szkieletu pozostaje osobny. Aktualną kolejność nowego planu podano powyżej.
 
 **Implementacja SD-V4-02 — 2026-11-02:** działają oznaczenia molekuł,
 maski z regulacją krycia, kliknięcie metadanych i odtworzenie zapisanej
@@ -62,7 +64,7 @@ Oznaczenia i wyrównanie dodano następnie w 02, zgodnie z aktualizacją powyże
 
 Specyfikację pierwszej mapy zakończono 2026-10-19.
 [Zadania budowy i odbioru](implementation/README.md) są gotowe do podjęcia;
-zakres budowy jest realizowany przez SD-V4-01–04, ale historyczny odbiór
+zakres budowy jest realizowany przez SD-V4-01–03, ale historyczny odbiór
 całego szkieletu nie został zamknięty. Status mapy odnosi się do decyzji,
 nie do gotowości programu.
 

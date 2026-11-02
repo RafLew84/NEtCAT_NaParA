@@ -1,18 +1,21 @@
 # Budowa i odbiór szkieletu STM Domains
 
-**Wykonano SD-V4-04 — 2026-11-02:** import zapisanego wyniku v0.4,
-kolory końcowych domen/klas, legenda i powody odmowy. Pełne 56 klatek
-wyniku sprawdzono w GUI. [Uruchomienie i test ręczny 04](interactive-v04/acceptance-04.md).
-**Ręczny odbiór 04 oczekuje na użytkownika; następny ticket to SD-V4-05.**
-Wpisy poniżej zachowują historię poprzednich etapów.
+**Aktualny kierunek — 2026-11-02:** na polecenie użytkownika wycofano
+SD-V4-04 i import jego wyników. Stan aplikacji wrócił do odebranego 03,
+z zachowaniem poprawek układu i wyjścia. **308 testów PASS**, mypy 27 plików
+PASS. [Zmieniony plan](interactive-v04/README.md) prowadzi do własnych
+obliczeń na wzór metody v0.4, bez ładowania zewnętrznych modeli/wyników.
+**Następny ticket: 05 — oblicz klasy i domeny bieżącej klatki z danych.**
+Ręczne K i zakres dodaje 07, serię 08, Auto 12. Dawny 11 wchłonięto
+w 05/07. Obliczenia jeszcze nie są wdrożone. Poniżej historia poprzednich etapów.
 
 **Wykonano SD-V4-03 — 2026-11-02:** miniatury, odtwarzanie bez pomijania
 klatek, pauza/restart i gamma. [Uruchomienie i test ręczny](interactive-v04/acceptance-03.md).
 300 testów PASS, mypy 27 plików PASS; pełne 268 klatek TTMAPP sprawdzone
 w GUI. Ręczny odbiór 03 wraz z poprawką układu `0745e4e` potwierdzono;
 późniejsza [poprawka wyjścia](interactive-v04/acceptance-03.md#poprawka-wyjścia-z-programu)
-`3dd8b47` również odebrana ręcznie 2026-11-02. Następny ticket
-nowego planu: SD-V4-04. Historyczny odbiór całego szkieletu pozostaje otwarty.
+`3dd8b47` również odebrana ręcznie 2026-11-02. Historyczny odbiór całego
+szkieletu pozostaje otwarty; aktualną kolejność nowego planu podano powyżej.
 
 **Wykonano SD-V4-02 — 2026-11-02:** działają zapisane oznaczenia, maski,
 metadane po kliknięciu i geometria raw/aligned. [Uruchomienie i test ręczny](interactive-v04/acceptance-02.md).
@@ -38,7 +41,7 @@ Dotychczasowe tickety i ich statusy pozostają zachowane.
 Specyfikacja: [przekazanie do implementacji](../issues/09-implementation-handoff.md).
 Pierwsza mapa decyzji jest zakończona. **Poniższe historyczne zadania mają
 status `todo`; ich zakres jest wdrażany przez nowy podział SD-V4.**
-Aktualne wykonanie 01–04 opisano powyżej; nie oznacza ono odbioru całego szkieletu.
+Aktualne wykonanie 01–03 opisano powyżej; nie oznacza ono odbioru całego szkieletu.
 
 To zadania wykonawcze, poza rejestrem pytań `wayfinder`. Nie wybierają ponownie
 metod ani zakresu. Obowiązują [import](../issues/01-import-and-geometry.md),

@@ -2,11 +2,11 @@
 
 **ID:** SD-V4-14
 
-**What to build:** Użytkownik eksportuje wybraną klatkę lub zakres: czytelne tabele przypisań oraz obrazy zgodne z oglądanym wynikiem.
+**What to build:** Użytkownik eksportuje wynik obliczony w aplikacji dla wybranej klatki lub dostępnych wyników zakresu: czytelne tabele przypisań oraz obrazy zgodne z oglądanym wynikiem.
 
-**Blocked by:** [04: Otwórz wynik v0.4 i zobacz przynależność molekuł](04-open-v04-results.md).
+**Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md).
 
-**Status:** draft — podział oczekuje na zatwierdzenie użytkownika.
+**Status:** ready-for-agent — plan zaktualizowany na polecenie użytkownika; wykonanie po zależnościach.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
@@ -14,6 +14,7 @@ Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
 - [ ] CSV zachowuje ID molekuł, numery klatek, klasy, konkretne domeny i powody nieprzypisania; zakres i mianowniki są jawne.
 - [ ] Podsumowania dotyczą rzeczywiście dostępnych danych. Brak analizy nie staje się zerem, a suma klatek nie udaje liczby śledzonych molekuł.
+- [ ] Eksport zakresu korzysta wyłącznie z dostępnych wyników aplikacji, z jawnymi statusami pozostałych klatek. Nie uruchamia dopasowania/analizy ani nie doczytuje wyników v0.4. Można go sprawdzić na zakresie z pojedynczą obliczoną klatką, bez zależności od wykonania analizy serii w 08.
 - [ ] PNG odwzorowuje wybrany tryb Klasy/Domeny, legendę, zakres obrazu i ustawienia widoku. Eksport nie zmienia predykcji.
 - [ ] Eksportowane metadane identyfikują wynik, model i faktyczne ustawienia. Powierzchnie przybliżonych masek nie są nazywane zwalidowaną powierzchnią domeny.
 - [ ] Błąd zapisu jest czytelny; eksport nie zastępuje samowystarczalnego projektu. Testy porównują eksport z wynikiem i stanem widoku.
@@ -22,10 +23,10 @@ Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
 ## Test ręczny użytkownika
 
-1. Wyeksportuj 259 do PNG i CSV; otwórz pliki poza aplikacją i porównaj kolorowanie, ID, liczniki i szare oznaczenia.
-2. Wyeksportuj zakres zawierający klatki z wynikiem, zerowym wynikiem i bez analizy; sprawdź rozróżnienie stanów.
+1. Otwórz MPP/JSON i oblicz klatkę 259 metodą bazową aplikacji. Wyeksportuj ją do PNG i CSV; otwórz pliki poza aplikacją i porównaj kolorowanie, ID, liczniki i szare oznaczenia.
+2. Wyeksportuj zakres 259–260 po obliczeniu tylko 259; 260 ma pozostać bez analizy. Osobno oblicz i wyeksportuj dostarczony przykład zerowego wyniku; jego stan musi różnić się od braku analizy.
 3. Powtórz dla widoku Klasy i Domeny oraz sprawdź zachowanie przy błędnym miejscu zapisu.
 
 ## Granice zadania
 
-Eksport można wykonać już na wczytanych wynikach v0.4, bez czekania na nowe modele lub zapis projektu.
+Eksport dotyczy wyników obliczonych przez STM Domains. Nie wymaga importu v0.4, zapisania projektu ani ukończenia analizy całej serii. Działanie metody i trafność domen mają odrębny odbiór.

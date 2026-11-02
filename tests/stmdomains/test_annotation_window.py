@@ -125,11 +125,8 @@ def test_invalid_optional_mask_keeps_standalone_segmentation_box(qtbot, tmp_path
     assert window.annotation_controls.boxes.isEnabled()
     window.annotation_controls.boxes.setChecked(True)
     point = window.image_view.mapFromScene(QPointF(8, 9))
-    image = window.image_view.viewport().grab().toImage()
-    # A cosmetic edge can rasterize to either pixel around a fractional scene mapping.
-    colors = [image.pixelColor(point.x() + dx, point.y() + dy)
-              for dx in (-1, 0, 1) for dy in (-1, 0, 1)]
-    assert any(color.green() > color.red() for color in colors)
+    color = window.image_view.viewport().grab().toImage().pixelColor(point)
+    assert color.green() > color.red()
     point = window.image_view.mapFromScene(QPointF(12, 9))
     qtbot.mouseClick(window.image_view.viewport(), Qt.MouseButton.LeftButton, pos=point)
     assert "mask-raw-A" in window.selection_label.text()
