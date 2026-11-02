@@ -6,31 +6,33 @@
 
 **Blocked by:** [02: Pokaż molekuły i poprawną geometrię obrazu](02-molecules-and-geometry.md).
 
-**Status:** in_progress — realizacja na polecenie użytkownika `implement 05`.
+**Status:** done — implementacja `fb37431`; ręczny odbiór użytkownika oczekuje.
 
 Baza implementacji/przeglądu: `2d01c5e`, gałąź `domains/interactive-v04-ui`,
-środowisko `netcat`. Publiczne granice testów wynikają z kryteriów ticketu:
+środowisko `netcat`. [Uruchomienie, wykonane sprawdzenia, dane kontrolne
+i instrukcja testu ręcznego](acceptance-05.md). Przeglądy Standards i Spec
+zakończono bez usterek blokujących. Publiczne granice testów wynikają z kryteriów ticketu:
 analiza bieżącego obrazu i oznaczeń → wynik po ID oraz analiza → publikacja
 w kontrolerze i UI (kolory, odmowy, stany braku danych, anulowanie i nawigacja).
-Testy tych granic powstają zgodnie z TDD; nie wczytujemy modelu ani wyników v0.4.
+Testy tych granic wykonano zgodnie z TDD; nie wczytujemy modelu ani wyników v0.4.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
 ## Kryteria akceptacji
 
-- [ ] Pełna ścieżka obliczeń korzysta wyłącznie z bieżącego obrazu i jego oznaczeń: opisy otoczeń, ocena porządku, PCA/KMeans, akceptacja klas i przestrzenne tworzenie domen. Parametry klas powstają w aplikacji; nie są wczytywane ani kopiowane z paczki.
-- [ ] Pierwszy wariant ma jawne bazowe K5. PCA dostosowuje rozmiar do dostępnych danych; zbyt mała liczba użytecznych lub różnych próbek daje zrozumiały komunikat i brak dopasowania, bez ukrytego dopisywania innych klatek lub zmiany K. Ręczne K1–8 dodaje 07, a Auto 12.
-- [ ] Potrzebne operacje metody v0.4 przeniesiono do modułów aplikacji. Uruchomienie nie wymaga dostarczonych archiwów, katalogów roboczych, dawnych modeli, gotowych cech/etykiet, ręcznego słownika q/w ani pierwszych dziesięciu klatek. Skala otoczenia pochodzi z wybranego wejścia według jawnej reguły, bez stałej rozstawu TTMAPP.
-- [ ] Bazowa procedura oceny porządku i jej kalibracji jest odtwarzalna z danych/kontroli, a użyte wartości są zachowane. Wydzielenie obliczeń i usunięcie ukrytych zależności należą do 05; późniejsze kontrolki 10 nie są warunkiem uruchomienia metody.
-- [ ] Domyślny widok Domeny używa końcowych lokalnych przypisań po ID molekuły. Różne domeny tej samej klasy mają różne kolory; Klasy pokazują wyłącznie końcowe przypisania i własną legendę. Etykiety wstępne pozostają diagnostyką. Zoom, gamma i geometria raw/aligned zachowują zgodność obrazu z wynikiem.
-- [ ] Szare nieprzypisane molekuły mają przyczynę dostępną po kliknięciu. Pominięte duplikaty są osobnym stanem poza mianownikiem aktywnych molekuł. Liczniki wynikają z przypisań. Zero domen, brak analizy i niemożliwe dopasowanie są jawnie rozróżnione.
-- [ ] Klasy są opisane jako lokalne dla analizowanej klatki, a kolory domen nie sugerują śledzenia. Przejście do innej klatki nie przenosi jej wyniku ani nie uruchamia automatycznie dopasowania. Nie obowiązuje historyczny zakres 56 klatek.
-- [ ] Na klatkach 7, 120, 259 i 268 wykonuje się nowe obliczenia, zapisując parametry, identyfikację danych i mierzalne wyniki. Powtórzenie na identycznym wejściu przy zapisanym ziarnie daje zgodne członkostwo domen. Identyczność z historycznym eksportem v0.4 nie jest kryterium odbioru nowego dopasowania.
-- [ ] Obliczenia działają poza GUI. Błąd, anulowanie, przejście do innej klatki lub otwarcie nowej serii nie podmieniają widoku spóźnionym wynikiem.
-- [ ] Brak oznaczeń albo niewystarczające wsparcie daje jawny stan/odmowę. Ustawienia, zakres dopasowania, wersja wewnętrznego modelu i źródła są związane z obliczonym wynikiem. Zmiana pozostałych klatek nie wpływa na dopasowanie bieżącej.
-- [ ] Testy obejmują rzeczywistą ścieżkę obliczeń bez plików paczki, zgodność ID/geometrii/kolorów/liczników, zero i brak analizy, powtarzalność, anulowanie oraz zachowanie poprzedniego poprawnego wyniku. Małe przykłady syntetyczne mają jawne oczekiwania i są dostępne do otwarcia w UI.
-- [ ] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
-- [ ] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
+- [x] Pełna ścieżka obliczeń korzysta wyłącznie z bieżącego obrazu i jego oznaczeń: opisy otoczeń, ocena porządku, PCA/KMeans, akceptacja klas i przestrzenne tworzenie domen. Parametry klas powstają w aplikacji; nie są wczytywane ani kopiowane z paczki.
+- [x] Pierwszy wariant ma jawne bazowe K5. PCA dostosowuje rozmiar do dostępnych danych; zbyt mała liczba użytecznych lub różnych próbek daje zrozumiały komunikat i brak dopasowania, bez ukrytego dopisywania innych klatek lub zmiany K. Ręczne K1–8 dodaje 07, a Auto 12.
+- [x] Potrzebne operacje metody v0.4 przeniesiono do modułów aplikacji. Uruchomienie nie wymaga dostarczonych archiwów, katalogów roboczych, dawnych modeli, gotowych cech/etykiet, ręcznego słownika q/w ani pierwszych dziesięciu klatek. Skala otoczenia pochodzi z wybranego wejścia według jawnej reguły, bez stałej rozstawu TTMAPP.
+- [x] Bazowa procedura oceny porządku i jej kalibracji jest odtwarzalna z danych/kontroli, a użyte wartości są zachowane. Wydzielenie obliczeń i usunięcie ukrytych zależności należą do 05; późniejsze kontrolki 10 nie są warunkiem uruchomienia metody.
+- [x] Domyślny widok Domeny używa końcowych lokalnych przypisań po ID molekuły. Różne domeny tej samej klasy mają różne kolory; Klasy pokazują wyłącznie końcowe przypisania i własną legendę. Etykiety wstępne pozostają diagnostyką. Zoom, gamma i geometria raw/aligned zachowują zgodność obrazu z wynikiem.
+- [x] Szare nieprzypisane molekuły mają przyczynę dostępną po kliknięciu. Pominięte duplikaty są osobnym stanem poza mianownikiem aktywnych molekuł. Liczniki wynikają z przypisań. Zero domen, brak analizy i niemożliwe dopasowanie są jawnie rozróżnione.
+- [x] Klasy są opisane jako lokalne dla analizowanej klatki, a kolory domen nie sugerują śledzenia. Przejście do innej klatki nie przenosi jej wyniku ani nie uruchamia automatycznie dopasowania. Nie obowiązuje historyczny zakres 56 klatek.
+- [x] Na klatkach 7, 120, 259 i 268 wykonuje się nowe obliczenia, zapisując parametry, identyfikację danych i mierzalne wyniki. Powtórzenie na identycznym wejściu przy zapisanym ziarnie daje zgodne członkostwo domen. Identyczność z historycznym eksportem v0.4 nie jest kryterium odbioru nowego dopasowania.
+- [x] Obliczenia działają poza GUI. Błąd, anulowanie, przejście do innej klatki lub otwarcie nowej serii nie podmieniają widoku spóźnionym wynikiem.
+- [x] Brak oznaczeń albo niewystarczające wsparcie daje jawny stan/odmowę. Ustawienia, zakres dopasowania, wersja wewnętrznego modelu i źródła są związane z obliczonym wynikiem. Zmiana pozostałych klatek nie wpływa na dopasowanie bieżącej.
+- [x] Testy obejmują rzeczywistą ścieżkę obliczeń bez plików paczki, zgodność ID/geometrii/kolorów/liczników, zero i brak analizy, powtarzalność, anulowanie oraz zachowanie poprzedniego poprawnego wyniku. Małe przykłady syntetyczne mają jawne oczekiwania i są dostępne do otwarcia w UI.
+- [x] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
+- [x] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
 
 ## Test ręczny użytkownika
 

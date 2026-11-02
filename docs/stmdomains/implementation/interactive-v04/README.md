@@ -13,9 +13,13 @@ Parametry klas powstają wewnętrznie z wybranych danych, bez pliku modelu.
 Stan: **18 ticketów w aktualnym planie**. **01–03 są wykonane i odebrane
 ręcznie**: [obrazy i suwak](acceptance-01.md), [oznaczenia i geometria](acceptance-02.md),
 [miniatury, odtwarzanie i gamma](acceptance-03.md), wraz z poprawkami układu
-`0745e4e` i wyjścia `3dd8b47`. Kod i testy przywrócono do stanu `24625f2`:
-po wycofaniu 04 **308 testów PASS**. Aktualny program pozostaje przeglądarką
-wejściowych obrazów i oznaczeń; własna analiza jeszcze nie jest zaimplementowana.
+`0745e4e` i wyjścia `3dd8b47`. **05 jest zaimplementowany (`fb37431`, `done`),
+odbiór ręczny użytkownika oczekuje**: [uruchomienie, sprawdzenia i test ręczny](acceptance-05.md).
+**Analizuj klatkę · K5** oblicza lokalne klasy i końcowe domeny z MPP
+i oznaczeń MolTrack, pokazując kolory, legendę, liczniki i przyczyny odmów.
+Obliczenia mają postęp i anulowanie; nie wymagają importu modelu.
+Przed 05 kod i testy przywrócono do stanu `24625f2`: po wycofaniu 04
+**308 testów PASS**. To wynik historycznego rollbacku.
 
 **04 usunięto z planu**, a jego implementację `b6159ac` i `c13b291`
 wycofano bez przepisywania historii Git. **11 usunięto jako dublujący**:
@@ -23,9 +27,10 @@ dopasowanie jednej klatki przejmują 05 (bazowe K5) i 07 (ręczne K i zakres).
 Numerów 04/11 nie wykorzystujemy ponownie; pozostałe ID i ścieżki zachowano.
 Historia usuniętych ticketów pozostaje w Git.
 
-**Następny ticket: 05.** 05–10 oraz 12–18 mają zakres `ready-for-agent`
+**Następny ticket: 06.** 01–03 i 05 mają status `done`.
+06–10 oraz 12–18 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
-wyboru. Zlecenie zmiany planu nie oznacza rozpoczęcia implementacji 05.
+wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
 ## Tickety i kolejność
 
@@ -54,8 +59,8 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [19 — Porównaj domeny z lokalnego FFT i NMF obrazu](19-compare-local-fft-nmf.md) | SD-V4-06, SD-V4-16; warunek wyboru | Zmień okno analizy obrazu i porównaj wynik na molekułach. |
 | [20 — Zachowaj wspólny katalog typów struktury w serii](20-shared-structural-type-catalogue.md) | SD-V4-08, SD-V4-13, SD-V4-16; warunek wyboru | Sprawdź wspólne typy na kolejnych klatkach i po otwarciu zapisanego projektu. |
 
-Rekomendowana kolejność od obecnego stanu: **05 → 06 → 07 → 08 → 12**:
-własny wynik jednej klatki → strojenie domen → ręczne K i zakres odkrywania
+Rekomendowana kolejność po wykonanym 05: **06 → 07 → 08 → 12**:
+strojenie domen → ręczne K i zakres odkrywania
 → analiza serii → Auto. 12 można wykonać już po 07, jeśli Auto ma pierwszeństwo
 przed analizą całej serii. Po 05 dostępne są niezależnie 06, 07, 10, 13,
 14 i 16; po 07 także 08, 09, 12 i 15. 08 wymaga wspólnego dopasowania

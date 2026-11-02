@@ -14,6 +14,14 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Implementacja SD-V4-05 — 2026-11-02 (`fb37431`):** aplikacja oblicza
+lokalne klasy K5 i końcowe domeny bieżącej klatki z MPP i oznaczeń MolTrack,
+bez importu modelu/wyniku v0.4. Widok pokazuje kolory, legendę i odmowy;
+działają postęp i anulowanie. [Raport i test ręczny](implementation/interactive-v04/acceptance-05.md).
+05 ma status `done`; ręczny odbiór użytkownika oczekuje. **Następny ticket:
+SD-V4-06 — strojenie tworzenia domen.** 01–03 pozostają odebrane, a historyczny
+odbiór całego szkieletu i badawcze 04/13 odrębne. Poniżej historia.
+
 **Zmiana planu — 2026-11-02, decyzja użytkownika:** SD-V4-04 usunięto,
 a jego implementację cofnięto do odebranego stanu po 03 (`24625f2`).
 Kod v0.4 pozostaje wzorem metody. Aplikacja ma samodzielnie obliczać
@@ -22,9 +30,8 @@ klasy i domeny z obrazów i oznaczeń, bez importu paczki/modelu v0.4.
 jednej klatki i podgląd, 06 strojenie, 07 ręczne K i wspólny zakres,
 08 analiza serii, 12 Auto. Dawny 11 wchłonięto w 05/07; 04/11 nie mają
 już aktywnych ticketów. Numerację pozostałych zachowano.
-**Następny ticket: SD-V4-05.** Po rollbacku: 308 testów PASS, mypy 27 plików
-PASS. Własne obliczenia są planem; 01–03 pozostają odebrane, historyczny
-odbiór całego szkieletu i badawcze 04/13 nadal odrębne. Poniżej historia.
+Po rollbacku: 308 testów PASS, mypy 27 plików PASS. Zaplanowane wtedy
+własne obliczenia wdrożono następnie w 05, zgodnie z aktualizacją powyżej.
 
 **Odbiór 03 i poprawka wyjścia — 2026-11-02:** użytkownik potwierdził
 ręczne testy wersji `0745e4e`. Następnie zgłoszony crash przy zamykaniu

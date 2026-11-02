@@ -1,3 +1,76 @@
+# STM Domains — wykonano SD-V4-05: własne obliczenia klatki
+
+Data: **2026-11-02**. Na polecenie `implement 05` wykonano
+[SD-V4-05](implementation/interactive-v04/05-analyze-current-frame.md),
+status `done`; **ręczny odbiór użytkownika oczekuje**. Baza **`2d01c5e`**,
+implementacja **`fb37431`** na `domains/interactive-v04-ui`, worktree
+`/home/rlew/projekty/NEtCAT-domains`. Commit dokumentacji podano w odpowiedzi.
+
+Przycisk **Analizuj klatkę · K5** oblicza z oryginalnego obrazu i oznaczeń
+bieżącej klatki skalę, opisy otoczeń, ocenę porządku i jej kalibrację,
+PCA/KMeans, bariery oraz domeny. Parametry modelu powstają wewnętrznie,
+bez dostępu do paczek, modeli, etykiet lub kalibracji v0.4. Wynik po ID
+molekuły obejmuje końcową klasę/domenę i przyczynę odmowy. UI pokazuje
+**Domeny / Klasy / Wejściowe**, legendę i liczniki; duplikaty są osobnym
+stanem poza mianownikiem. Przyciski danych udostępniają użyte parametry,
+kalibrację, model i identyfikację wejścia. Obliczenia działają w tle;
+zmiana klatki, anulowanie i nowa seria odrzucają spóźnione wyniki.
+
+**[Instrukcja odbioru i raport](implementation/interactive-v04/acceptance-05.md).**
+Uruchom w **netcat**: `python -m stmdomains.main`, otwórz
+`data/TTMAPP/detection_full.moltrack.json`, wybierz 259 i kliknij analizę.
+Sprawdź kolory Domeny/Klasy, odmowę po kliknięciu szarej molekuły,
+gamma/zoom/raw/aligned, powrót do wyników i anulowanie. Generator
+`python -m stmdomains.tools.analysis_demo` udostępnia w tym samym UI
+kontrole poprawnego wyniku, zera domen, braku oznaczeń i zbyt małej próby.
+
+**Wykonane sprawdzenia w netcat, bez instalacji:**
+
+- Pełny zestaw **340 testów PASS, bez pominięć, 26,92 s**, w tym 32 nowe;
+  uruchomiony raz po poprawkach i przeglądach. Mypy **38 modułów PASS**.
+- Długości kodu/testów: **20 plików, maksimum 394 linie**. Wspólnego kodu,
+  konfiguracji i pozostałych aplikacji nie zmieniano.
+- **316 lokalnych odnośników w 9 dokumentach PASS**, `git diff --check` PASS.
+- Code-review `2d01c5e...fb37431`: Spec bez niezgodności; Standards bez
+  naruszeń/usterek blokujących. Uwaga o powtórzonych stałych trafiła do 06:
+  ustawienia obliczeń i raportu mają korzystać ze wspólnej konfiguracji.
+- Próby TTMAPP, każda powtórzona z identycznym członkostwem: 7 **245/317,
+  12 domen**; 120 **67/248, 3 domeny**; 259 **120/312, 6 domen**;
+  268 **145/308, 5 domen**. Zero odczytów dawnych paczek/artefaktów,
+  identyczne SHA-256 wejściowych MPP i JSON przed/po.
+- Rzeczywiste GUI X11/xcb sterowane Qt: analiza, wszystkie tryby wyników,
+  odmowy, raw/aligned, gamma/zoom, nawigacja/anulowanie, kontrole i jedna
+  klatka. Układ okna 900×650 stabilny; obejrzano zrzuty także maksymalizacji.
+  Zamknięcie w trakcie kalibracji: kod 0, obie pule workerów zakończone.
+  To sprawdzenie agenta, oddzielne od oczekiwanego odbioru użytkownika.
+
+Lokalne artefakty `.scratch/stmdomains-ui-05/` pozostają poza Git.
+Na sprawdzonych danych samo obliczenie około 0,66–0,72 s/klatkę;
+259 bez ustawiania zmiennych liczby wątków 0,704 s. GUI szczyt RSS około
+1288 MiB; dotychczasowe ograniczenia wczytywania JSON/MPP pozostają.
+Początkowe limity analizy: 3000 oznaczeń i 4 194 304 piksele.
+
+**Ograniczenia:** model i kolory klas są lokalne dla klatki, bez śledzenia
+w czasie. Wyniki pozostają w pamięci, po jednym na klatkę; zapis należy
+do 13. K5 jest jawnym wariantem bazowym, nie oszacowaniem liczby faz.
+Ocena porządku wykrywa pojedynczy kierunek okresowości, bariery zakładają
+bliskie poziomym jasne przejścia. Kontrola pięciu pól sieci daje 17 domen,
+więc fragmentacja pozostaje widoczna. Liczniki przypisań nie dowodzą
+trafności detekcji; badawcze 04/13 i odbiór całej metody nadal otwarte.
+
+**Następny ticket: 06 — strojenie tworzenia domen**, bez jego implementacji
+w tym zleceniu. 07 doda ręczne K i zakres dopasowania, 08 wspólną analizę
+serii, 12 Auto. **01–03 oraz 05 done**, 06–10 i 12–18 ready po zależnościach,
+19–20 deferred. 04/11 pozostają wycofane. Odbiór użytkownika 01–03 zachowany.
+
+**Dla integratora:** deklaracja zależności STM Domains wymaga teraz także
+scikit-learn i threadpoolctl, obok wcześniej zgłoszonych NumPy/SciPy oraz
+pytest-qt do testów. Wszystkie są dostępne w istniejącym netcat; wspólnych
+requirements nie zmieniano. Poniżej historia, której wskazania kolejnego
+zadania nie zastępują aktualnego planu.
+
+---
+
 # STM Domains — wycofanie 04, plan własnych obliczeń
 
 Data: **2026-11-02**. Użytkownik polecił całkowicie pominąć wczytywanie

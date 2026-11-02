@@ -6,9 +6,14 @@ Dotychczasowe rozbudowane galerie diagnostyczne są dla niego nieczytelne.
 Ten dokument ustala prezentację przyszłych prób. **Aktualizacja 2026-11-02:**
 import zapisanych wyników v0.4 z SD-V4-04 został wycofany na polecenie
 użytkownika. Przeglądanie obrazów i oznaczeń z 01–03 pozostaje dostępne;
-widok obliczonych domen będzie częścią [nowego 05](implementation/interactive-v04/05-analyze-current-frame.md).
+widok obliczonych domen wdrożono w [05](implementation/interactive-v04/05-analyze-current-frame.md)
+(`fb37431`). **Analizuj klatkę · K5** oblicza lokalne klasy i domeny bieżącego
+obrazu; widok Domeny/Klasy pokazuje końcowe przypisania, legendę i odmowy.
+[Sprawdzenia i test ręczny](implementation/interactive-v04/acceptance-05.md);
+odbiór ręczny użytkownika oczekuje.
 V0.4 służy jako wzór metody. Podstawowym wejściem są obrazy i oznaczenia,
-a klasy i domeny powstają w aplikacji. Nie uruchomiono nowego eksperymentu.
+a klasy i domeny powstają w aplikacji. Wdrożenie i próby działania nie
+stanowią potwierdzenia trafności detektora.
 
 ## Podstawowy widok
 

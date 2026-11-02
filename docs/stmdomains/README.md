@@ -5,9 +5,19 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-02
 
-**Zmiana kierunku na polecenie użytkownika:** usunięto ticket SD-V4-04
+**Wykonano SD-V4-05 (`fb37431`):** po otwarciu MPP z oznaczeniami MolTrack
+przycisk **Analizuj klatkę · K5** oblicza pięć lokalnych klas i końcowe domeny
+z bieżących danych. Działają kolory domen/klas, legenda, liczniki, przyczyny
+odmów, postęp i anulowanie. Program nie wczytuje modelu ani wyniku v0.4.
+[Uruchomienie, wykonane sprawdzenia i test ręczny 05](implementation/interactive-v04/acceptance-05.md).
+**Odbiór ręczny użytkownika 05 oczekuje; następny ticket: SD-V4-06 — strojenie
+tworzenia domen.** W aktualnym planie 01–03 i 05 mają status `done`,
+06–10 oraz 12–18 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
+To wdrożenie eksperymentalnej metody, bez potwierdzenia trafności detektora.
+
+**Wcześniejsza zmiana kierunku na polecenie użytkownika:** usunięto ticket SD-V4-04
 i wycofano jego funkcję wczytywania paczek wyników v0.4. Kod oraz testy
-aplikacji odpowiadają odebranemu stanowi po 03 (`24625f2`), z poprawkami
+aplikacji przywrócono wtedy do odebranego stanu po 03 (`24625f2`), z poprawkami
 układu i wyjścia. **308 testów PASS**, mypy **27 plików PASS**; największy
 przywrócony plik ma **341 linii**. Lokalnych danych i paczek nie usuwano.
 
@@ -17,8 +27,8 @@ obliczenia od danych: **05 — klasy i domeny jednej klatki**, **06 — strojeni
 V0.4 jest wzorem kodu metody; nie wczytujemy jego modeli ani wyników.
 05 obejmuje bazowe K5 i czytelny wynik na molekułach; model powstaje wewnętrznie.
 Dawny 11 wchłonięto w 05/07, bez renumeracji pozostałych zadań.
-**Następny ticket: SD-V4-05.** Zmieniono plan, własnych obliczeń jeszcze
-nie zaimplementowano. Odbiory 01–03 są zachowane; badawcze 04/13 pozostają
+Obliczenia z 05 są już wdrożone zgodnie z aktualizacją powyżej.
+Odbiory 01–03 są zachowane; badawcze 04/13 pozostają
 otwarte. Wpisy poniżej zachowują historię wcześniejszych etapów i planów.
 
 **Odbiór 03 potwierdzony; poprawiono także błąd wyjścia:** po potwierdzeniu

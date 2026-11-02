@@ -17,6 +17,7 @@ Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 - [ ] Zmiany dotyczą tworzenia domen; słownik klas i jego zakres pozostają zachowane. Cache jest używany wyłącznie dla zgodnych danych i ustawień.
 - [ ] Działa przełączenie poprzedni/nowy wynik na tej samej klatce oraz Przywróć ustawienia bazowe. Bazowy wynik jest przeliczany w aplikacji przy tym samym wewnętrznie dopasowanym modelu; nie jest importowany z v0.4. Edycja ustawień sama nie przemalowuje starego wyniku.
 - [ ] Zapisane metadane pokazują wartości faktycznie użyte. Testy na kontrolowanym układzie potwierdzają wpływ każdej kontrolki, bez wymagania monotonicznych zmian zachłannego podziału.
+- [ ] Ustawienia przekazywane do obliczeń i raportowane w wyniku mają jedno źródło. Wspólna konfiguracja zastępuje powtórzone stałe bazowej wersji 05; oba etapy sprawdzania minimum domeny korzystają z tej samej wartości.
 - [ ] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
 - [ ] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
 

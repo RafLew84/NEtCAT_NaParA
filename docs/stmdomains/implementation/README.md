@@ -1,13 +1,21 @@
 # Budowa i odbiór szkieletu STM Domains
 
-**Aktualny kierunek — 2026-11-02:** na polecenie użytkownika wycofano
-SD-V4-04 i import jego wyników. Stan aplikacji wrócił do odebranego 03,
+**Wykonano SD-V4-05 — 2026-11-02 (`fb37431`):** **Analizuj klatkę · K5**
+oblicza lokalne klasy i końcowe domeny z bieżącego obrazu MPP i oznaczeń
+MolTrack, z kolorami, legendą, odmowami, postępem i anulowaniem.
+[Uruchomienie, sprawdzenia i test ręczny](interactive-v04/acceptance-05.md).
+Ręczny odbiór użytkownika oczekuje. **Następny ticket: 06 — strojenie
+tworzenia domen.** Aktualny plan ma 18 ticketów: 01–03 i 05 `done`,
+06–10 oraz 12–18 `ready-for-agent` po zależnościach, 19–20 `deferred`.
+
+**Wcześniejsza zmiana kierunku — 2026-11-02:** na polecenie użytkownika wycofano
+SD-V4-04 i import jego wyników. Stan aplikacji wrócił wtedy do odebranego 03,
 z zachowaniem poprawek układu i wyjścia. **308 testów PASS**, mypy 27 plików
 PASS. [Zmieniony plan](interactive-v04/README.md) prowadzi do własnych
 obliczeń na wzór metody v0.4, bez ładowania zewnętrznych modeli/wyników.
-**Następny ticket: 05 — oblicz klasy i domeny bieżącej klatki z danych.**
 Ręczne K i zakres dodaje 07, serię 08, Auto 12. Dawny 11 wchłonięto
-w 05/07. Obliczenia jeszcze nie są wdrożone. Poniżej historia poprzednich etapów.
+w 05/07. Obliczenia jednej klatki wdrożono w 05, zgodnie z aktualizacją
+powyżej. Poniżej historia poprzednich etapów.
 
 **Wykonano SD-V4-03 — 2026-11-02:** miniatury, odtwarzanie bez pomijania
 klatek, pauza/restart i gamma. [Uruchomienie i test ręczny](interactive-v04/acceptance-03.md).
@@ -41,7 +49,7 @@ Dotychczasowe tickety i ich statusy pozostają zachowane.
 Specyfikacja: [przekazanie do implementacji](../issues/09-implementation-handoff.md).
 Pierwsza mapa decyzji jest zakończona. **Poniższe historyczne zadania mają
 status `todo`; ich zakres jest wdrażany przez nowy podział SD-V4.**
-Aktualne wykonanie 01–03 opisano powyżej; nie oznacza ono odbioru całego szkieletu.
+Aktualne wykonanie 01–03 i 05 opisano powyżej; nie oznacza ono odbioru całego szkieletu.
 
 To zadania wykonawcze, poza rejestrem pytań `wayfinder`. Nie wybierają ponownie
 metod ani zakresu. Obowiązują [import](../issues/01-import-and-geometry.md),
@@ -92,9 +100,11 @@ czy `sys.executable` i `sys.prefix` należą do wskazanego `netcat`.
 Testy wymagające Qt na maszynie bez ekranu uruchamia się z
 `QT_QPA_PLATFORM=offscreen`. Scenariusze pełnych danych i GUI mają być
 uruchamiane jawnie i raportowane oddzielnie. Pusty zbiór testów nie jest sukcesem.
-Minimalna ścieżka produkcyjna: PyQt6 + NumPy + SciPy. Dla testów: pytest,
-pytest-qt. Środowisko, modele i dane nie trafiają do Git.
+Minimalna ścieżka produkcyjna: PyQt6 + NumPy + SciPy + scikit-learn +
+threadpoolctl. Dla testów: pytest, pytest-qt. Wszystkie te pakiety są
+dostępne w istniejącym `netcat`. Środowisko, modele i dane nie trafiają do Git.
 
 Główny `requirements/stm-apps.txt` obsługuje na razie puste okno. Potrzebę
-uzupełnienia NumPy/SciPy oraz właściwego zakresu CI przekazuje się integratorowi.
+uzupełnienia NumPy/SciPy, scikit-learn/threadpoolctl oraz właściwego zakresu
+CI przekazuje się integratorowi.
 Przed deklaracją instalacji z tego pliku trzeba sprawdzić jego aktualizację.
