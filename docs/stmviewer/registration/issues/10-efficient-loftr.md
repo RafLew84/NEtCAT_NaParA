@@ -4,7 +4,7 @@
 z obecnym Deep Matcherem i stosuje wybrany wynik do filmu.
 **Blocked by:** [REG-08c](08c-graph-movie-application.md), w tym odbiór manualny.
 **Status:** ready-for-review
-**Poprawka po zgłoszeniu:** [niepewne wyniki na rzeczywistych MPP](../efficient-loftr-weak-results.md).
+**Poprawka po zgłoszeniu:** `7e7084c`; [niepewne wyniki na rzeczywistych MPP](../efficient-loftr-weak-results.md).
 Użytkownik zaakceptował pokazywanie słabo popartych oszacowań z ostrzeżeniem;
 reguły v2 zastępują wcześniejsze twarde odrzucanie takich kandydatów.
 **Manualny odbiór:** oczekuje; [instrukcja](../efficient-loftr-manual.md).

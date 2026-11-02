@@ -1,6 +1,6 @@
 # REG-10: słabe wyniki rzeczywistych MPP — 2026-11-02
 
-Baza poprawki: `93a3126`; gałąź `viewer/registration-difficult-movies`.
+Baza poprawki: `93a3126`; implementacja `7e7084c`; gałąź `viewer/registration-difficult-movies`.
 Status `ready-for-review`; użytkownik zaakceptował pokazywanie niepewnych
 wyników, ręczny odbiór poprawki pozostaje do wykonania.
 
@@ -19,6 +19,8 @@ Zastosowanie, sesje, korekty, MPP i AVI sprawdzono automatycznie.
 Przydatność wizualna, Windows, VLC i karta 8 GB VRAM nie są tym potwierdzone.
 
 [Diagnoza, wyniki i instrukcja próby](registration/efficient-loftr-weak-results.md).
+[Przeglądy](registration/reviews/REG-10-weak-results.md): 0 otwartych uwag;
+doprecyzowano opis wag Hubera.
 Uruchom ponownie w `netcat`: `python -m stmviewer.main`. Nie trzeba pobierać
 wag. W MOVIE_4 usuń źródłowe 1–2; do całego filmu użyj grafu z oknem 3
 oraz jawnie zastosuj kompletny LS. Brak potrzebnych zmian wspólnych.

@@ -1,6 +1,6 @@
 # REG-10: niepewne wyniki na rzeczywistych pomiarach
 
-Data: 2026-11-02. Baza poprawki: `93a3126`.
+Data: 2026-11-02. Baza poprawki: `93a3126`; implementacja `7e7084c`.
 Status: `ready-for-review`; ręczna ocena poprawki oczekuje.
 
 ## Zgłoszenie i decyzja użytkownika
@@ -62,7 +62,8 @@ zastępowania metody lub interpolacji brakującej relacji.
 
 Niepewność przechodzi przez parę, łańcuch, graf, sesję, ręczne korekty i MPP.
 W łańcuchu późniejsza para bez ostrzeżeń nie usuwa wcześniejszej niepewności.
-Graf i Huber nadal mają równe wagi; słabe pomiary są jawnie oznaczone.
+LS zachowuje równe wagi, a Huber nadal wyznacza wagi na podstawie reszt.
+Status i score modelu nie nadają wag; słabe pomiary są jawnie oznaczone.
 Zastosowany graf pokazuje liczbę takich par, bez przypisywania pewności
 poszczególnym pozycjom wyliczonym przez solver.
 
@@ -116,6 +117,8 @@ przed właściwą analizą MOVIE_4, zgodnie z informacją użytkownika.
 - Qt offscreen potwierdza widoczność ostrzeżenia, licznika słabych par,
   zachowanie go w MPP oraz możliwość korekty i zastosowania słabej pary.
   To test automatyczny, nie ręczny odbiór GUI.
+- [Dwa przeglądy poprawki](reviews/REG-10-weak-results.md): Standards 0 istotnych
+  uwag, Spec 0 otwartych uwag; doprecyzowano opis wag Hubera.
 - Logi i JUnit: `/tmp/reg10-real-diagnosis/viewer-tests.*`, `real-tests.*`.
 
 ## Próba ręczna
