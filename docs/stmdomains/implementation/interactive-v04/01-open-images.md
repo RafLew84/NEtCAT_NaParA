@@ -6,7 +6,11 @@
 
 **Blocked by:** None (can start immediately after approval of the breakdown).
 
-**Status:** draft — podział oczekuje na zatwierdzenie użytkownika.
+**Status:** in_progress — wykonanie zlecone przez użytkownika; prowadzi Codex na `domains/interactive-v04-ui`.
+
+Punkt bazowy implementacji i przeglądu: `4c4825f`. Testy przy publicznych
+interfejsach importu/modelu oraz pełnej ścieżce import–widok, zgodnie
+z kryteriami poniżej; środowisko `netcat`.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
