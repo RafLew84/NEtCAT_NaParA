@@ -39,10 +39,6 @@ class GraphMovieWidget(QWidget):
         self._source.setWordWrap(True)
         self._source.setMinimumHeight(4 * self._source.fontMetrics().lineSpacing())
         layout.addWidget(self._source)
-        self._reference_delta = QLabel(self)
-        self._reference_delta.setObjectName('graphReferenceDelta')
-        self._reference_delta.setWordWrap(True)
-        layout.addWidget(self._reference_delta)
         self._preview = ImagePreview(self)
         self._preview.setObjectName('graphPreview')
         layout.addWidget(self._preview, 1)
@@ -116,8 +112,7 @@ class GraphMovieWidget(QWidget):
         choices: list[tuple[str, str]] = []
         if trial is not None and trial.positions is not None:
             variants['graph'] = trial.positions
-            label = 'Okno + dalsze odniesienia — LS' if trial.extension is not None else 'Kandydat grafu — wspólne XY (LS)'
-            choices.append((label, 'graph'))
+            choices.append(('Kandydat grafu — wspólne XY (LS)', 'graph'))
         if trial is not None and trial.chain_positions is not None:
             variants['chain'] = trial.chain_positions
             choices.append(('Łańcuch — suma sąsiednich pomiarów tej próby', 'chain'))
@@ -141,16 +136,6 @@ class GraphMovieWidget(QWidget):
                     key = f'huber:{robust.revision}'
                     variants[key] = robust.positions
                     choices.append((f'Huber {index + 1} — próg {robust.config.threshold_px:g} px', key))
-        if trial is not None and trial.extension is not None:
-            base = trial.extension.base
-            if base.positions is not None:
-                variants['base:graph'] = base.positions
-                choices.append(('Samo okno — LS (baza porównania)', 'base:graph'))
-            for index, robust in enumerate(base.robust_trials, 1):
-                if robust.positions is not None:
-                    key = f'base:huber:{robust.revision}'
-                    variants[key] = robust.positions
-                    choices.append((f'Samo okno — Huber {index}, próg {robust.config.threshold_px:g} px (baza)', key))
         self._variants = variants
         with QSignalBlocker(self._variant):
             self._variant.clear()
@@ -272,7 +257,6 @@ class GraphMovieWidget(QWidget):
                     lx, ly = self._trial.positions[index]
                     text += f'\nHuber − LS: X {x - lx:+.3f} px · Y {y - ly:+.3f} px'
         self._source.setText(text)
-        self._reference_delta.setText(self._comparison_text(index, variant))
         try:
             raster = self._renderer.render(index, variant, gamma=self._gamma.value(),
                                             pixel_proportions=self._pixels.isChecked())
@@ -290,31 +274,3 @@ class GraphMovieWidget(QWidget):
             self._preview.clear_frame()
             self._status.setText(f'Nie można wyświetlić klatki: {error}')
         self._sync()
-
-    def _comparison_text(self, index: int, variant: str) -> str:
-        trial = self._trial
-        if trial is None or trial.extension is None:
-            return ''
-        base = trial.extension.base
-        augmented, baseline = trial.positions, base.positions
-        solver = 'LS'
-        if variant.startswith(('huber:', 'base:huber:')):
-            revision = variant.removeprefix('base:').removeprefix('huber:')
-            selected_graph = base if variant.startswith('base:') else trial
-            selected = next((r for r in selected_graph.robust_trials if r.revision == revision), None)
-            original = next((r for r in base.robust_trials if selected is not None
-                             and r.config == selected.config and r.positions is not None), None)
-            extended = next((r for r in trial.robust_trials if selected is not None
-                             and r.config == selected.config and r.positions is not None), None)
-            if original is None or extended is None:
-                return 'Brak porównania z bazą: nie ma dwóch kompletnych wyników Hubera o tych samych ustawieniach.'
-            baseline, augmented = original.positions, extended.positions
-            solver = f'Huber · próg {original.config.threshold_px:g} px · limit {original.config.max_iterations}'
-        elif variant not in ('graph', 'base:graph'):
-            return 'Różnica względem bazy jest dostępna dla LS i Hubera o tych samych ustawieniach.'
-        if baseline is None or augmented is None:
-            return 'Brak dwóch kompletnych wyników do porównania.'
-        dx = augmented[index][0] - baseline[index][0]
-        dy = augmented[index][1] - baseline[index][1]
-        return (f'Okno + dalsze odniesienia − samo okno ({solver}): '
-                f'X {dx:+.3f} px · Y {dy:+.3f} px. Wspólna kotwica: klatka 1.')

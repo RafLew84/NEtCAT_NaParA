@@ -29,7 +29,6 @@ class GraphConfig:
     libraries: tuple[tuple[str, str], ...]
     code_version: str
     settings_version: int = 1
-    pair_code_version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -62,17 +61,3 @@ class GraphTrial:
     measurement_s: float = 0.
     solver_s: float = 0.
     robust_trials: tuple['RobustTrial', ...] = ()
-    extension: 'GraphExtension | None' = None
-
-
-@dataclass(frozen=True)
-class GraphExtension:
-    """One explicit comparison with an unchanged, non-extended window baseline."""
-
-    base: GraphTrial
-    references: tuple[int, ...]
-    target_start: int
-    target_end: int
-    base_robust_revision: str | None
-    measurement_config: GraphConfig
-    settings_version: int = 1

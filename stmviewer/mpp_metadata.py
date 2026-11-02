@@ -84,12 +84,12 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
         except (UnicodeError, json.JSONDecodeError) as error:
             raise ValueError(f'Nieprawidłowy JSON UTF-8: {error}') from error
         check_cancelled()
-        shared_history = isinstance(decoded, dict) and decoded.get('version') in (4, 5, 6)
+        shared_history = isinstance(decoded, dict) and decoded.get('version') in (4, 5)
         metadata = _object(decoded, {'format', 'version', 'image_kind', 'movie', 'frames'}
                            | ({'manual_results', 'sample_encoding'} if shared_history else set()))
         if metadata['format'] != 'stmviewer-mpp':
             raise ValueError('Nieobsługiwany format dodatku.')
-        if type(metadata['version']) is not int or metadata['version'] not in (1, 2, 3, 4, 5, 6):
+        if type(metadata['version']) is not int or metadata['version'] not in (1, 2, 3, 4, 5):
             raise ValueError(f'Nieobsługiwana wersja dodatku: {metadata["version"]}.')
         version = metadata['version']
         assert isinstance(version, int)
@@ -98,7 +98,7 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
         if version >= 4:
             manual_results = decode_manual_results(metadata['manual_results'], check_cancelled)
             if metadata['sample_encoding'] not in ('native-f64', 'finite-fill'):
-                raise ValueError('Nieobsługiwany zapis próbek V4/V5/V6.')
+                raise ValueError('Nieobsługiwany zapis próbek V4/V5.')
             finite_fill = metadata['sample_encoding'] == 'finite-fill'
         kind = metadata['image_kind']
         if kind not in ('original', 'aligned') or (version == 1 and kind != 'original'):
@@ -150,7 +150,7 @@ def apply_mpp_metadata(path: Path, frames: tuple[ImageFrame, ...], *, sha256: st
 def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
                         check_cancelled: Callable[[], None], image_kind: str = "original",
                         wsxm_compatible: bool = False) -> bytes:
-    """Keep legacy formats; V6 adds compact long-reference graph provenance."""
+    """Keep legacy formats; V4 shares manual history, V5 adds frozen graph provenance."""
     validate_alignment_series(frames, aligned=image_kind == "aligned")
     version = 2 if image_kind == "aligned" or any(f.alignment for f in frames) else 1
     if wsxm_compatible:
@@ -161,9 +161,6 @@ def encode_mpp_metadata(frames: tuple[ImageFrame, ...], sha256: str, *,
         version = 4
     if any(history.graph_provenance is not None for history in manual_results):
         version = 5
-    if any(history.graph_provenance is not None and history.graph_provenance.extension is not None
-           for history in manual_results):
-        version = 6
     finite_fill = wsxm_compatible
     remaining_runs = MAX_RUNS
     records = []

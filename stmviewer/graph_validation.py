@@ -13,10 +13,7 @@ def validate_graph_result(trial: GraphTrial, check_cancelled: Callable[[], None]
     count = len(trial.sources)
     if trial.anchor != 0 or trial.solver != 'equal-ls-v1':
         raise ValueError('Graf: nieobsługiwana kotwica lub wersja solvera.')
-    if trial.extension is not None:
-        from stmviewer.long_references import validate_graph_extension
-        validate_graph_extension(trial, check_cancelled)
-    elif tuple((edge.i, edge.j) for edge in trial.edges) != graph_pairs(count, trial.config.window):
+    if tuple((edge.i, edge.j) for edge in trial.edges) != graph_pairs(count, trial.config.window):
         raise ValueError('Graf: lista rozpatrzonych par nie odpowiada oknu i serii.')
     accounted = trial.measured_pairs + trial.reused_pairs
     if accounted not in (0, len(trial.edges)) or min(trial.measurement_s, trial.solver_s) < 0:

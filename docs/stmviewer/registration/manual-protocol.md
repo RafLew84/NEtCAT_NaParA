@@ -169,13 +169,6 @@ powtórzenie, dwie korekty i cofnięcie do bazy grafowej. Surowy d_ij i różnic
 rozwiązania nie muszą być takie same. Ręczne poprawki nie uruchamiają solvera;
 wcześniejsze diagnozy grafu odnoszą się do niezmienionej bazy.
 
-[REG-08d — instrukcja i sesje](long-references-manual.md) porównuje bazowe
-okno z jawnymi dodatkami przy tej samej konfiguracji LS/Hubera. Zachowujemy
-surowe relacje bazy, model i kotwicę; rejestrujemy nowe pary oraz odmowy.
-Wzorzec ze znanym ruchem i spójny alias okresowy rozdzielają poprawę fizycznego
-ruchu od małych reszt. Pełny odcinek MOVIE_4/MOVIE_8 ocenia użytkownik;
-większa liczba par ani zbieżność Hubera nie są automatycznym kryterium sukcesu.
-
 ## Ręczne dopasowanie — REG-01a
 
 Wynik ręczny dotyczy sąsiedniej pary w oknie porównania. Wybierz **Ustaw ręcznie

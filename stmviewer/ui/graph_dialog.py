@@ -21,7 +21,6 @@ from stmviewer.ui.deep_matcher_controls import DeepMatcherControls
 from stmviewer.ui.graph_job import GraphJob
 from stmviewer.ui.graph_application_controls import GraphApplicationControls
 from stmviewer.ui.graph_movie import GraphMovieWidget
-from stmviewer.ui.long_reference_controls import LongReferenceControls
 from stmviewer.ui.robust_graph_controls import RobustGraphControls
 from stmviewer.ui.pair_dialog import PairComparisonDialog
 
@@ -157,18 +156,12 @@ class GraphComparisonDialog(QDialog):
         relations_layout.addWidget(self._inspect)
         self._edges.itemSelectionChanged.connect(self._sync)
         tabs.addTab(relations, 'Relacje i rozbieżności')
-        self._long = LongReferenceControls(frames, self)
-        tabs.addTab(self._long, 'Dalsze odniesienia')
-        self._long.result_ready.connect(self._finish_long)
-        self._long.busy_changed.connect(self._long_busy_changed)
         self._robust.result_ready.connect(self._finish_robust)
         self._robust.selected_changed.connect(self._selected_robust)
         self._robust.busy_changed.connect(self._robust_busy_changed)
         self._deep.changed.connect(self._sync)
         self._window.currentIndexChanged.connect(self._sync)
         self._present_trial()
-        if trial is not None and trial.extension is not None:
-            self._select_extension_result(trial)
         self._sync()
 
     @property
@@ -177,8 +170,7 @@ class GraphComparisonDialog(QDialog):
 
     @property
     def busy(self) -> bool:
-        return (self._job is not None or self._robust.busy or self._long.busy
-                or self._application.busy or (self._pair is not None and self._pair.busy))
+        return self._job is not None or self._robust.busy or self._application.busy or (self._pair is not None and self._pair.busy)
 
     def set_available(self, available: bool) -> None:
         self._available = available
@@ -207,7 +199,6 @@ class GraphComparisonDialog(QDialog):
         if self._application.busy:
             self.movie_cancel_requested.emit()
         self._robust.cancel()
-        self._long.cancel()
         if self._job is not None:
             self._job.cancel()
             self._cancel.setEnabled(False)
@@ -229,11 +220,9 @@ class GraphComparisonDialog(QDialog):
         self._progress.setVisible(self._job is not None)
         self._robust.set_available(available)
         self._application.set_available(available)
-        self._long.set_options(self._deep.options())
-        self._long.set_available(available)
         self._inspect.setEnabled(available and self._trial is not None and self._edges.currentRow() >= 0)
         if self._pair is not None:
-            self._pair.set_available(self._available and self._job is None and not self._robust.busy and not self._long.busy)
+            self._pair.set_available(self._available and self._job is None and not self._robust.busy)
 
     def _present_trial(self, *, select_new_robust: bool = False) -> None:
         trial = self._trial
@@ -254,7 +243,6 @@ class GraphComparisonDialog(QDialog):
                 f'SHA-256 wag: {trial.config.weights_sha256[:16]}…\n'
                 'Równe wagi LS. Wynik modelu i małe reszty nie stanowią oceny jakości obrazu.')
         self._application.set_context(trial, self._registration)
-        self._long.set_graph(trial)
         self._robust.set_graph(trial, select_new=select_new_robust)
         self._present_edges()
         self._movie.set_graph(trial, self._registration)
@@ -267,10 +255,7 @@ class GraphComparisonDialog(QDialog):
         headers = ['Para i → j', 'Pomiar X', 'Pomiar Y', 'LS X', 'LS Y', 'Reszta LS X', 'Reszta LS Y']
         if robust is not None:
             headers += ['Huber X', 'Huber Y', 'Reszta Hubera X', 'Reszta Hubera Y', 'Waga Hubera']
-        headers += ['Stan', 'Wynik modelu']
-        if trial is not None and trial.extension is not None:
-            headers += ['Pochodzenie']
-        headers += ['Uwagi']
+        headers += ['Stan', 'Wynik modelu', 'Uwagi']
         self._edges.setColumnCount(len(headers))
         self._edges.setHorizontalHeaderLabels(headers)
         self._edges.setRowCount(len(trial.edges) if trial else 0)
@@ -280,8 +265,6 @@ class GraphComparisonDialog(QDialog):
         def xy(value: tuple[float, ...] | None) -> list[str]:
             return [f'{v:.3f}' for v in value] if value is not None else ['—', '—']
 
-        original_pairs = ({(item.i, item.j) for item in trial.extension.base.edges}
-                          if trial.extension is not None else set())
         for row, edge in enumerate(trial.edges):
             solved = (tuple(trial.positions[edge.j][d] - trial.positions[edge.i][d] for d in (0, 1))
                       if trial.positions is not None else None)
@@ -296,10 +279,7 @@ class GraphComparisonDialog(QDialog):
                 cells += [*xy(huber), *xy(robust.residuals[row]), '—' if weight is None else f'{weight:.6g}']
                 if robust.positions is None:
                     notes += ' Huber: diagnostyka bez pełnego wyniku.'
-            cells += [edge.status, '—' if edge.quality_score is None else f'{edge.quality_score:.3f}']
-            if trial.extension is not None:
-                cells += ['Okno' if (edge.i, edge.j) in original_pairs else 'Dalsze odniesienie']
-            cells += [notes]
+            cells += [edge.status, '—' if edge.quality_score is None else f'{edge.quality_score:.3f}', notes]
             for column, text in enumerate(cells):
                 self._edges.setItem(row, column, QTableWidgetItem(text))
         if trial.edges:
@@ -332,29 +312,6 @@ class GraphComparisonDialog(QDialog):
 
     def _robust_busy_changed(self) -> None:
         if self._robust.busy:
-            self._movie.pause()
-        self._sync()
-        self.busy_changed.emit()
-        if self._closing and not self.busy:
-            self.close()
-
-    def _finish_long(self, trial: GraphTrial) -> None:
-        self._trial = trial
-        self._present_trial()
-        self._select_extension_result(trial)
-        self.changed.emit()
-
-    def _select_extension_result(self, trial: GraphTrial) -> None:
-        extension = trial.extension
-        key = 'graph'
-        if extension is not None and extension.base_robust_revision is not None:
-            key = f'huber:{trial.robust_trials[0].revision}'
-            self._robust.select(trial.robust_trials[0].revision)
-        self._application.select_variant(key)
-        self._movie.select_variant(key)
-
-    def _long_busy_changed(self) -> None:
-        if self._long.busy:
             self._movie.pause()
         self._sync()
         self.busy_changed.emit()

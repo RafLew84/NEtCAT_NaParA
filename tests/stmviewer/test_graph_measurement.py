@@ -171,14 +171,3 @@ def test_missing_checkpoint_never_uses_previous_cached_measurements(native_model
     weights.unlink()
     with pytest.raises(RegistrationError, match='Nie znaleziono'):
         register_graph(frames, deep_options=DeepMatcherOptions(weights, 'cpu'), previous=previous)
-
-
-def test_local_refusal_without_message_retains_nonempty_reason(native_model):
-    from nanotrack.registration.phase_correlation import PhaseCorrelationBackendError
-    weights, model = native_model
-    model['responses'] = [PhaseCorrelationBackendError(), (-2., 1.), (-5., 3.)]
-    result = register_graph(open_frame_series([FIXTURE]), deep_options=DeepMatcherOptions(weights, 'cpu'))
-    assert result.edges[0].status == 'missing'
-    assert result.edges[0].shift_xy is None
-    assert result.edges[0].reason == 'PhaseCorrelationBackendError'
-    np.testing.assert_allclose(result.positions, ((0, 0), (3, -2), (-2, 1)), atol=1e-12)
