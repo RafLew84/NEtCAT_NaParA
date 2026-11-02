@@ -9,7 +9,7 @@ To wykonane próby automatyczne; ręczny odbiór użytkownika pozostaje niewykon
 Osiem klatek 256×256 wyciętych z większego obrazu z teksturą i asymetrycznymi
 znacznikami, bez zawijania obrazu. Pozycje XY: (0,0), (2,−1), (1,1), (−2,0),
 (3,2), (−1,−2), (0,1), (2,0). Kierunek ruchu zmienia się w serii.
-Plik do otwarcia: `/tmp/reg08e-cpu-known-v3/known.mpp`.
+Plik do otwarcia: `/tmp/reg08e-cpu-known-v4/known.mpp`.
 Generator: `tests/stmviewer/diagnostics/graph_methods_trial.py`.
 
 Wszystkie osiem metod dało kompletne LS i zbieżnego Hubera dla okien 3 i 5.
@@ -64,8 +64,8 @@ GUI ani odtwarzania na komputerze docelowym.
 
 Raporty, sesje i eksporty pozostają lokalnie:
 
-- `/tmp/reg08e-cpu-known-v3/report.json` — pięć metod CPU, okna 3 i 5.
-- `/tmp/reg08e-deep-known-v1/report.json` — trzy metody Deep, okna 3 i 5.
+- `/tmp/reg08e-cpu-known-v4/report.json` — pięć metod CPU, okna 3 i 5.
+- `/tmp/reg08e-deep-known-v2/report.json` — trzy metody Deep, okna 3 i 5.
 - `/tmp/reg08e-movie4-v1/report.json` — pełny MOVIE_4, Optical Flow i Deep.
 - `/tmp/reg08e-movie8-v1/report.json` — pełny MOVIE_8, Optical Flow i Deep.
 
@@ -87,6 +87,14 @@ MOVIE_4 zapisał oba wpisy raportu i zakończenie wszystkich asercji; późniejs
 odczyt stanu procesu zwrócił kod 143 (SIGTERM). Przyczyny sygnału nie ustalono.
 Kompletność zapisanych artefaktów zweryfikowano osobnym odczytem; nie opisujemy
 tego przebiegu jako procesu zakończonego kodem 0. Wzorce i MOVIE_8 zakończyły się kodem 0.
+
+Końcową próbę wzorca powtórzono po zmianach walidacji, pochodzenia i adaptera
+Tile+RANSAC: wartości błędów XY pozostały identyczne dla wszystkich metod.
+Osobny odczyt sprawdził **20 kandydatów, łącznie 58 sesji i 76 AVI** (liczbę
+klatek, FPS, rozmiar i dekodowanie do końca); log i opis strumieni:
+`/tmp/reg08e-artifact-readback.log`, `/tmp/reg08e-artifact-readback.json`.
+Odczyt trzech rzeczywistych sesji REG-08b/08c zachował znaczenie Deep przy
+zablokowanych Torch/Kornia/SciPy/OpenCV/scikit-image, bez przeliczenia.
 
 ## Ograniczenia oceny jakości
 

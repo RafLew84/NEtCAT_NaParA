@@ -1,22 +1,39 @@
 # REG-08e: metody w dopasowaniu wieloklatkowym — 2026-11-02
 
-Status: **in-progress**, kod przygotowany; końcowe testy i przegląd w toku.
-Baza przeglądu: `a631c79661dff5cb5d7b1bc387edcb22a4a490d6`.
+Status: **ready-for-review**; ręczny odbiór oczekuje na użytkownika.
+Gałąź: `viewer/registration-difficult-movies`.
+Baza: `a631c79661dff5cb5d7b1bc387edcb22a4a490d6`.
+Implementacja: `2626588`; poprawka przeglądu: `c0c5abc`.
+Finalny commit dokumentacji zostanie podany w wiadomości przekazania.
 
-W istniejącym oknie dodano wybór ośmiu metod par. LS/Huber pozostają wspólne,
-wynik wymaga jawnego zastosowania. CPU nie wymaga modelu; sesje i MPP zachowują
-rzeczywistą metodę, diagnostykę i historię. Nie przywrócono REG-08d.
+W istniejącym oknie **Dopasowanie wieloklatkowe…** dodano wybór ośmiu metod
+par. Wspólne LS/Huber pracują na zapisanych pomiarach; wynik wymaga jawnego
+zastosowania. CPU nie wymaga modelu. Metody, ustawienia, diagnostyka i historia
+są zachowane w sesjach oraz pochodzeniu MPP. Starsze zapisy Deep pozostają
+obsługiwane; zarezerwowanych formatów wycofanego REG-08d nie użyto ponownie.
+
 [Instrukcja i gotowe sesje](registration/multiframe-methods-manual.md),
-[wykonane próby](registration/multiframe-methods-results.md).
+[wyniki rzeczywistych prób](registration/multiframe-methods-results.md),
+[testy i dwa niezależne przeglądy](registration/reviews/REG-08e.md).
+Uruchomienie z tego worktree, w `netcat`: `python -m stmviewer.main`.
 
-Wspólny Tile+RANSAC pomijał wszystkie wyjątki lokalnej korelacji, także brak
-pamięci, oraz błędne wektory. Lokalny adapter `graph_tile_backend.py` zachowuje
-matematykę, ale propaguje takie awarie. Wspólnych modułów nie zmieniono.
-Do sesji integracyjnej: rozważyć zawężenie tego zachowania w
-`nanotrack/registration/tile_correlation.py`, z testami jego pozostałych odbiorców;
-wtedy lokalną pętlę Viewera będzie można usunąć. Nie blokuje to REG-08e.
+- STM Viewer: **666 passed, 2 skipped** w pełnym przebiegu repo.
+- Całe repo: **2452 passed, 14 failed, 16 skipped**; dokładnie te same
+  14 wcześniejszych błędów MolTrack/NanoTrack, bez nowych błędów Viewera.
+- Po poprawce przeglądu: **37 testów celowanych zaliczonych**; mypy 84 moduły,
+  Ruff, limit plików i diff-check poprawne. Standards/Spec: 0 otwartych uwag.
+- Rzeczywiste próby: wszystkie metody na wzorcu, pełne MOVIE_4/MOVIE_8
+  Optical Flow i Deep, sesje/korekty/przywracanie/MPP/AVI. Odczyt 58 sesji
+  i 76 AVI oraz trzech starszych sesji Deep sprawdzono osobno.
+- Ręczny odbiór użytkownika i jakości STM, Windows 11, VLC oraz stanowisko
+  docelowe pozostają niewykonane. REG-10–12 nie rozpoczęto; REG-08d nie przywrócono.
 
-Ręczny odbiór użytkownika, Windows 11 i VLC pozostają niewykonane.
+**Do integracji:** wspólny Tile+RANSAC pomijał wszystkie wyjątki lokalnej
+korelacji, także brak pamięci, oraz błędne wektory. Lokalny adapter
+`stmviewer/graph_tile_backend.py` zachowuje matematykę i propaguje awarie.
+Wspólnych modułów nie zmieniono. Sesja integracyjna może zawęzić to zachowanie
+w `nanotrack/registration/tile_correlation.py`, z testami jego pozostałych
+odbiorców; wtedy lokalną pętlę Viewera będzie można usunąć. Nie blokuje REG-08e.
 
 # REG-08e: ticket metod w dopasowaniu wieloklatkowym — 2026-11-02
 

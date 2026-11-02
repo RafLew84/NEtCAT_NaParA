@@ -73,8 +73,10 @@ REG-08a jest podgląd filmu z położeniami wyznaczonymi z wielu dopasowań.
 **Rozszerzenie metod — 2026-11-02:** użytkownik zlecił osobny
 [REG-08e](issues/08e-multiframe-methods.md): wybór wszystkich istniejących
 metod dopasowania par w tym samym oknie wieloklatkowym, z LS/Huberem,
-sesją i zastosowaniem do filmu. Status `in-progress`; implementacja
-rozpoczęta na osobne zlecenie użytkownika 2026-11-02. Umieszczamy go po REG-08c, przed próbami nowych modeli.
+sesją i zastosowaniem do filmu. Status `ready-for-review`; implementacja,
+testy i przeglądy zakończone, ręczny odbiór oczekuje na użytkownika.
+[Instrukcja i sesje](multiframe-methods-manual.md), [karta wykonania](reviews/REG-08e.md).
+REG-08e pozostaje po REG-08c, przed próbami nowych modeli.
 To osobny zakres od REG-08d, którego implementację wycofano na życzenie
 użytkownika commitem `c8e9141` jako nieintuicyjną. Nie przywracamy jej w REG-08e.
 
@@ -127,7 +129,7 @@ zlecenia użytkownika i zakończenia blokujących ticketów. REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d ma status `planned` jako odłożony po wycofaniu implementacji; REG-09
 pozostaje `planned` jako warunkowa osobna odnoga. REG-08e ma status
-`in-progress`: ticket przygotowano i osobno zlecono implementację 2026-11-02.
+`ready-for-review`: kod i przeglądy ukończono 2026-11-02; oczekuje na ręczny odbiór.
 Żadnego z tych etapów nie uruchamiamy automatycznie.
 
 Kolejność podstawowa: REG-01 → REG-01a → REG-02 → REG-02a → REG-04 → REG-05
@@ -202,11 +204,11 @@ użytkownik ocenił Outdoor jako znacznie lepszy; pozostaje bazą dalszych prób
 - Współrzędne fragmentów odnoszą się do original i pochodzenia klatki.
   Wspólny układ porównania zakotwiczamy w źródłowej klatce odniesienia;
   różny padding wyników nie może przesuwać podglądu A/B.
-- REG-08e doda wybór wszystkich ośmiu istniejących metod par, zachowując
+- REG-08e dodaje wybór wszystkich ośmiu istniejących metod par, zachowując
   okna 3/5 oraz obecne LS/Huber. Poprawne XY bez oceny pewności pozostaje
   pomiarem, a lokalna odmowa pozostaje brakiem. Dane różnych metod nie
   współdzielą pamięci pomiarów; CPU nie wymaga wag Deep. Rozszerzenie sesji
-  zachowa odczyt dotychczasowych grafów Deep. To zakres planowany, nie obecna funkcja.
+  zachowuje odczyt dotychczasowych grafów Deep. Funkcja czeka na ręczny odbiór.
 - Podgląd kandydatów grafu, dostarczony w REG-08a i rozszerzony w REG-08b, przechowuje ustawienia,
   przesunięcia i metadane, renderując oglądane klatki na żądanie. Nie utrzymuje
   dwóch dodatkowych pełnych filmów float64. Ten interfejs dostarczył REG-08a,

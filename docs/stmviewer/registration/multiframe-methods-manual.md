@@ -1,6 +1,6 @@
 # REG-08e — wybór metody w dopasowaniu wieloklatkowym
 
-Status: implementacja w toku; ręczny odbiór użytkownika niewykonany.
+Status: **ready-for-review**; ręczny odbiór użytkownika niewykonany.
 [Ticket](issues/08e-multiframe-methods.md), [wyniki automatyczne](multiframe-methods-results.md).
 
 Z katalogu `/home/rlew/projekty/NEtCAT-viewer`, w środowisku `netcat`:
@@ -13,7 +13,7 @@ Przed ponownym uruchomieniem programu zapisz własną sesję.
 
 ## Gotowe dane
 
-- Mały wzorzec: `/tmp/reg08e-cpu-known-v3/known.mpp`.
+- Mały wzorzec: `/tmp/reg08e-cpu-known-v4/known.mpp`.
 - MOVIE_4, Optical Flow: `/tmp/reg08e-movie4-v1/optical_flow_median-window3/candidate.stmsession`.
 - MOVIE_4, Deep: `/tmp/reg08e-movie4-v1/deep_matcher_translation-window3/candidate.stmsession`.
 - MOVIE_8: analogiczne pliki w `/tmp/reg08e-movie8-v1/`.

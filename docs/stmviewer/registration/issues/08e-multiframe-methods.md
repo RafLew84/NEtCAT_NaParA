@@ -4,8 +4,8 @@
 oknie **Dopasowanie wieloklatkowe…**, oblicza wspólne położenia klatek przez
 LS albo Huber i stosuje wybrany wynik do filmu.
 **Blocked by:** [REG-08c](08c-graph-movie-application.md), odebrany.
-**Status:** in-progress
-**Manualny odbiór:** niewykonany; implementacja w toku.
+**Status:** ready-for-review
+**Manualny odbiór:** oczekuje na użytkownika; implementacja i przeglądy zakończone.
 **Start:** 2026-11-02, na jawne zlecenie użytkownika.
 **Baza przeglądu:** `a631c79661dff5cb5d7b1bc387edcb22a4a490d6`.
 **Dodano do planu:** 2026-11-02, na zlecenie użytkownika.
@@ -46,29 +46,36 @@ Zestaw jest zamknięty do powyższych metod; nowe modele należą do REG-10–12
 
 ## Kryteria odbioru
 
-- [ ] W istniejącym panelu jest jedno pole **Metoda dopasowania par**.
+Poniższe funkcje wdrożono i sprawdzono automatycznie. Końcowy odbiór GUI oraz
+ocena jakości STM przez użytkownika pozostają niewykonane.
+[Instrukcja i gotowe sesje](../multiframe-methods-manual.md),
+[wyniki rzeczywistych prób](../multiframe-methods-results.md),
+[testy i przeglądy](../reviews/REG-08e.md).
+Implementacja: `2626588`; poprawka przeglądu: `c0c5abc`.
+
+- [x] W istniejącym panelu jest jedno pole **Metoda dopasowania par**.
   Domyślnie pozostaje Deep Matcher, a otwarcie zapisanej próby ustawia jej
   metodę i parametry. Wybór w tym oknie jest jawny i odrębny od metody
   rejestracji sąsiedniej w głównym oknie. Sama zmiana wyboru nie zmienia
   aktywnego aligned, istniejącego kandydata ani podpisów jego wyników.
-- [ ] Kontrolki wag/urządzenia dotyczą tylko metod korzystających z Deep.
+- [x] Kontrolki wag/urządzenia dotyczą tylko metod korzystających z Deep.
   Metody CPU działają bez wag i bez importowania Torch/Kornia. Niedostępność
   wybranej metody ma konkretną przyczynę; bez pobierania, cichej zmiany metody
   lub urządzenia. Model jest ładowany raz na zadanie, nie osobno dla każdej pary.
-- [ ] Każda metoda mierzy te same pary wynikające z okna 3/5, na oryginalnych
+- [x] Każda metoda mierzy te same pary wynikające z okna 3/5, na oryginalnych
   danych, niezależnie od gamma. Kierunek d_ij przesuwa klatkę j na i.
   Wynikiem pary jest jedno globalne XY. Nie dodajemy obrotów, zmiany skali,
   deformacji lokalnej ani przesunięć zależnych od linii skanowania.
-- [ ] LS i Huber korzystają z dokładnie tego samego zapisanego zbioru pomiarów
+- [x] LS i Huber korzystają z dokładnie tego samego zapisanego zbioru pomiarów
   wybranej metody. Obliczenie Hubera nie uruchamia ponownie dopasowania par.
   Zachowujemy kotwicę, matematykę solverów i okno; zmiana metody tworzy nowego
   kandydata. Zmiana okna 3→5 może wykorzystać wspólne pomiary tylko przy
   identycznych źródłach, metodzie i ustawieniach. Pomiarów różnych metod nie mieszamy.
-- [ ] Lokalna odmowa pary jest zapisana jako brak XY z przyczyną, a nie (0,0).
+- [x] Lokalna odmowa pary jest zapisana jako brak XY z przyczyną, a nie (0,0).
   Rozłączony graf pozostaje niekompletny. Awaria modelu/biblioteki, brak pamięci
   i anulowanie przerywają zadanie oraz zachowują poprzedniego kandydata i film.
   Metoda złożona nie wraca po cichu do samego Deep, jeśli ECC lub fragmenty odmówią.
-- [ ] Poprawny wektor dwóch skończonych wartości XY dla właściwej pary,
+- [x] Poprawny wektor dwóch skończonych wartości XY dla właściwej pary,
   bez skalibrowanej pewności (`manual_review`, `quality_score=None`), może
   wejść do LS/Hubera z zachowaniem braku oceny. Nie jest przemianowany na
   pewne `ok` ani potraktowany jako brak dopasowania. Status `failed`, NaN/Inf,
@@ -76,22 +83,22 @@ Zestaw jest zamknięty do powyższych metod; nowe modele należą do REG-10–12
   niepoprawny wynik backendu zgłaszamy jako błąd z przyczyną.
   Wskaźniki metod mają własne znaczenie; nie stają się porównywalnymi
   prawdopodobieństwami ani wagami LS/Hubera. Zbieżność nie oznacza potwierdzonej jakości.
-- [ ] Podgląd relacji, łańcucha i filmu oraz zastosowany aligned pokazują
+- [x] Podgląd relacji, łańcucha i filmu oraz zastosowany aligned pokazują
   faktyczną metodę i solver. Dla niesąsiedniej pary nazwy obu klatek i numery
   źródłowe są poprawne także w postępie i błędach metod złożonych.
   Zachowujemy dostępne diagnozy pary Deep+ECC/fragmentów i przyczyny odmów;
   nie wymagamy nowej rozbudowanej wizualizacji diagnostyki.
-- [ ] Sesja zachowuje metodę, jej parametry, wersję kodu/bibliotek i właściwe
+- [x] Sesja zachowuje metodę, jej parametry, wersję kodu/bibliotek i właściwe
   pochodzenie pomiarów, a w metodach modelowych również wagi/SHA i urządzenie.
   CPU nie dostaje fikcyjnych wag. Starsze sesje z grafem Deep otwierają się
   z dotychczasowym znaczeniem i bez przeliczania. Odczyt zachowanych wyników
   nie wymaga modelu ani bibliotek estymatora; weryfikujemy je dopiero przy nowym pomiarze.
-- [ ] Kandydat pozostaje odrębny od aktywnego filmu. Zastosowanie kompletnego
+- [x] Kandydat pozostaje odrębny od aktywnego filmu. Zastosowanie kompletnego
   LS/Hubera, przywrócenie poprzednika, ręczne korekty, usuwanie klatek i MPP/AVI
   działają według REG-08c. W sesji i metadanych MPP zachowujemy prawdziwą
   metodę oraz solver; zgodność starszych zapisów pozostaje. Niekompletny Huber
   ma komunikat i nie jest automatycznie zastępowany przez LS.
-- [ ] Postęp, Anuluj, blokady zmian serii i zachowanie gamma/wybranej klatki
+- [x] Postęp, Anuluj, blokady zmian serii i zachowanie gamma/wybranej klatki
   pozostają zgodne z obecnym programem. Dostarczone są gotowe małe dane,
   instrukcja odbioru, pomiary na MOVIE_4/MOVIE_8 i oddzielny opis jakości.
   Pliki kodu mają cel do 1000 linii i twardy limit 1500.
