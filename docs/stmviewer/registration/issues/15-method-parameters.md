@@ -6,10 +6,12 @@ sprawdza parę, a następnie używa tej samej konfiguracji w filmie lub grafie.
 **Blocked by:** [REG-13](13-lightglue-superpoint.md) oraz [REG-14](14-akaze.md).
 REG-13 jest odebrany; REG-14 ma implementację i status ready-for-review,
 oczekuje manualnego odbioru. Dodanie ticketu nie oznacza tego odbioru.
-**Status:** in-progress — wykonawca Codex; baza przeglądu f61a6aea65c8078ffc168731c8b8cb18b76bc0b1.
+**Status:** ready-for-review — implementacja 53c6d69, poprawki 0032ace; 2026-11-03.
 **Zlecenie wykonania:** użytkownik zlecił REG-15 mimo otwartego odbioru REG-14;
 rozpoczęcie tego etapu nie zmienia statusu REG-14.
-**Manualny odbiór:** niewykonany; funkcja jeszcze niewdrożona.
+**Manualny odbiór:** niewykonany; funkcja gotowa do próby.
+[Instrukcja GUI](../method-parameters-manual.md), [wyniki](../method-parameters-results.md),
+[testy i przeglądy](../reviews/REG-15.md).
 **Dodano do planu:** 2026-11-02, na zlecenie użytkownika.
 
 Obowiązują [plan](../README.md), [protokół](../manual-protocol.md)
@@ -101,38 +103,38 @@ do renderowania aligned i dane eksportu zachowują wartości pomiarowe.
 
 ## Zachowanie konfiguracji i wyników
 
-- [ ] **OK** waliduje i zatwierdza edytowane konfiguracje obu metod jako
+- [x] **OK** waliduje i zatwierdza edytowane konfiguracje obu metod jako
   jedną operację. Przełączenie metody wewnątrz dialogu zachowuje robocze
   zmiany; Anuluj/zamknięcie krzyżykiem odrzuca cały niezatwierdzony formularz.
   Przywrócenie domyślnych dotyczy tylko aktualnie edytowanej metody i wymaga OK.
-- [ ] Otwarcie edytora nie wymaga danych, wag, Torch ani CUDA. W trakcie
+- [x] Otwarcie edytora nie wymaga danych, wag, Torch ani CUDA. W trakcie
   zadania blokujemy zatwierdzanie zmian; zadanie korzysta z niezmiennej
   kopii ustawień pobranej przy jego starcie.
-- [ ] Ustawienia są osobne dla każdej metody i wspólne dla pary, łańcucha
+- [x] Ustawienia są osobne dla każdej metody i wspólne dla pary, łańcucha
   oraz grafu. Także już otwarte okna pary/grafu pobierają bieżącą
   konfigurację przy następnym **Oblicz**. Powrót do metody odtwarza jej wartości.
-- [ ] OK nie uruchamia zadania ani nie zmienia aktywnego aligned, ręcznych
+- [x] OK nie uruchamia zadania ani nie zmienia aktywnego aligned, ręcznych
   korekt, istniejącej próby pary lub kandydata grafu. Błąd/anulowanie następnej
   rejestracji zachowuje wcześniejszą pracę.
-- [ ] Każdy wynik ma niezmienny zapis rzeczywiście użytych parametrów,
+- [x] Każdy wynik ma niezmienny zapis rzeczywiście użytych parametrów,
   przygotowania, wersji i diagnostyki. Gdy bieżące ustawienia różnią się od
   tych w oglądanym wyniku, UI jasno wskazuje tę różnicę.
-- [ ] Nowe obliczenie grafu identyfikuje pomiary pełną konfiguracją:
+- [x] Nowe obliczenie grafu identyfikuje pomiary pełną konfiguracją:
   detektor, matcher, przygotowanie kontrastu, tolerancja, wersja i zasoby.
   Nie miesza krawędzi z różnych konfiguracji. Po zmianie ustawień nie wolno
   użyć starych pomiarów jako nowego wyniku.
-- [ ] Ponowne LS/Huber na zapisanym grafie nadal używa jego wcześniejszych
+- [x] Ponowne LS/Huber na zapisanym grafie nadal używa jego wcześniejszych
   krawędzi i konfiguracji; nie uruchamia automatycznie nowych dopasowań.
   Gotowy wcześniejszy kandydat zachowuje możliwość jawnego zastosowania.
-- [ ] Sesja zapisuje obie konfiguracje, także nieaktywną, oraz niezależne
+- [x] Sesja zapisuje obie konfiguracje, także nieaktywną, oraz niezależne
   konfiguracje gotowych wyników. Niezastosowany kandydat pozostaje kandydatem.
   Odczyt starszych sesji zachowuje ich historyczne ustawienia i wyniki.
-- [ ] Metadane MPP zachowują konfigurację wyniku oraz historię korekt
+- [x] Metadane MPP zachowują konfigurację wyniku oraz historię korekt
   i poprzedników; odczyt nie przypisuje wynikom aktualnych wartości formularza.
   Sam gotowy wynik można przeglądać/eksportować bez runtime estymatora.
   Wersjonowanie i walidacja obsługują zarówno stare stałe, jak i nowe
   edytowalne konfiguracje. Nie luzujemy walidacji przez akceptowanie dowolnych pól.
-- [ ] Odświeżenie konfiguracji backendu/workera jest jawne; nie pozostawia
+- [x] Odświeżenie konfiguracji backendu/workera jest jawne; nie pozostawia
   modelu działającego ze starymi parametrami. Korzystamy z istniejących
   lokalnych wag i bibliotek, bez pobierania oraz zastępowania metody.
 

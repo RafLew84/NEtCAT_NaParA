@@ -51,15 +51,18 @@ Na znanym wzorcu cały cykl działa, ale AKAZE odmówił wszystkich 18 wybranych
 par STM i nie utworzył pełnego grafu MOVIE_4/MOVIE_8.
 Manualny odbiór użytkownika niewykonany.
 
-**REG-15/15a/15b: Parametry wszystkich metod — zakres przygotowany.**
-Jedno małe okno z menu **Rejestracja → Parametry metod…** obejmie 13 metod.
-[REG-15](registration/issues/15-method-parameters.md) dodaje edytor
-i AKAZE/LightGlue, [REG-15a](registration/issues/15a-cpu-method-parameters.md)
-pięć pozostałych metod klasycznych,
-a [REG-15b](registration/issues/15b-model-method-parameters.md) sześć modeli
-i wariantów Deep. Ustawienia są wspólne dla pary/filmu/grafu, zapisane w sesji
-i niezależne od konfiguracji wcześniejszych wyników. Każdy etap ma osobny
-odbiór manualny. Funkcja jeszcze niewdrożona; odbiór REG-14 pozostaje otwarty.
+**REG-15: Parametry AKAZE i LightGlue — ready-for-review (2026-11-03).**
+Menu **Rejestracja → Parametry metod…** otwiera edytor progów, tolerancji
+i przygotowania kontrastu. Ustawienia są wspólne dla pary/filmu/grafu;
+sesja zachowuje oba profile, wyniki mają niezależny zapis użytej konfiguracji.
+[Instrukcja GUI](registration/method-parameters-manual.md),
+[24 próby na STM](registration/method-parameters-results.md),
+[testy i przeglądy](registration/reviews/REG-15.md).
+Odbiór manualny REG-15 i wcześniejszego REG-14 pozostaje otwarty.
+[REG-15a](registration/issues/15a-cpu-method-parameters.md) rozszerzy edytor
+o pięć pozostałych metod klasycznych,
+a [REG-15b](registration/issues/15b-model-method-parameters.md) o sześć modeli
+i wariantów Deep; oba etapy mają tylko przygotowany zakres.
 
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji
 oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.

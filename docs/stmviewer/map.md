@@ -11,6 +11,14 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-03: wdrożono [REG-15](registration/issues/15-method-parameters.md),
+  status `ready-for-review`. Edytor AKAZE/LightGlue z menu głównego,
+  kontrast i parametry wspólne dla pary/filmu/grafu, zapis konfiguracji
+  w sesji i wynikach. [Instrukcja](registration/method-parameters-manual.md),
+  [24 próby STM](registration/method-parameters-results.md),
+  [przeglądy](registration/reviews/REG-15.md).
+  REG-15a/15b nadal czekają na wykonanie. Odbiory REG-14 i REG-15 otwarte.
+
 - 2026-11-02: rozszerzono plan okna parametrów na wszystkie 13 obecnych metod.
   [REG-15](registration/issues/15-method-parameters.md) dostarcza edytor
   i AKAZE/LightGlue; [REG-15a](registration/issues/15a-cpu-method-parameters.md)

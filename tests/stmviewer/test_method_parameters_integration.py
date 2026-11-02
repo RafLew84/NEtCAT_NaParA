@@ -1,9 +1,7 @@
 """Configured public pair/movie/graph and portable evidence contracts."""
 from dataclasses import replace
-import json
 
 import numpy as np
-import pytest
 
 from stmviewer.method_parameters import MethodProfiles, AkazeParameters, ContrastParameters
 from stmviewer.feature_provenance import recorded_profile

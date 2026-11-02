@@ -150,7 +150,7 @@ def load_lightglue_backend(options: DeepMatcherOptions, *,
     """One isolated worker in the app's interpreter, with pinned local artifacts."""
     from pathlib import Path
     import sys
-    from stmviewer.lightglue_resources import MAX_KEYPOINTS, validate_resources
+    from stmviewer.lightglue_resources import validate_resources
     from stmviewer.registration import RegistrationCancelled, RegistrationError
     from stmviewer.roma_process import RomaProcess
 

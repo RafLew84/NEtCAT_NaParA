@@ -1,7 +1,6 @@
 """Opt-in real LightGlue through pair, film, graph and exported/session results."""
 from dataclasses import replace
 import os
-from pathlib import Path
 
 import numpy as np
 import pytest

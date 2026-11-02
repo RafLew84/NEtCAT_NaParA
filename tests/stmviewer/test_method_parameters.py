@@ -1,5 +1,4 @@
 """Public configuration and estimator-input contracts for REG-15."""
-from dataclasses import replace
 
 import numpy as np
 import pytest

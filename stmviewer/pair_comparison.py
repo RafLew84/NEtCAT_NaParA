@@ -8,7 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from stmviewer.method_parameters import MethodProfiles
-from stmviewer.akaze_matcher import AKAZE_METHOD, AKAZE_LABEL, AkazeBackend
+from stmviewer.akaze_matcher import AKAZE_METHOD, AkazeBackend
 from stmviewer.lightglue_matcher import LIGHTGLUE_METHOD, LightGlueBackend, load_lightglue_backend
 from stmviewer.correspondence_types import CorrespondenceDiagnostics, CorrespondenceRefusal
 from stmviewer.efficient_matcher import EFFICIENT_METHOD, EfficientBackend, load_efficient_backend

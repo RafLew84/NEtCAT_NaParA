@@ -1,3 +1,36 @@
+# REG-15: edytor parametrów AKAZE/LightGlue — 2026-11-03
+
+Status **ready-for-review**. Implementacja 53c6d69, poprawki 0032ace;
+baza f61a6aea65c8078ffc168731c8b8cb18b76bc0b1.
+Menu **Rejestracja → Parametry metod…**, niezależne profile, wspólne
+ustawienia kolejnego obliczenia pary/łańcucha/grafu, wersjonowany zapis
+w sesji i pochodzeniu wyników. Min–max, percentyle i CLAHE pracują na kopiach
+estymatora. Dotychczasowy wynik pozostaje do porównania i zastosowania.
+
+[Instrukcja ręczna](registration/method-parameters-manual.md),
+[wyniki 24 prób STM](registration/method-parameters-results.md),
+[testy i przeglądy](registration/reviews/REG-15.md).
+
+Automatycznie: pełne repo 2637 passed / 14 failed / 52 skipped;
+14 awarii identycznych z bazą REG-14, poza Viewerem. Viewer w tym przebiegu
+851 passed / 38 skipped. Po poprawkach 32 testy celowane zaliczone,
+w tym rzeczywisty LightGlue CPU/CUDA, GUI i sesja/MPP.
+Mypy 105 modułów bez błędów; oba przeglądy zamknięte.
+Największy zmieniony plik kodu: 1001 linii, poniżej limitu 1500.
+
+Na STM zmiana progu lub percentyle umożliwiły AKAZE wynik na dwóch z czterech
+par, ale nie potwierdzono dokładności dryfu. MOVIE_4 po usunięciu pierwszych
+dwóch klatek: pary 1→2 i 29→30 nadal odmawiają we wszystkich próbach.
+Dane oraz PNG w data/registration-reg15/, poza Git.
+
+Ręcznie: odbiór użytkownika niewykonany; Qt offscreen i oglądanie zrzutów
+formularza nie zastępują próby interaktywnej. Ocena STM, AVI/VLC i Windows
+pozostaje otwarta. REG-14 zachowuje ready-for-review; REG-15 wykonano
+na wyraźne zlecenie mimo otwartego odbioru. REG-15a/15b nie rozpoczęto.
+Nie zmieniano modułów współdzielonych, nie pobierano modeli/pakietów.
+Lokalne pliki użytkownika proba.stmtrial.json, proba2.stmtrial.json
+oraz sesja.stmsession pozostawiono nietknięte.
+
 # REG-15a/15b: parametry pozostałych metod — 2026-11-02
 
 Na bazie 58c0b63, na zlecenie użytkownika, rozszerzono plan wspólnego okna

@@ -8,15 +8,17 @@ Jedno okno **Rejestracja → Parametry metod…** będzie obejmować wszystkie
 klasycznych, [REG-15b](issues/15b-model-method-parameters.md) — sześć modeli
 i wariantów Deep. Każda metoda zachowuje dotychczasowe ustawienia domyślne.
 RoMa otrzyma jedno miejsce edycji już dostępnych parametrów.
-Wszystkie trzy tickety mają przygotowany zakres; nie są jeszcze wdrożone.
-REG-14 nadal oczekuje manualnego odbioru.
+REG-15 jest wdrożony (aktualizacja 2026-11-03); REG-15a/15b mają tylko
+przygotowany zakres. REG-14 nadal oczekuje manualnego odbioru.
 
-**Pierwszy ticket parametrów — 2026-11-02:**
-[REG-15: Okno parametrów AKAZE i LightGlue/SuperPoint](issues/15-method-parameters.md).
-Menu **Rejestracja → Parametry metod…**, osobne ustawienia metod i kontrastu,
-wspólne użycie w parze/filmie/grafie oraz zapis konfiguracji w sesji i MPP.
-Status `ready-for-agent` oznacza przygotowany zakres; REG-14 nadal czeka
-na odbiór manualny. REG-15 nie jest jeszcze wdrożony i nie zmienia jego statusu.
+**REG-15 — 2026-11-03: ready-for-review.**
+[Okno parametrów AKAZE i LightGlue/SuperPoint](issues/15-method-parameters.md)
+działa z menu **Rejestracja → Parametry metod…**. Wspólne ustawienia
+pary/filmu/grafu zapisują się w sesji; wyniki i MPP zachowują rzeczywistą
+konfigurację obliczenia. [Instrukcja GUI](method-parameters-manual.md),
+[wyniki prób](method-parameters-results.md), [testy](reviews/REG-15.md).
+Wdrożono na wyraźne zlecenie mimo otwartego odbioru REG-14; jego status
+pozostaje bez zmian. Odbiór REG-15 również oczekuje użytkownika.
 Podstawa: [diagnoza jasności](brightness-diagnosis.md).
 
 **Przegląd kolejnych metod — 2026-11-02:**
@@ -195,8 +197,10 @@ wzorce oraz oba pełne filmy. Użytkownik potwierdził odbiór 2026-11-02,
 po diagnozie odmowy 2/32; ograniczenia metody pozostają zapisane.
 REG-14 ma status `ready-for-review`: metoda oraz 18 dodatkowych prób AKAZE
 są gotowe; ograniczenia jakości opisuje raport. Odbiór manualny niewykonany.
-REG-15 ma status `ready-for-agent`, z przygotowanym zakresem i otwartą
-zależnością od odbioru REG-14. REG-15a i REG-15b również mają status
+REG-15 ma status `ready-for-review`: edytor AKAZE/LightGlue i wspólne
+konfiguracje są wdrożone; próba manualna oczekuje użytkownika.
+Wyraźne zlecenie implementacji nie zamknęło odbioru REG-14.
+REG-15a i REG-15b mają status
 `ready-for-agent` (zakres przygotowany) i czekają na wykonanie oraz odbiór
 poprzedniego etapu. Dodanie ticketów nie uruchamia implementacji.
 REG-06 ma status
