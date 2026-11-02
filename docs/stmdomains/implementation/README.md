@@ -5,7 +5,7 @@ klatek, pauza/restart i gamma. [Uruchomienie i test ręczny](interactive-v04/acc
 300 testów PASS, mypy 27 plików PASS; pełne 268 klatek TTMAPP sprawdzone
 w GUI. Ręczny odbiór 03 wraz z poprawką układu `0745e4e` potwierdzono;
 późniejsza [poprawka wyjścia](interactive-v04/acceptance-03.md#poprawka-wyjścia-z-programu)
-czeka na ręczne sprawdzenie. Następny ticket
+`3dd8b47` również odebrana ręcznie 2026-11-02. Następny ticket
 nowego planu: SD-V4-04. Historyczny odbiór całego szkieletu pozostaje otwarty.
 
 **Wykonano SD-V4-02 — 2026-11-02:** działają zapisane oznaczenia, maski,

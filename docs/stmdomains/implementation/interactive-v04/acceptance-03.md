@@ -5,11 +5,14 @@ Data: **2026-11-02**. [Ticket 03](03-filmstrip-and-playback.md) wykonano na
 Poprawki zaznaczenia/pauzy i raport: **`c5deb59`**, stabilność układu okna:
 **`0745e4e`**. **2026-11-02 użytkownik potwierdził ręczny odbiór 03 wraz
 z poprawką układu** słowami „testy manualne ok”. Następnie zgłosił opisany
-poniżej błąd wyjścia. Jego poprawka wymaga jeszcze ręcznego sprawdzenia.
+poniżej błąd wyjścia. **Ręczny odbiór poprawki wyjścia `3dd8b47` również
+potwierdził 2026-11-02 słowami „testy manualne ok”. Odbiór 03 wraz z obiema
+poprawkami jest zakończony.**
 
 ## Poprawka wyjścia z programu
 
-2026-11-02, baza `0745e4e`. Zgłoszono awaryjne zakończenie procesu:
+2026-11-02, baza `0745e4e`, poprawka **`3dd8b47`**, ręczny odbiór potwierdzony.
+Zgłoszono awaryjne zakończenie procesu:
 `RuntimeError: wrapped C/C++ object of type TaskSignals has been deleted`
 przy `finished.emit` w `Task.run`. Reprodukcja w osobnym procesie odtworzyła
 ten sam traceback i kod wyjścia 134 dwukrotnie podczas zamykania okna
@@ -38,11 +41,11 @@ bez stderr i z obiema pulami bez aktywnych wątków. Mypy **27 plików PASS**;
 Przegląd poprawki bez uwag. Pełnego zestawu testów aplikacji nie powtarzano.
 Lokalne skrypty diagnostyczne pozostają w `.scratch/stmdomains-ui-03/shutdown-debug/`.
 
-**Do ręcznego sprawdzenia:** uruchom program w `netcat`, otwórz TTMAPP
+**Scenariusz ręczny (odbiór potwierdzony):** uruchom program w `netcat`, otwórz TTMAPP
 i zamknij okno podczas ładowania lub odtwarzania. Sprawdź również wyjście
 przez **Plik → Zakończ**. Terminal powinien wrócić do znaku zachęty bez
 traceback ani „Przerwane (zrzut pamięci)”. Potwierdzony odbiór funkcji 03
-i stabilności układu pozostaje zachowany; ten scenariusz dotyczy nowej poprawki.
+i stabilności układu pozostaje zachowany; ten scenariusz dotyczy poprawki wyjścia.
 
 ## Poprawka po zgłoszeniu użytkownika — stabilny układ okna
 

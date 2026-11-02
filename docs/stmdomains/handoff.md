@@ -1,5 +1,12 @@
 # STM Domains — wykonano SD-V4-03: miniatury i odtwarzanie
 
+**Odbiór poprawki wyjścia — 2026-11-02:** użytkownik potwierdził „testy
+manualne ok” dla **`3dd8b47`**. **SD-V4-03 wraz z poprawkami układu i wyjścia
+jest odebrany ręcznie.** Zapis potwierdzenia zmienia wyłącznie dokumentację;
+`git diff --check` PASS, bez ponawiania testów kodu. Commit zapisu w odpowiedzi
+końcowej. Następny ticket: **SD-V4-04 — otwarcie wyniku v0.4 i przynależność
+molekuł**. Historyczny odbiór szkieletu i badawcze 04/13 pozostają odrębne.
+
 **Odbiór ręczny i poprawka wyjścia — 2026-11-02:** użytkownik potwierdził
 „testy manualne ok” dla 03 wraz z poprawką układu **`0745e4e`**, po czym
 zgłosił crash przy wyjściu: `TaskSignals has been deleted` w `finished.emit`.
@@ -15,9 +22,9 @@ się kodem 0. **3/3 dodatkowe próby TTMAPP na X11 PASS**: wyjście w trakcie
 importu, miniatur i play; kod 0, pusty stderr, obie pule zakończone.
 Przegląd poprawki bez uwag. Pełnego zestawu nie powtarzano.
 [Raport i sprawdzenie wyjścia](implementation/interactive-v04/acceptance-03.md#poprawka-wyjścia-z-programu).
-**Ręczny odbiór poprawki wyjścia pozostaje do wykonania.** Artefakty:
-`.scratch/stmdomains-ui-03/shutdown-debug/`. Baza `0745e4e`; commit poprawki
-w odpowiedzi końcowej. Zmiany tylko w aplikacji, testach i dokumentacji;
+**Ręczny odbiór poprawki wyjścia potwierdzony przez użytkownika.** Artefakty:
+`.scratch/stmdomains-ui-03/shutdown-debug/`. Baza `0745e4e`, poprawka `3dd8b47`.
+Zmiany tylko w aplikacji, testach i dokumentacji;
 bez instalacji. Następny ticket nadal SD-V4-04.
 
 **Poprawka po odbiorze użytkownika — 2026-11-02, baza `c5deb59`:**

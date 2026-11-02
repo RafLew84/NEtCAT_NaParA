@@ -19,7 +19,9 @@ ręczne testy wersji `0745e4e`. Następnie zgłoszony crash przy zamykaniu
 usunięto przez zakończenie pracy pul przed destrukcją Qt. 25 celowanych
 testów PASS, 4 próby procesów na X11 PASS, mypy PASS.
 [Raport i test wyjścia](implementation/interactive-v04/acceptance-03.md#poprawka-wyjścia-z-programu).
-Ta nowa poprawka czeka na ręczne sprawdzenie; kolejny ticket nadal SD-V4-04.
+Użytkownik potwierdził również ręczny odbiór poprawki wyjścia `3dd8b47`:
+„testy manualne ok”. Odbiór 03 z poprawkami jest zakończony;
+kolejny ticket nadal SD-V4-04.
 
 **Poprawka SD-V4-03 po zgłoszeniu użytkownika — 2026-11-02:** usunięto
 zmianę geometrii obrazu/nawigacji przy pokazywaniu postępu. 13 celowanych

@@ -10,7 +10,8 @@ testów ręcznych wersji `0745e4e` użytkownik zgłosił crash `TaskSignals has
 been deleted`. Program kończy teraz pracę obu pul przed usunięciem obiektów Qt.
 25 celowanych testów PASS, w tym 4 regresje osobnych procesów; 4 próby X11
 PASS, mypy PASS. [Raport i ręczne sprawdzenie zamknięcia](implementation/interactive-v04/acceptance-03.md#poprawka-wyjścia-z-programu).
-Ręczny odbiór tej nowej poprawki pozostaje do wykonania.
+**Ręczny odbiór poprawki wyjścia `3dd8b47` potwierdzony przez użytkownika
+2026-11-02: „testy manualne ok”. SD-V4-03 wraz z obiema poprawkami jest odebrany.**
 
 **Poprawka UI po sprawdzeniu 03:** usunięto skakanie obrazu i nawigacji
 podczas pojawiania się postępu ładowania. Miejsce na pasek postępu i Anuluj
