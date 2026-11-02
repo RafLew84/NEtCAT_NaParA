@@ -12,8 +12,8 @@ status `draft`. Na polecenie użytkownika dodano omówione rozszerzenia:
 16–18 mają status `ready-for-agent` i wymagają ukończenia zależności,
 a dalsze 19–20 status `deferred` z jawnym warunkiem wyboru.
 Pozostałe funkcje są planem implementacji. Użytkownik potwierdził ręczny odbiór
-01 oraz suwaka (`ee54638`). Oznaczenia i wyrównanie z 02 są sprawdzone
-technicznie i czekają na ręczny odbiór użytkownika; analiza pozostaje do wykonania.
+01 oraz suwaka (`ee54638`), a następnie oznaczeń i wyrównania z 02 (`3572b6d`).
+Analiza pozostaje do wykonania.
 
 ## Tickety i kolejność
 

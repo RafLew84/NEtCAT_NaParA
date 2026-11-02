@@ -9,8 +9,9 @@ modelu geometrii; błędna maska pozostawia poprawne ramki/obrysy.
 
 [Raport i dokładny scenariusz ręczny](implementation/interactive-v04/acceptance-02.md).
 Uruchomienie w **netcat**: `python -m stmdomains.main`. Kontrole braków:
-`python -m stmdomains.tools.annotation_demo`. Ręczny odbiór 02 przez użytkownika
-pozostaje otwarty; 01 i suwak mają już jego potwierdzenie.
+`python -m stmdomains.tools.annotation_demo`. **2026-11-02 użytkownik potwierdził
+pomyślny ręczny odbiór 02** słowami „testy manualne ok”. Odbiór obejmuje wersję
+`3572b6d` (implementacja `df5c48b`); 01 i suwak również mają jego potwierdzenie.
 
 Sprawdzenia: **279 testów STM Domains PASS**, w tym 49 nowych, bez pominięć;
 mypy **23 pliki PASS**; kontrola **17 plików kodu/testów, maksimum 274 linie**.
@@ -27,7 +28,9 @@ Anulowanie odrzuca wynik bez siłowego przerywania wątku. Czas/kalibracja
 TTMAPP pozostają niepotwierdzone; 267 rejestracji ma niską pewność.
 
 Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/interactive-v04-ui`,
-baza **`152146a`**, implementacja **`df5c48b`**, commit raportu w odpowiedzi końcowej.
+baza **`152146a`**, implementacja **`df5c48b`**, raport **`3572b6d`**.
+Zapis potwierdzenia odbioru zmienia tylko dokumentację; `git diff --check` PASS,
+bez ponawiania testów kodu. Commit tego zapisu w odpowiedzi końcowej.
 Zmiany tylko w aplikacji, testach i dokumentacji. Integrator powinien dodać
 używane teraz **SciPy** do wcześniejszego zgłoszenia NumPy/pytest-qt;
 lokalny `netcat` zawiera pakiety, nic nie instalowano. Wspólny kod i CI bez zmian.

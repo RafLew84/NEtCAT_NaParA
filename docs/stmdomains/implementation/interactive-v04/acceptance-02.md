@@ -2,7 +2,8 @@
 
 Data: **2026-11-02**. [Ticket 02](02-molecules-and-geometry.md) wykonano na
 `domains/interactive-v04-ui`, baza `152146a`, implementacja **`df5c48b`**.
-Commit końcowego raportu i aktualizacji planu wskazano w odpowiedzi końcowej.
+Raport i aktualizacja planu: **`3572b6d`**. Użytkownik potwierdził pomyślny
+ręczny odbiór tej wersji 2026-11-02 słowami „testy manualne ok”.
 
 ## Uruchomienie i test ręczny
 
@@ -65,8 +66,8 @@ python -m stmdomains.main
    - `missing.moltrack.json`: informacja o braku danych. Żaden z tych
      przypadków nie jest deklaracją braku molekuł na powierzchni.
 
-**Ręczny odbiór 02 przez użytkownika pozostaje do wykonania.** Potwierdzony
-wcześniej odbiór 01 i suwaka nie obejmuje nowych warstw i geometrii.
+**Ręczny odbiór 02 potwierdzony przez użytkownika 2026-11-02 (`3572b6d`).**
+Nowe warstwy i geometria zostały odebrane po wcześniejszym odbiorze 01 i suwaka.
 
 ## Wykonane sprawdzenia
 
@@ -146,7 +147,7 @@ Nie znaleziono istotnych heurystycznych uwag do organizacji kodu.
 Niezależny przegląd tej samej różnicy: brak istotnych niezgodności,
 braków lub rozszerzenia zakresu SD-V4-02. Zapisana geometria, izolacja błędów
 rekordów/masek, dostępność raw, ID, jakość, braki danych i cache odpowiadają
-kontraktowi. Ręczny odbiór użytkownika pozostaje osobnym krokiem.
+kontraktowi. Ręczny odbiór użytkownika potwierdzono osobno po tym przeglądzie.
 
 Bilans: **Standards — 0 uwag; Spec — 0 uwag.**
 

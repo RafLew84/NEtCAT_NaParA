@@ -11,7 +11,7 @@ rejestracją. Braki danych i jakość są jawne; maski mają ograniczony cache.
 [Uruchomienie i test ręczny](implementation/interactive-v04/acceptance-02.md).
 W `netcat`: **279 testów PASS**, mypy **23 pliki PASS**, przegląd Standards/Spec
 bez uwag. GUI sprawdzono na siedmiu klatkach TTMAPP w obu widokach i pięciu
-kontrolach; ręczny odbiór 02 pozostaje użytkownikowi. Następny ticket to 03;
+kontrolach; użytkownik potwierdził pomyślny ręczny odbiór 02 (`3572b6d`). Następny ticket to 03;
 04 można podjąć po 02 zgodnie z zależnościami. Implementacja `df5c48b`.
 
 **Wykonano SD-V4-01:** aplikacja otwiera zapis MolTrack z MPP i pokazuje

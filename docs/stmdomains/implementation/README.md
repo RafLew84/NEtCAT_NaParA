@@ -2,7 +2,7 @@
 
 **Wykonano SD-V4-02 — 2026-11-02:** działają zapisane oznaczenia, maski,
 metadane po kliknięciu i geometria raw/aligned. [Uruchomienie i test ręczny](interactive-v04/acceptance-02.md).
-279 testów PASS; ręczny odbiór 02 pozostaje użytkownikowi. Pełny odbiór
+279 testów PASS; ręczny odbiór 02 potwierdzony przez użytkownika (`3572b6d`). Pełny odbiór
 historycznego szkieletu wymaga jeszcze m.in. miniatur, gamma i odtwarzania.
 
 **Wykonano SD-V4-01 — 2026-11-02:** działa otwieranie zapisów MolTrack/MPP

@@ -17,8 +17,8 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 **Implementacja SD-V4-02 — 2026-11-02:** działają oznaczenia molekuł,
 maski z regulacją krycia, kliknięcie metadanych i odtworzenie zapisanej
 rejestracji w widokach raw/aligned. [Raport i test ręczny](implementation/interactive-v04/acceptance-02.md).
-279 testów aplikacji PASS, GUI sprawdzone na TTMAPP; odbiór użytkownika 02
-pozostaje otwarty. Pełny zakres szkieletu wymaga jeszcze m.in. miniatur,
+279 testów aplikacji PASS, GUI sprawdzone na TTMAPP; użytkownik potwierdził
+ręczny odbiór 02 (`3572b6d`) 2026-11-02. Pełny zakres szkieletu wymaga jeszcze m.in. miniatur,
 gamma i odtwarzania z 03.
 
 **Implementacja SD-V4-01 — 2026-11-02:** wykonano pierwszy przekrój
