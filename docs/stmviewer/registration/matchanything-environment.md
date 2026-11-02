@@ -2,9 +2,52 @@
 
 Data: 2026-11-02. Na zlecenie „ściągnij wymagane elementy” pobrano kod
 oraz checkpoint i sprawdzono uruchomienie w istniejącym `netcat`.
-**Zasoby są gotowe; implementacja REG-12 pozostaje `ready-for-agent`.**
-Metoda nie została jeszcze dodana do GUI. Nie instalowano bibliotek ani
-nie tworzono kolejnego środowiska.
+**Zasoby są gotowe.** Pierwotny etap obejmował wyłącznie przygotowanie.
+Na kolejne zlecenie wdrożono [REG-12](issues/12-matchanything.md);
+[obsługa w GUI](matchanything-manual.md), [wyniki integracji](matchanything-results.md).
+Nie instalowano bibliotek ani nie tworzono kolejnego środowiska.
+
+## Konfiguracja wdrożona w REG-12
+
+Aplikacja używa przypiętego presetu biblioteki
+[`match_dense.confs['matchanything_eloftr']` i `match_images`](https://huggingface.co/spaces/LittleFrog/MatchAnything/blob/6a7bcb589ec8da3a9e861e799122beaa5eba2193/imcui/hloc/match_dense.py),
+razem z [adapterem MatchAnything](https://huggingface.co/spaces/LittleFrog/MatchAnything/blob/6a7bcb589ec8da3a9e861e799122beaa5eba2193/imcui/hloc/matchers/matchanything.py).
+To konkretny preset biblioteki, bez późniejszych nadpisań suwakami interfejsu WWW.
+
+- Próg modelu **0,001**, stałe NPE `[832,832,832,832]`, brak reparameterization.
+- Dane STM: niezależny min/max, uint8 powielone do RGB; następnie tor autorów:
+  ograniczenie dłuższego boku do 832, jeśli większy; wymuszenie **640 × 480**,
+  cv2 AREA przy zmniejszaniu / LINEAR przy powiększaniu dowolnej osi;
+  przejście float32 0–1 i ponownie uint8, PIL grayscale, LANCZOS do wymiarów
+  podzielnych przez 32 (tutaj bez zmiany), padding dolny do **640 × 640**.
+- Maska wyklucza padding. Punkty wracają do oryginałów przez osobne skale
+  X/Y i regułę środków pikseli `(punkt + 0,5) / skala − 0,5`.
+  Potem działa niezmieniony konsensus translacji v2 w oryginalnych pikselach.
+- Parametry modelu i obliczenia bez AMP, FP32; autorzy zapisują bufory
+  kodowania pozycji RoPE jako float16. Nie nazywamy wszystkich tensorów FP32.
+- Kod modelu jest importowany w osobnej przestrzeni nazw; nie używa wrappera
+  treningowego Lightning ani globalnego pakietu `src`. Pliki autorów i wagi
+  nie są modyfikowane. Nie ma dołączonej korekcji ECC ani lokalnego odkształcania.
+
+Źródła pomocnicze presetu są w `reference/` obok modelu; manifest przypina
+ich SHA i URL. Test porównuje przygotowane piksele z funkcjami wydobytymi
+z tych źródeł dla 80², 137×219 i 1001×301. Wyniki są identyczne.
+
+Poniższe pomiary przygotowania na natywnym obrazie 256² opisują wcześniejszy
+smoke test środowiska. **Nie są pomiarami finalnego adaptera.** Finalne próby
+znajdują się w raporcie integracji. Różnice przygotowania względem
+EfficientLoFTR są jawne: porównujemy wariant modelu wraz z jego inference,
+a nie idealnie odizolowany wpływ samych wag treningowych.
+
+Opcjonalne zależności odtwarza
+[`requirements-matchanything.txt`](../../../stmviewer/requirements-matchanything.txt).
+W aktualnym `netcat` wszystkie już są obecne. Na innym stanowisku wybierz
+najpierw zgodny Torch CPU/CUDA, następnie z katalogu repozytorium:
+
+```bash
+python -m pip install -r stmviewer/requirements-matchanything.txt
+python -m pip check
+```
 
 ## Lokalne pliki i pochodzenie
 

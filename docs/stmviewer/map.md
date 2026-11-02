@@ -11,6 +11,12 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: na zlecenie `implement 12` wdrożono
+  [MatchAnything-ELoFTR](registration/issues/12-matchanything.md), commit `b4d9441`.
+  Status `ready-for-review`; [wyniki](registration/matchanything-results.md)
+  obejmują oba filmy i ograniczenia jakości, [odbiór ręczny](registration/matchanything-manual.md)
+  pozostaje niewykonany. Przeglądy standardów/specyfikacji bez uwag.
+
 - 2026-11-02: na zlecenie użytkownika pobrano kod i wagi
   [MatchAnything-ELoFTR](registration/matchanything-environment.md).
   Próby CPU/CUDA zaliczone w niezmienionym `netcat`; nie potrzeba instalacji

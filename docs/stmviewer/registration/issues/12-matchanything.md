@@ -3,14 +3,18 @@
 **What to build:** Użytkownik porównuje wariant MatchAnything oparty na
 EfficientLoFTR ze zwykłym EfficientLoFTR przy tej samej agregacji i grafie.
 **Blocked by:** [REG-11](11-roma-v2.md), w tym odbiór manualny.
-**Status:** ready-for-agent
-**Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
+**Status:** ready-for-review
+**Manualny odbiór:** niewykonany; implementacja gotowa 2026-11-02.
+**Wykonawca:** Codex. Baza przeglądu: `1c30ef5`; implementacja `b4d9441`.
+[Wyniki](../matchanything-results.md), [próba ręczna](../matchanything-manual.md),
+[testy i dwa przeglądy](../reviews/REG-12.md).
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
 **Przygotowanie zasobów — 2026-11-02:** kod i oficjalny checkpoint pobrane,
 próby CPU/CUDA w istniejącym `netcat` zaliczone bez instalacji bibliotek.
 [Lokalizacje, wersje, sumy i ograniczenia](../matchanything-environment.md).
-Zlecenie obejmowało pobranie i weryfikację; implementacja GUI pozostaje
-nierozpoczęta, kryteria poniżej nadal wymagają realizacji.
+Pierwsze zlecenie obejmowało pobranie i weryfikację. Kolejne zlecenie
+`implement 12` objęło pełną implementację poniższych kryteriów;
+otwarty pozostaje ręczny odbiór jakości i platform.
 
 Obowiązują [plan](../README.md), [protokół odbioru](../manual-protocol.md)
 i [przegląd modeli](../../registration-multiframe-research.md).
@@ -19,42 +23,42 @@ nie wywołuje RoMa v2 ani nie potrzebuje jej wag.
 
 ## Zakres i kryteria odbioru
 
-- [ ] Dodajemy jeden jawnie nazwany wariant **MatchAnything-ELoFTR**.
+- [x] Dodajemy jeden jawnie nazwany wariant **MatchAnything-ELoFTR**.
   Działa dla pary, całej serii sąsiednich klatek oraz odebranego grafu,
   przez ten sam estymator pary. Wariant MatchAnything-RoMa jest poza zakresem.
-- [ ] Główna próba porównuje zwykły EfficientLoFTR z REG-10 z tym wariantem.
+- [x] Główna próba porównuje zwykły EfficientLoFTR z REG-10 z tym wariantem.
   Agregacja korespondencji z REG-10, renderowanie, lista kandydatów par,
   okno i solver grafu pozostają takie same. Nie dołączamy wyszukiwania wycinków
   z REG-05. Wagi/model nie są zmieniane między parami.
   Deep i RoMa v2 pozostają dodatkowymi punktami odniesienia, nie etapami metody.
-- [ ] Przypinamy zgodny checkpoint i konfigurację architektury/inference
+- [x] Przypinamy zgodny checkpoint i konfigurację architektury/inference
   autorów. Nie zakładamy, że nowe wagi można dowolnie podmienić w starym
   adapterze. Różnice wymaganej normalizacji, rozdzielczości i kwalifikacji
   punktów są zapisane; raport nie nazywa takiej próby idealną izolacją samego
   treningu, jeśli jednocześnie musiała zmienić się konfiguracja inference.
-- [ ] Korespondencje są odwzorowane do pikseli oryginałów z uwzględnieniem
+- [x] Korespondencje są odwzorowane do pikseli oryginałów z uwzględnieniem
   skalowania obu osi, paddingu i kanałów. Potem stosujemy jeden konsensus
   translacji i jedno XY na klatkę. Braki/padding nie są strukturami,
   a gamma podglądu nie wpływa na wyznaczane przesunięcia.
-- [ ] Diagnostyka pokazuje przestrzenne poparcie, niejednoznaczność i odmowy.
+- [x] Diagnostyka pokazuje przestrzenne poparcie, niejednoznaczność i odmowy.
   Nowy score nie jest bez przeliczenia wspólną wagą z EfficientLoFTR ani
   prawdopodobieństwem poprawnego STM. Zasady kwalifikacji są wersjonowane.
-- [ ] Zależności i pełny zestaw wag są opcjonalne oraz lokalne. Instrukcja
+- [x] Zależności i pełny zestaw wag są opcjonalne oraz lokalne. Instrukcja
   przypina źródło, wersje kodu i bibliotek, wariant, SHA-256 i warunki użycia
   kodu/wag. Ścieżka Hugging Face nie oznacza zgody na sieciowe pobieranie
   przez aplikację; także ukryte zależności muszą być dostępne lokalnie.
-- [ ] Niedostępność, niezgodny checkpoint, brak wskazanego urządzenia i OOM
+- [x] Niedostępność, niezgodny checkpoint, brak wskazanego urządzenia i OOM
   mają konkretne komunikaty. Nie zmieniamy po cichu metody, modelu, CPU/CUDA
   ani wielkości wejścia. Model jest używany ponownie w kolejnych parach,
   a błąd/anulowanie zwalnia zasoby i zachowuje wcześniejszy aktywny wynik.
-- [ ] Konflikty opcjonalnych zależności rozwiązujemy w adapterze/środowisku
+- [x] Konflikty opcjonalnych zależności rozwiązujemy w adapterze/środowisku
   Viewera, z opisanym uruchomieniem z GUI. Zmiany potrzebne we wspólnych
   modułach lub konfiguracji głównej są jawnym zadaniem integracji w handoff.
-- [ ] Ten ticket rozszerza sesję o rzeczywistą konfigurację, pochodzenie wag,
+- [x] Ten ticket rozszerza sesję o rzeczywistą konfigurację, pochodzenie wag,
   urządzenie, wyniki i diagnozy. Odczyt sesji działa bez modelu i odtwarza aktywny
   film, bez stosowania niezastosowanego kandydata. Zastosowanie do filmu, ręczne korekty oraz MPP/AVI zachowują REG-08c:
   render z oryginałów raz, z poprawną geometrią i bez nakładek diagnostycznych.
-- [ ] Raport oddziela poparcie modelu od oceny obrazowej. REG-06 jest
+- [x] Raport oddziela poparcie modelu od oceny obrazowej. REG-06 jest
   odłożony; nie wymagamy jego implementacji ani oznaczania fragmentów,
   a brak kontroli pozostaje brakiem oceny. Po ewentualnym wznowieniu REG-06
   jego ocena jest zależna, jeśli model lub przygotowanie wejścia używały
@@ -108,3 +112,13 @@ odrzucenie eksperymentu wymaga zapisanej decyzji użytkownika.
 
 **Oczekiwany wynik:** odtwarzalne porównanie wpływu wariantu wytrenowanego
 między modalnościami oraz decyzja, czy wnosi poprawę na naszych filmach STM.
+
+## Stan po wdrożeniu
+
+Finalny preset biblioteki autorów ma próg 0,001, NPE 832 i obraz roboczy
+640×480 w kwadracie 640², z odwrotnym mapowaniem do oryginału. Porównanie
+uwzględnia tę różnicę inference względem EfficientLoFTR. Oba pełne filmy
+mają łańcuch i LS; Huber MOVIE_4 osiągnął limit 200, MOVIE_8 jest zbieżny.
+Wszystkie przejścia łańcucha są niepewne. Wzorzec cpu.mpp ujawnia około
+1 px błędu Y, mimo poprawnego wykonania programu. Ostateczna jakość,
+odtwarzanie w VLC i odbiory platform/sprzętu pozostają do sprawdzenia.

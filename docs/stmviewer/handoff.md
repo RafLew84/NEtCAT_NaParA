@@ -1,3 +1,38 @@
+# REG-12: MatchAnything-ELoFTR do odbioru — 2026-11-02
+
+Implementacja `b4d9441`, baza `1c30ef5`; końcowy commit dokumentacji podany
+w odpowiedzi. Status **ready-for-review**, ręczny odbiór użytkownika niewykonany.
+[Wyniki](registration/matchanything-results.md), [instrukcja GUI](registration/matchanything-manual.md),
+[pełna karta testów/przeglądów](registration/reviews/REG-12.md).
+
+- Osobna metoda pary/filmu/grafu w `netcat`, bez instalacji bibliotek.
+  Pin kodu/wag i preset `hf-match-images-preset-v1`, lokalny import w izolowanej
+  przestrzeni nazw, wspólny konsensus v2 i LS/Huber, bez fallbacku/pobierania.
+- Sesja v7 zachowuje aktywne i nieaktywne ustawienia; graf v7 i MPP v10
+  zachowują tożsamość, geometrię i diagnostykę. Starsze formaty czytelne;
+  odczyt nie uruchamia modelu. Ręczne korekty i eksport używają istniejących ścieżek.
+- Pełne repo **2570 passed, 14 failed, 42 skipped**. Wszystkie 14 ID znane
+  z REG-11 (MolTrack/NanoTrack); 0 nowych ID i 0 błędów Viewera.
+  Mypy 96 modułów czyste. Limit plików zachowany, maksimum 982 linie.
+- Dodatkowo 9 rzeczywistych CPU/CUDA, 3 referencyjne testy preprocessing,
+  2 Qt offscreen zaliczone. Model/oryginalne referencje dają te same XY.
+- MOVIE_4 bez źródłowych 1/2 oraz MOVIE_8 mają pełne łańcuchy i LS.
+  Huber: MOVIE_4 limit 200, MOVIE_8 zbieżny. Sesje, ręczna korekta przez API,
+  MPP roundtrip i małe MJPG/FFV1 sprawdzone. Wszystkie przejścia łańcuchów
+  są niepewne. cpu.mpp ujawnia około 1 px błędu Y — nie deklarujemy przewagi.
+- Standards: 0 uwag. Spec: 0 uwag. Niezależne przeglądy zakończone.
+
+Start: `conda activate netcat`, `python -m stmviewer.main`, wybór
+**MatchAnything-ELoFTR**. Lokalne zasoby i ustawienia są gotowe.
+Końcowe sesje: `/tmp/stmviewer-reg12-author-movie4/` oraz `...-movie8/`;
+`graph-candidate.stmsession` wymaga jawnego zastosowania, `chain.stmsession`
+zawiera aktywny modelowy wynik. Materiały cyklu korekt mają nazwę `*-corrected`.
+
+Do odbioru pozostają ocena całych filmów w GUI, VLC, Windows i stanowisko
+8 GB VRAM. Brak niezależnej walidacji dryfu STM. Nie zmieniono wspólnych
+modułów/konfiguracji, nie instalowano bibliotek; brak nowych potrzeb integracji.
+Nie publikowano i nie scalano gałęzi.
+
 # REG-12: pobrane zasoby i próba środowiska — 2026-11-02
 
 Zlecenie użytkownika: „ściągnij wymagane elementy”. Przygotowano kod
