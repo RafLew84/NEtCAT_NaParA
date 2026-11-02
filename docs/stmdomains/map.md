@@ -17,6 +17,8 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 **Implementacja SD-V4-01 — 2026-11-02:** wykonano pierwszy przekrój
 obejmujący import MolTrack/MPP i przeglądanie oryginałów w działającym oknie.
 [Raport i odbiór ręczny](implementation/interactive-v04/acceptance-01.md).
+Użytkownik potwierdził testy ręczne 01; na jego kolejne zlecenie dodano
+suwak pod obrazem do przełączania klatek podczas przeciągania.
 Pełny zakres szkieletu, w tym oznaczenia i wyrównanie, pozostaje do wykonania.
 
 Specyfikację pierwszej mapy zakończono 2026-10-19.

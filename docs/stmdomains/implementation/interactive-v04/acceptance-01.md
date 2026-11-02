@@ -2,8 +2,12 @@
 
 Data: **2026-11-02**. [Ticket 01](01-open-images.md) wykonano na gałęzi
 `domains/interactive-v04-ui`, od bazy `4c4825f`. Implementacja: `347a2b5`;
-końcowe poprawki po przeglądzie i ten raport są w kolejnym commicie zadania,
-wskazanym w odpowiedzi końcowej.
+końcowe poprawki po przeglądzie i pierwotny raport: `808f3b7`.
+
+**Odbiór ręczny 01 potwierdzony przez użytkownika 2026-11-02** słowami
+„testy manualne ok”. Następnie użytkownik zlecił dodanie poziomego suwaka
+pod obrazem. To uzupełnienie ma osobny scenariusz odbioru poniżej;
+potwierdzenie wcześniejszej funkcji nie obejmuje jeszcze nowego suwaka.
 
 ## Uruchomienie i ręczne sprawdzenie
 
@@ -52,6 +56,32 @@ To zakres obrazów oryginalnych. Nakładki molekuł i raw/aligned należą do 02
 miniatury, gamma i odtwarzanie do 03. Nie jest to odbiór całego historycznego
 szkieletu ani metody wykrywania domen.
 
+### Ręczne sprawdzenie nowego suwaka
+
+1. Uruchom program bez danych: suwak pod obrazem jest nieaktywny.
+2. Otwórz TTMAPP i przeciągnij uchwyt w lewo i w prawo. Zatrzymaj go
+   pośrodku, nadal trzymając przycisk myszy: obraz ma zmienić się przed
+   puszczeniem uchwytu. Sprawdź także pierwszą i ostatnią klatkę.
+3. Po puszczeniu uchwytu obraz i pole numeru muszą odpowiadać wybranej
+   pozycji. Użyj przycisków poprzednia/następna oraz wpisz numer klatki:
+   suwak ma podążać za zmianą. Na krańcach nie można wyjść poza serię,
+   a właściwy przycisk kroku jest nieaktywny.
+4. Otwórz przykład `single.moltrack.json`: suwak jest nieaktywny. Ponownie
+   otwórz TTMAPP: suwak odzyskuje pełny zakres 1–268.
+
+**Ręczny odbiór suwaka przez użytkownika pozostaje do wykonania.**
+
+Sprawdzenia dodatku w `netcat`: **9 testów widoku i nawigacji PASS**
+(`test_browsing_window.py`, `test_image_view.py`), mypy **14 plików PASS**.
+Rozszerzony test przechodzi przez prawdziwy MPP i przeciągnięcia myszy,
+sprawdza piksele obrazu przed puszczeniem uchwytu, szybkie zmiany kierunku,
+synchronizację z polem/przyciskami oraz brak serii i jedną klatkę.
+W rzeczywistym GUI X11 przeciągano suwak na TTMAPP 268 klatek; obejrzano
+zrzut `.scratch/stmdomains-ui-01/slider.png`. To próba sterowana przez Qt.
+Przegląd drugiego agenta: bez uwag. Zmieniony kod: 162 linie okna i 204
+linie testów, kontrola limitów PASS. Pełnych 230 testów nie powtarzano
+dla tego dodatku; poniższy wynik dotyczy pierwotnego 01.
+
 ## Wykonane sprawdzenia
 
 Środowisko: Python z istniejącego `netcat`, PyQt6, NumPy, pytest/pytest-qt,
@@ -93,9 +123,10 @@ mypy. Bez instalacji i zmian wspólnej konfiguracji.
   i zwalnia zasoby. Nie jest siłowo przerywane.
 - Lokalne odnośniki dokumentacji i `git diff --check`.
 
-**Odbiór ręczny przez użytkownika pozostaje do wykonania** według powyższych
-kroków. Sterowanie Qt i ogląd zrzutów przez agenta są sprawdzeniami technicznymi;
-nie są deklaracją wykonania tych kroków przez użytkownika.
+Powyższe sprawdzenia techniczne dotyczą pierwotnej implementacji 01.
+Sterowanie Qt i ogląd zrzutów przez agenta były sprawdzeniami technicznymi;
+późniejszy pomyślny odbiór ręczny potwierdził użytkownik. Wynik ten nie
+stanowi odbioru nowego dodatku z suwakiem.
 
 ## Dane i pomiary lokalne
 

@@ -4,7 +4,8 @@ from pathlib import Path
 from threading import Event
 
 import numpy as np
-from PyQt6.QtCore import QPointF, Qt, QTimer
+from PyQt6.QtCore import QPoint, QPointF, Qt, QTimer
+from PyQt6.QtWidgets import QStyle, QStyleOptionSlider
 
 from stmdomains.tools.demo_inputs import create_demo_inputs, write_mpp, write_session
 from stmdomains.ui.main_window import STMDomainsMainWindow
@@ -52,6 +53,7 @@ def test_open_and_navigate_real_mpp_in_saved_order(qtbot, tmp_path):
     window = STMDomainsMainWindow(prompts=prompts)
     qtbot.addWidget(window)
     window.show()
+    assert not window.frame_slider.isEnabled()
     qtbot.mouseClick(window.open_button, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: window.frame_label.text().startswith("Klatka 1 / 2"))
     assert "źródłowa 3" in window.frame_label.text()
@@ -64,6 +66,31 @@ def test_open_and_navigate_real_mpp_in_saved_order(qtbot, tmp_path):
     assert pixel(window.image_view, 0, 0) == 0
     assert pixel(window.image_view, 2, 1) == 255
     assert not window.next_button.isEnabled()
+    slider = window.frame_slider
+    assert slider.value() == 2
+    option = QStyleOptionSlider()
+    slider.initStyleOption(option)
+    handle = slider.style().subControlRect(
+        QStyle.ComplexControl.CC_Slider, option, QStyle.SubControl.SC_SliderHandle, slider,
+    )
+    qtbot.mousePress(slider, Qt.MouseButton.LeftButton, pos=handle.center())
+    try:
+        qtbot.mouseMove(slider, QPoint(2, slider.height() // 2))
+        qtbot.waitUntil(lambda: "Klatka 1 / 2" in window.frame_label.text())
+        assert slider.isSliderDown()  # Preview changes before releasing the handle.
+        assert window.frame_number.value() == slider.value() == 1
+        assert pixel(window.image_view, 0, 0) == 255
+        for x in (slider.width() - 2, 2, slider.width() - 2):
+            qtbot.mouseMove(slider, QPoint(x, slider.height() // 2))
+        qtbot.waitUntil(lambda: "Klatka 2 / 2" in window.frame_label.text())
+        assert window.frame_number.value() == slider.value() == 2
+        assert pixel(window.image_view, 2, 1) == 255
+        assert not window.next_button.isEnabled()
+    finally:
+        qtbot.mouseRelease(slider, Qt.MouseButton.LeftButton)
+    qtbot.mouseClick(window.previous_button, Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(lambda: "Klatka 1 / 2" in window.frame_label.text())
+    assert slider.value() == 1
     assert prompts.errors == []
 
 
@@ -85,12 +112,15 @@ def test_number_selection_and_single_frame_controls(qtbot, tmp_path):
     qtbot.waitUntil(lambda: "Klatka 2 / 2" in window.frame_label.text())
     assert "źródłowa 2" in window.frame_label.text()
     assert "czas 20 s" in window.frame_label.text()
+    assert window.frame_slider.value() == 2
     open_and_wait(qtbot, window, paths["single"])
     assert "Klatka 1 / 1" in window.frame_label.text()
     assert "czas nieznany" in window.frame_label.text()
     assert not window.frame_number.isEnabled()
     assert not window.previous_button.isEnabled()
     assert not window.next_button.isEnabled()
+    assert not window.frame_slider.isEnabled()
+    assert window.frame_slider.minimum() == window.frame_slider.maximum() == 1
     fitted = window.image_view.transform().m11()
     qtbot.mouseClick(window.zoom_in_button, Qt.MouseButton.LeftButton)
     assert window.image_view.transform().m11() > fitted

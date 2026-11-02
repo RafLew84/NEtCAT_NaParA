@@ -1,9 +1,9 @@
 """Compose the raw series browser; input parsing lives outside Qt."""
 
-from PyQt6.QtCore import QSignalBlocker
+from PyQt6.QtCore import QSignalBlocker, Qt
 from PyQt6.QtGui import QCloseEvent, QKeySequence
 from PyQt6.QtWidgets import (
-    QHBoxLayout, QLabel, QMainWindow, QProgressBar, QPushButton, QSpinBox,
+    QHBoxLayout, QLabel, QMainWindow, QProgressBar, QPushButton, QSlider, QSpinBox,
     QVBoxLayout, QWidget,
 )
 
@@ -59,6 +59,17 @@ class STMDomainsMainWindow(QMainWindow):
         layout.addWidget(self.frame_label)
         self.image_view = ImageView(self)
         layout.addWidget(self.image_view, 1)
+        self.frame_slider = QSlider(Qt.Orientation.Horizontal)
+        self.frame_slider.setObjectName("frameSlider")
+        self.frame_slider.setAccessibleName("Klatka serii")
+        self.frame_slider.setToolTip("Przeciągnij, aby przeglądać klatki")
+        self.frame_slider.setRange(1, 1)
+        self.frame_slider.setEnabled(False)
+        self.frame_slider.setTracking(True)
+        self.frame_slider.valueChanged.connect(
+            lambda number: self.controller.show_frame(number - 1)
+        )
+        layout.addWidget(self.frame_slider)
         self.fit_button.clicked.connect(self.image_view.fit_to_window)
         self.zoom_in_button.clicked.connect(lambda: self.image_view.zoom_by(1.25))
         self.zoom_out_button.clicked.connect(lambda: self.image_view.zoom_by(0.8))
@@ -107,6 +118,9 @@ class STMDomainsMainWindow(QMainWindow):
         with QSignalBlocker(self.frame_number):
             self.frame_number.setRange(1, series.frame_count)
         self.frame_number.setEnabled(series.frame_count > 1)
+        with QSignalBlocker(self.frame_slider):
+            self.frame_slider.setRange(1, series.frame_count)
+        self.frame_slider.setEnabled(series.frame_count > 1)
         self.details_label.setText(
             "Oryginał · auto kontrast klatki · jednostki obrazu: px\n"
             + "\n".join(series.diagnostics)
@@ -128,6 +142,7 @@ class STMDomainsMainWindow(QMainWindow):
         )
         with QSignalBlocker(self.frame_number):
             self.frame_number.setValue(frame.working_index + 1)
+        self._sync_frame_slider()
         self.previous_button.setEnabled(frame.working_index > 0)
         self.next_button.setEnabled(frame.working_index < series.frame_count - 1)
 
@@ -135,6 +150,12 @@ class STMDomainsMainWindow(QMainWindow):
         self.progress_label.setText(text)
         self.progress_bar.setVisible(busy)
         self.cancel_button.setVisible(busy)
+        if not busy:
+            self._sync_frame_slider()
+
+    def _sync_frame_slider(self) -> None:
+        with QSignalBlocker(self.frame_slider):
+            self.frame_slider.setValue(self.controller.current_index + 1)
 
     def closeEvent(self, event: QCloseEvent | None) -> None:
         self.controller.shutdown()

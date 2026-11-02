@@ -1,3 +1,27 @@
+# STM Domains — odbiór 01 i suwak klatek
+
+Data: **2026-11-02**. Użytkownik potwierdził pomyślne testy ręczne pierwotnego
+SD-V4-01 (`808f3b7`) i zlecił dodanie suwaka pod obrazem. Suwak działa podczas
+przeciągania i podąża za zmianami numeru/przycisków. Bez serii i dla jednej
+klatki jest nieaktywny. Wykorzystuje istniejącą obsługę pracy w tle i odrzucania
+starszych wyników; anulowanie przywraca pozycję wyświetlanej klatki.
+
+W `netcat`: **9 testów widoku/nawigacji PASS**, mypy **14 plików PASS**,
+kontrola długości zmienionego kodu/testów **162/204 linie**, przegląd drugiego
+agenta bez uwag. Rzeczywiste GUI X11: przeciąganie na TTMAPP 268 klatek,
+sprawdzenie obrazu i numeru przed puszczeniem uchwytu; zrzut lokalny
+`.scratch/stmdomains-ui-01/slider.png`. GUI sterowano przez Qt i obejrzano zrzut.
+Pełnego zestawu 230 testów z poprzedniego odbioru nie powtarzano.
+
+[Scenariusz ręczny suwaka](implementation/interactive-v04/acceptance-01.md#ręczne-sprawdzenie-nowego-suwaka)
+jest gotowy do osobnego odbioru użytkownika. Uruchomienie w `netcat`:
+`python -m stmdomains.main`. Kolejny ticket pozostaje 02.
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/interactive-v04-ui`,
+baza **`808f3b7`**, commit dodatku w odpowiedzi końcowej. Brak nowych potrzeb
+integracyjnych, instalacji i zmian wspólnych modułów.
+
+---
+
 # STM Domains — wykonano SD-V4-01: otwarcie danych i przeglądanie obrazów
 
 Data: **2026-11-02**. Na polecenie `implement 01` wykonano

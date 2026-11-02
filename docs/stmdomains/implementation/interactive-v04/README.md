@@ -5,14 +5,14 @@ Gałąź implementacji: **`domains/interactive-v04-ui`**, utworzona z
 `/home/rlew/projekty/NEtCAT-domains`.
 
 Stan: **20 osobnych ticketów**, 2026-11-02. **01 wykonano (`done`)**:
-działa otwieranie MolTrack/MPP, podgląd oryginałów i nawigacja;
+działa otwieranie MolTrack/MPP, podgląd oryginałów i nawigacja z suwakiem;
 [uruchomienie i raport odbioru](acceptance-01.md). 02–15 zachowują
 status `draft`. Na polecenie użytkownika dodano omówione rozszerzenia:
 16–18 mają status `ready-for-agent` i wymagają ukończenia zależności,
 a dalsze 19–20 status `deferred` z jawnym warunkiem wyboru.
 Pozostałe funkcje są planem implementacji. Oznaczenia molekuł, wyrównanie
-i analiza nie są częścią ukończonego 01; ręczny odbiór przez użytkownika
-jest opisany osobno od wykonanych testów technicznych.
+i analiza nie są częścią ukończonego 01. Użytkownik potwierdził ręczny odbiór
+pierwotnego 01; dodany następnie suwak ma osobny scenariusz odbioru.
 
 ## Tickety i kolejność
 
