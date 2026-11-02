@@ -3,6 +3,9 @@
 from collections.abc import Callable
 from dataclasses import asdict, replace
 from typing import Protocol
+from stmviewer.method_parameters import LightGlueParameters, ContrastParameters
+from stmviewer.feature_preparation import prepare_feature_image
+from stmviewer.feature_provenance import profile_text
 from stmviewer.deep_matcher import DeepMatcherOptions
 
 import numpy as np
@@ -15,19 +18,13 @@ LIGHTGLUE_METHOD = 'lightglue_superpoint'
 LIGHTGLUE_LABEL = 'LightGlue + SuperPoint'
 
 
-def prepare_lightglue_image(data: NDArray[np.float64]) -> tuple[NDArray[np.float32], ImagePreparation]:
+def prepare_lightglue_image(data: NDArray[np.float64], contrast: ContrastParameters = ContrastParameters()) -> tuple[NDArray[np.float32], ImagePreparation]:
     """Native-size single-channel min/max bridge; no artificial border or rescaling."""
     values = np.asarray(data, dtype=np.float64)
     if values.ndim != 2 or min(values.shape) < 8 or not np.isfinite(values).all():
         raise ValueError('LightGlue + SuperPoint wymaga obrazu 2D co najmniej 8×8 bez NaN/Inf.')
-    low, high = float(values.min()), float(values.max())
-    if low == high:
-        normalized = np.zeros(values.shape, dtype=np.float32)
-    else:
-        scale = max(abs(low), abs(high))
-        normalized = np.asarray((values / scale - low / scale) / (high / scale - low / scale), dtype=np.float32)
-    shape = (int(values.shape[0]), int(values.shape[1]))
-    return normalized, ImagePreparation(shape, shape, (1., 1.), (0, 0, 0, 0), (low, high))
+    normalized, preparation = prepare_feature_image(values, contrast, uint8=False)
+    return np.asarray(normalized, dtype=np.float32), preparation
 
 
 class LightGlueEngine(Protocol):
@@ -45,15 +42,17 @@ class LightGlueBackend:
     def __init__(self, engine: LightGlueEngine, *, device: str,
                  provenance: tuple[tuple[str, str], ...],
                  config: CorrespondenceConfig = CorrespondenceConfig(),
+                 parameters: LightGlueParameters | None = None,
                  cancelled: Callable[[], bool] | None = None) -> None:
         self._engine: LightGlueEngine | None = engine
+        self.parameters = parameters or LightGlueParameters(radius=config.inlier_radius)
+        config = replace(config, inlier_radius=self.parameters.radius)
         self.device, self.provenance, self.config = device, provenance, config
         self._cancelled = cancelled
         self.last_diagnostics: CorrespondenceDiagnostics | None = None
         self.last_metrics: dict[str, float] = {}
-        self.settings_text = ('LightGlue + SuperPoint; 2048 punktów; min/max float32; '
-                              'rozmiar original; resize=None; bez paddingu; '
-                              'próg matchera 0,1; translation-consensus-v2; '
+        self.settings_text = ('LightGlue + SuperPoint; ' + profile_text(LIGHTGLUE_METHOD, self.parameters)
+                              + '; rozmiar original; resize=None; bez paddingu; translation-consensus-v2; '
                               'poparcie nie jest prawdopodobieństwem dryfu; '
                               + '; '.join(f'{key}={value}' for key, value in asdict(config).items()))
 
@@ -72,12 +71,17 @@ class LightGlueBackend:
             self._checkpoint()
             if self._engine is None:
                 raise RegistrationError('LightGlue + SuperPoint: model został zwolniony.')
-            reference, rp = prepare_lightglue_image(reference_frame)
-            moving, mp = prepare_lightglue_image(moving_frame)
+            reference, rp = prepare_lightglue_image(reference_frame, self.parameters.contrast)
+            moving, mp = prepare_lightglue_image(moving_frame, self.parameters.contrast)
             preparations = (rp, mp)
             self._checkpoint()
             # Extractor.extract has already returned keypoints in original pixels.
-            p0, p1 = self._engine.match(reference, moving)
+            p0: NDArray[np.float64]
+            p1: NDArray[np.float64]
+            if reference.min() == reference.max() or moving.min() == moving.max():
+                p0 = p1 = np.empty((0, 2), dtype=np.float64)
+            else:
+                p0, p1 = self._engine.match(reference, moving)
             self.last_metrics = dict(self._engine.last_metrics)
             self._checkpoint()
             evidence = estimate_correspondence_translation(
@@ -140,6 +144,7 @@ def lightglue_unavailable_reason(options: 'DeepMatcherOptions') -> str | None:
 
 
 def load_lightglue_backend(options: DeepMatcherOptions, *,
+                          parameters: LightGlueParameters = LightGlueParameters(),
                           progress: Callable[[str], None] | None = None,
                           cancelled: Callable[[], bool] | None = None) -> LightGlueBackend:
     """One isolated worker in the app's interpreter, with pinned local artifacts."""
@@ -172,13 +177,14 @@ def load_lightglue_backend(options: DeepMatcherOptions, *,
         config: dict[str, object] = {
             'source': str(options.source), 'weights': str(options.weights),
             'extractor_weights': str(options.extractor_weights), 'device': options.device,
-            'samples': MAX_KEYPOINTS,
+            'samples': parameters.max_keypoints, 'parameters': asdict(parameters),
         }
         engine = RomaProcess(Path(sys.executable), config, progress=progress, cancelled=cancelled,
                              worker_script=Path(__file__).with_name('lightglue_worker.py'),
                              model_label=LIGHTGLUE_LABEL, temp_prefix='stmviewer-lightglue-')
         report('LightGlue + SuperPoint: gotowy model na ' + engine.device)
-        return LightGlueBackend(engine, device=engine.device, provenance=engine.provenance, cancelled=cancelled)
+        return LightGlueBackend(engine, device=engine.device, provenance=engine.provenance,
+                                parameters=parameters, cancelled=cancelled)
     except (RegistrationCancelled, RegistrationError):
         if engine is not None:
             engine.close()

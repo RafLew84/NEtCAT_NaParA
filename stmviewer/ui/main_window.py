@@ -10,6 +10,8 @@ from PyQt6.QtWidgets import (
     QMessageBox, QProgressBar, QPushButton, QScrollArea, QSlider, QSpinBox, QStatusBar, QVBoxLayout, QWidget,
 )
 
+from stmviewer.ui.method_parameters import MethodParameterControls
+from stmviewer.ui.parameter_status import ParameterStatus, movie_parameter_context
 from stmviewer.frame import ImageFrame
 from stmviewer.session_state import SessionState, SessionViewState
 from stmviewer.ui.session_controls import SessionControls
@@ -50,6 +52,7 @@ class STMViewerMainWindow(QMainWindow):
         super().__init__(parent)
         self.setWindowTitle("STM Viewer")
         self.resize(1100, 760)
+        self._parameters = MethodParameterControls(self)
         self._frames: tuple[ImageFrame, ...] = ()
         self._index = 0
         self._job: ImportJob | None = None
@@ -183,7 +186,7 @@ class STMViewerMainWindow(QMainWindow):
         self._compare_pair.setObjectName('comparePair')
         self._compare_pair.clicked.connect(self._open_pair_comparison)
         controls.addWidget(self._compare_pair)
-        self._graph = GraphControls(self)
+        self._graph = GraphControls(self, parameters=self._parameters)
         self._graph.open_button.clicked.connect(lambda: self._graph.open_graph(
             self._frames, self._registration, self._deep_controls.options(),
             method=str(self._method.currentData())
@@ -198,6 +201,8 @@ class STMViewerMainWindow(QMainWindow):
         self._registration_text.setWordWrap(True)
         self._registration_text.setTextFormat(Qt.TextFormat.PlainText)
         controls.addWidget(self._registration_text)
+        self._parameter_status = ParameterStatus(self._parameters, 'movieParameterStatus', self)
+        controls.addWidget(self._parameter_status)
         self._registration_progress = QProgressBar(panel)
         self._registration_progress.setObjectName("registrationProgress")
         self._registration_progress.hide()
@@ -306,6 +311,7 @@ class STMViewerMainWindow(QMainWindow):
 
         menu_bar = QMenuBar(self)
         self.setMenuBar(menu_bar)
+        self._parameters.add_menu(menu_bar, lambda: str(self._method.currentData()))
         file_menu = QMenu("&Plik", menu_bar)
         menu_bar.addMenu(file_menu)
         open_action = QAction("&Otwórz STP/S94/MPP…", self)
@@ -384,7 +390,8 @@ class STMViewerMainWindow(QMainWindow):
             roma_options=self._deep_controls.remembered_roma_options(),
             matchanything_options=self._deep_controls.remembered_matchanything_options(),
             deep_extractor_weights=str(options.extractor_weights) if options.extractor_weights else None,
-            lightglue_options=self._deep_controls.remembered_lightglue_options()), graph=self._graph.trial)
+            lightglue_options=self._deep_controls.remembered_lightglue_options(),
+            method_profiles=self._parameters.profiles), graph=self._graph.trial)
 
     def _restore_session(self, state: SessionState, thumbnails: tuple[QImage, ...]) -> None:
         if self._closing:
@@ -399,6 +406,7 @@ class STMViewerMainWindow(QMainWindow):
         self._discard_pair_comparison()
         self._frames, self._registration, self._index = state.frames, state.registration, display.index
         self._graph.restore(state.graph)
+        self._parameters.restore(display.method_profiles)
         self._strip.set_series(state.frames, thumbnails)
         self._show_registration_warnings()
         selection = self._strip.selectionModel()
@@ -620,6 +628,7 @@ class STMViewerMainWindow(QMainWindow):
     def _sync_navigation(self) -> None:
         count = len(self._frames)
         busy = self._processing_series
+        self._parameters.set_busy(self._operation_in_progress)
         self._session.sync(available=not self._operation_in_progress, has_frames=bool(count))
         self._graph.sync(available=not self._operation_in_progress, has_frames=count > 1)
         self._compare_pair.setEnabled(count > 1 and not self._operation_in_progress)
@@ -810,7 +819,7 @@ class STMViewerMainWindow(QMainWindow):
             dialog = PairComparisonDialog(self._frames, max(1, self._index), self,
                                           method=str(self._method.currentData()),
                                           deep_options=self._deep_controls.options(),
-                                          backend=self._registration_backend)
+                                          backend=self._registration_backend, parameters=self._parameters)
             self._pair_dialog = dialog
             dialog.set_registration(self._registration)
             dialog.movie_apply_requested.connect(self._apply_movie_correction)
@@ -855,7 +864,8 @@ class STMViewerMainWindow(QMainWindow):
             return
         job = RegistrationJob(self._frames, self, self._registration_backend,
                               method=str(self._method.currentData()),
-                              deep_options=self._deep_controls.options(), check_only=check_only)
+                              deep_options=self._deep_controls.options(), check_only=check_only,
+                              method_profiles=self._parameters.profiles)
         self._start_registration_job(job)
 
     def _apply_movie_correction(self, trial: PairTrial) -> None:
@@ -982,6 +992,16 @@ class STMViewerMainWindow(QMainWindow):
             self._strip.set_warnings(registration_warnings(self._registration))
 
     def _show_registration_info(self) -> None:
+        if not self._frames:
+            return
+        if self._registration is not None:
+            self._parameter_status.set_context(*movie_parameter_context(self._registration, self._index))
+        else:
+            alignment = self._frames[self._index].alignment
+            detail = alignment.correspondence if alignment else None
+            self._parameter_status.set_context(
+                alignment.method if alignment and detail else str(self._method.currentData()),
+                detail.model_provenance if detail else None)
         text = (alignment_history_text(self._frames[self._index]) if self._registration is None else
                 registration_info(self._registration, self._index, self._pixel_proportions.isChecked()))
         self._registration_text.setText(text)

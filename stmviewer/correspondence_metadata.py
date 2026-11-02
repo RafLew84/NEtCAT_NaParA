@@ -3,6 +3,8 @@ from dataclasses import asdict
 import math
 import re
 
+from stmviewer.feature_provenance import recorded_profile, akaze_detector_text, lightglue_identity
+from stmviewer.method_parameters import AkazeParameters, LightGlueParameters
 from stmviewer.correspondence_types import CorrespondenceDiagnostics, ImagePreparation
 from stmviewer.metadata_values import json_object, optional_number
 
@@ -58,7 +60,9 @@ def _preparation(value: object) -> ImagePreparation:
     normalization = _text(record['normalization'])
     channels = _integer(record['channels'], 1)
     if (normalization, channels) not in (('minmax-float32-v1', 1), ('minmax-float32-rgb-v1', 3),
-                                         ('minmax-uint8-demo-gray-v1', 1), ('minmax-uint8-round-v1', 1)):
+                                         ('minmax-uint8-demo-gray-v1', 1), ('minmax-uint8-round-v1', 1),
+                                         ('percentiles-uint8-round-v1', 1), ('percentiles-float32-v1', 1),
+                                         ('clahe-uint8-round-v1', 1), ('clahe-float32-v1', 1)):
         raise ValueError('Korespondencje: nieobsługiwane przygotowanie obrazu.')
     return ImagePreparation((oh, ow), (mh, mw), (sx, sy), (left, top, right, bottom),
                              (low, high), normalization, channels)
@@ -196,6 +200,10 @@ def validate_lightglue_provenance(provenance: tuple[tuple[str, str], ...]) -> No
         'preprocessing': PREPROCESSING,
         'aggregation': 'translation-consensus-v2',
     }
+    if 'parameter_profile' in metadata:
+        parameters = recorded_profile('lightglue_superpoint', provenance)
+        assert isinstance(parameters, LightGlueParameters)
+        expected.update(lightglue_identity(parameters))
     if any(metadata.get(key) != value for key, value in expected.items()):
         raise ValueError('LightGlue + SuperPoint: niezgodny model, konfiguracja lub przygotowanie.')
     for key in ('source_path', 'weights_path', 'extractor_weights_path', 'interpreter_path', 'actual_device'):
@@ -223,6 +231,11 @@ def validate_akaze_provenance(provenance: tuple[tuple[str, str], ...]) -> None:
         'aggregation': 'translation-consensus-v2',
         'requested_device': 'cpu', 'actual_device': 'CPU',
     }
+    if 'parameter_profile' in metadata:
+        parameters = recorded_profile('akaze', provenance)
+        assert isinstance(parameters, AkazeParameters)
+        expected.update(detector=akaze_detector_text(parameters),
+                        preprocessing=parameters.contrast.normalization(uint8=True) + '; native; no padding')
     if any(metadata.get(key) != value for key, value in expected.items()):
         raise ValueError('AKAZE: niezgodna konfiguracja detektora, matchera lub urządzenia.')
     if any(key in metadata for key in ('weights_path', 'weights_sha256', 'extractor_weights_path')):
@@ -237,7 +250,7 @@ def validate_correspondence_method(value: CorrespondenceDiagnostics | None, meth
         return
     if method in ('AKAZE', 'akaze'):
         validate_akaze_provenance(value.model_provenance)
-        expected = ('minmax-uint8-round-v1', 1)
+        expected = (recorded_profile('akaze', value.model_provenance).contrast.normalization(uint8=True), 1)
         if (value.settings_version != 2 or len(value.preparation) != 2
                 or any(item.scale_xy != (1., 1.) or item.padding_ltrb != (0, 0, 0, 0)
                        or item.model_shape != item.original_shape for item in value.preparation)):
@@ -254,7 +267,7 @@ def validate_correspondence_method(value: CorrespondenceDiagnostics | None, meth
             raise ValueError('MatchAnything-ELoFTR: brak przygotowania obu obrazów.')
     elif method in ('LightGlue + SuperPoint', 'lightglue_superpoint'):
         validate_lightglue_provenance(value.model_provenance)
-        expected = ('minmax-float32-v1', 1)
+        expected = (recorded_profile('lightglue_superpoint', value.model_provenance).contrast.normalization(uint8=False), 1)
         if (value.settings_version != 2 or len(value.preparation) != 2
                 or any(item.scale_xy != (1., 1.) or item.padding_ltrb != (0, 0, 0, 0)
                        or item.model_shape != item.original_shape for item in value.preparation)):
@@ -265,5 +278,12 @@ def validate_correspondence_method(value: CorrespondenceDiagnostics | None, meth
         expected = ('minmax-float32-v1', 1)
     else:
         raise ValueError('Korespondencje: nieobsługiwana metoda.')
+    if 'parameter_profile' in dict(value.model_provenance):
+        from stmviewer.correspondence_consensus import CorrespondenceConfig
+        key = 'akaze' if method in ('AKAZE', 'akaze') else 'lightglue_superpoint'
+        parameters = recorded_profile(key, value.model_provenance)
+        settings = '; '.join(f'{k}={v}' for k, v in asdict(CorrespondenceConfig(inlier_radius=parameters.radius)).items())
+        if value.settings_text != settings:
+            raise ValueError('Korespondencje: konsensus nie odpowiada parametrom wyniku.')
     if any((item.normalization, item.channels) != expected for item in value.preparation):
         raise ValueError('Korespondencje: przygotowanie nie odpowiada metodzie.')

@@ -6,6 +6,7 @@ from typing import Callable, Mapping
 import numpy as np
 from numpy.typing import NDArray
 
+from stmviewer.method_parameters import MethodProfiles, decode_profiles, profiles_record
 from stmviewer.graph_methods import graph_method_label
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.correspondence_metadata import (
@@ -264,7 +265,7 @@ def _decode_lightglue_options(value: object) -> DeepMatcherOptions | None:
 def _decode_display(value: object, count: int, aligned: bool) -> SessionViewState:
     fields = json_object(value)
     extra = {'deep_source', 'deep_interpreter', 'deep_preset', 'deep_samples', 'deep_seed', 'roma_options', 'matchanything_options',
-             'deep_extractor_weights', 'lightglue_options'} & fields.keys()
+             'deep_extractor_weights', 'lightglue_options', 'method_profiles'} & fields.keys()
     record = json_object(fields, _DISPLAY_KEYS | extra)
     index = _integer(record['index'])
     view = record['view']
@@ -302,7 +303,8 @@ def _decode_display(value: object, count: int, aligned: bool) -> SessionViewStat
                             interpreter, preset, samples, seed, _decode_roma_options(record.get('roma_options')),
                             _decode_matchanything_options(record.get('matchanything_options')),
                             optional_text(record, 'deep_extractor_weights') if 'deep_extractor_weights' in record else None,
-                            _decode_lightglue_options(record.get('lightglue_options')))
+                            _decode_lightglue_options(record.get('lightglue_options')),
+                            decode_profiles(record['method_profiles']) if 'method_profiles' in record else MethodProfiles())
 
 
 def _registration_record(result: RegistrationResult, images: tuple[ImageFrame, ...],
@@ -477,6 +479,7 @@ def encode_session(state: SessionState, *, check_cancelled: Callable[[], None] =
         manifest.setdefault('graph', None)
     display = manifest['display']
     assert isinstance(display, dict)
+    display['method_profiles'] = profiles_record(state.display.method_profiles)
     if state.display.deep_source is None:
         display.pop('deep_source')
     else:

@@ -1,6 +1,8 @@
 """A registration attempt publishes one complete result after its thread finishes."""
 
 from threading import Event
+from functools import partial
+from stmviewer.method_parameters import MethodProfiles
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
@@ -18,12 +20,14 @@ class RegistrationJob(QThread):
 
     def __init__(self, frames: tuple[ImageFrame, ...], parent: QObject,
                  backend: ShiftBackend | None = None, *, method: str = "phase_correlation",
-                 deep_options: DeepMatcherOptions | None = None, check_only: bool = False) -> None:
+                 deep_options: DeepMatcherOptions | None = None, check_only: bool = False,
+                 method_profiles: MethodProfiles = MethodProfiles()) -> None:
         super().__init__(parent)
         self._frames = frames
         self._backend = backend
         self._method = method
         self._deep_options = deep_options
+        self._profiles = method_profiles
         self._check_only = check_only
         self.checked_device: str | None = None
         self._cancelled = Event()
@@ -39,7 +43,8 @@ class RegistrationJob(QThread):
     def run(self) -> None:
         try:
             if self._check_only and self._method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD, LIGHTGLUE_METHOD):
-                loader = (load_lightglue_backend if self._method == LIGHTGLUE_METHOD else
+                loader = (partial(load_lightglue_backend, parameters=self._profiles.lightglue)
+                          if self._method == LIGHTGLUE_METHOD else
                           load_matchanything_backend if self._method == MATCHANYTHING_METHOD else
                           load_roma_backend if self._method == ROMA_METHOD else load_efficient_backend)
                 model = loader(self._deep_options or DeepMatcherOptions(),
@@ -59,7 +64,7 @@ class RegistrationJob(QThread):
                     self.checked_device = loaded.device
                 return
             result = register_series(self._frames, method=self._method, backend=self._backend,
-                                     deep_options=self._deep_options,
+                                     deep_options=self._deep_options, method_profiles=self._profiles,
                                      progress=self.progress.emit, cancelled=self.was_cancelled)
             if not self.was_cancelled():
                 self.result = result

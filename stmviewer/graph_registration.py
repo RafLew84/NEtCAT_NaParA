@@ -15,6 +15,7 @@ from stmviewer.registration import RegistrationCancelled, RegistrationError, est
 from stmviewer.efficient_matcher import EfficientBackend
 from stmviewer.roma_matcher import RomaBackend
 from stmviewer.matchanything_matcher import MatchAnythingBackend
+from stmviewer.method_parameters import MethodProfiles
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.deep_ecc import DeepEccBackend
 from stmviewer.local_registration import DeepLocalBackend
@@ -159,6 +160,7 @@ def graph_topology(count: int, edges: tuple[GraphEdge, ...]
 def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
                    method: str = 'deep_matcher_translation',
                    deep_options: DeepMatcherOptions | None = None,
+                   method_profiles: MethodProfiles = MethodProfiles(),
                    previous: GraphTrial | None = None,
                    progress: Callable[[int, int, str], None] | None = None,
                    cancelled: Callable[[], bool] | None = None) -> GraphTrial:
@@ -185,7 +187,8 @@ def register_graph(frames: tuple[ImageFrame, ...], *, window: int = 3,
     options = deep_options or DeepMatcherOptions()
     completed = 0
     backend, config = load_graph_backend(
-        method, options, window, progress=lambda text: report(completed, text), cancelled=cancelled,
+        method, options, window, method_profiles=method_profiles,
+        progress=lambda text: report(completed, text), cancelled=cancelled,
     )
     try:
         label = graph_method_label(method)

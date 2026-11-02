@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from stmviewer.method_parameters import MethodProfiles
 from stmviewer.frame import ImageFrame
 from stmviewer.registration import RegistrationResult
 
@@ -39,6 +40,7 @@ class SessionViewState:
     matchanything_options: DeepMatcherOptions | None = None
     deep_extractor_weights: str | None = None
     lightglue_options: DeepMatcherOptions | None = None
+    method_profiles: MethodProfiles = field(default_factory=MethodProfiles)
 
 
 @dataclass(frozen=True)

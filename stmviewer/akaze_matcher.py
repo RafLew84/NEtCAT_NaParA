@@ -6,6 +6,9 @@ from typing import Any, Callable
 import numpy as np
 from numpy.typing import NDArray
 
+from stmviewer.method_parameters import AkazeParameters, ContrastParameters
+from stmviewer.feature_preparation import prepare_feature_image
+from stmviewer.feature_provenance import akaze_detector_text, profile_text
 from nanotrack.core import RegistrationFrameResult
 from stmviewer.correspondence_consensus import CorrespondenceConfig, estimate_correspondence_translation
 from stmviewer.correspondence_types import CorrespondenceDiagnostics, CorrespondenceRefusal, ImagePreparation
@@ -19,30 +22,21 @@ MATCHER_CONFIG = 'BFMatcher; NORM_HAMMING; crossCheck=True'
 NORMALIZATION = 'minmax-uint8-round-v1'
 
 
-def prepare_akaze_image(data: NDArray[np.float64]) -> tuple[NDArray[np.uint8], ImagePreparation]:
+def prepare_akaze_image(data: NDArray[np.float64], contrast: ContrastParameters = ContrastParameters()) -> tuple[NDArray[np.uint8], ImagePreparation]:
     """Map finite measurement values to uint8, preserving the original pixel grid."""
-    values = np.asarray(data, dtype=np.float64)
-    if values.ndim != 2 or min(values.shape) < 1 or not np.isfinite(values).all():
-        raise ValueError('AKAZE wymaga niepustego obrazu 2D bez NaN/Inf.')
-    low, high = float(values.min()), float(values.max())
-    if low == high:
-        normalized = np.zeros(values.shape, dtype=np.uint8)
-    else:
-        scale = max(abs(low), abs(high))
-        unit = (values / scale - low / scale) / (high / scale - low / scale)
-        normalized = np.asarray(np.rint(np.clip(unit, 0., 1.) * 255.), dtype=np.uint8)
-    shape = (int(values.shape[0]), int(values.shape[1]))
-    return normalized, ImagePreparation(shape, shape, (1., 1.), (0, 0, 0, 0),
-                                         (low, high), NORMALIZATION)
+    normalized, preparation = prepare_feature_image(data, contrast, uint8=True)
+    return np.asarray(normalized, dtype=np.uint8), preparation
 
 
 class AkazeBackend:
     """One detector/matcher per task; no neural runtime, network, or CUDA state."""
 
-    def __init__(self, *, cancelled: Callable[[], bool] | None = None,
+    def __init__(self, *, parameters: AkazeParameters = AkazeParameters(),
+                 cancelled: Callable[[], bool] | None = None,
                  progress: Callable[[str], None] | None = None) -> None:
         self._cancelled, self._progress = cancelled, progress
-        self.config = CorrespondenceConfig()
+        self.parameters = parameters
+        self.config = CorrespondenceConfig(inlier_radius=parameters.radius)
         self.device = 'CPU'
         self.last_diagnostics: CorrespondenceDiagnostics | None = None
         self._checkpoint()
@@ -52,21 +46,22 @@ class AkazeBackend:
             raise ValueError('OpenCV: brak AKAZE_create lub BFMatcher.')
         self._detector: Any = factory(
             descriptor_type=cv2.AKAZE_DESCRIPTOR_MLDB, descriptor_size=0, descriptor_channels=3,
-            threshold=0.001, nOctaves=4, nOctaveLayers=4, diffusivity=cv2.KAZE_DIFF_PM_G2, max_points=-1)
+            threshold=parameters.threshold, nOctaves=4, nOctaveLayers=4, diffusivity=cv2.KAZE_DIFF_PM_G2, max_points=-1)
         self._matcher: Any = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         self.provenance = tuple(sorted({
             'model': AKAZE_LABEL, 'adapter_version': ADAPTER_VERSION,
-            'detector': DETECTOR_CONFIG, 'matcher': MATCHER_CONFIG,
+            'detector': akaze_detector_text(parameters), 'matcher': MATCHER_CONFIG,
+            'parameter_profile': profile_text(AKAZE_METHOD, parameters),
             'selection': 'all mutual matches; no distance cutoff or score weighting',
-            'preprocessing': NORMALIZATION + '; native; no padding',
+            'preprocessing': parameters.contrast.normalization(uint8=True) + '; native; no padding',
             'coordinate_mapping': 'original-pixels; scale_xy=1,1',
             'aggregation': 'translation-consensus-v2',
             'requested_device': 'cpu', 'actual_device': 'CPU',
             'library_opencv': cv2.__version__,
             'opencv_build_sha256': sha256(cv2.getBuildInformation().encode()).hexdigest(),
         }.items()))
-        self.settings_text = ('AKAZE; CPU; ' + DETECTOR_CONFIG + '; ' + MATCHER_CONFIG
-                              + '; ' + NORMALIZATION + '; rozmiar original; bez paddingu; '
+        self.settings_text = ('AKAZE; CPU; ' + akaze_detector_text(parameters) + '; ' + MATCHER_CONFIG
+                              + '; ' + profile_text(AKAZE_METHOD, parameters) + '; rozmiar original; bez paddingu; '
                               'translation-consensus-v2; Hamming nie jest oceną pewności dryfu; '
                               + '; '.join(f'{k}={v}' for k, v in asdict(self.config).items()))
         self._checkpoint()
@@ -88,8 +83,8 @@ class AkazeBackend:
         self._checkpoint()
         if self._detector is None or self._matcher is None:
             raise ValueError('AKAZE: zasoby zadania zostały zwolnione.')
-        reference, rp = prepare_akaze_image(reference_frame)
-        moving, mp = prepare_akaze_image(moving_frame)
+        reference, rp = prepare_akaze_image(reference_frame, self.parameters.contrast)
+        moving, mp = prepare_akaze_image(moving_frame, self.parameters.contrast)
         self._report('punkty i deskryptory obrazu odniesienia')
         k0, d0 = (self._detector.detectAndCompute(reference, None)
                   if min(reference.shape) >= 2 and reference.min() != reference.max() else ((), None))

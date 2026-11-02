@@ -9,6 +9,8 @@ from PyQt6.QtWidgets import (
     QScrollArea, QSizePolicy, QSpinBox, QToolButton, QVBoxLayout, QWidget,
 )
 
+from stmviewer.ui.method_parameters import MethodParameterControls
+from stmviewer.ui.parameter_status import ParameterStatus
 from stmviewer.ui.registration_options import method_unavailable_reason
 from stmviewer.ui.hybrid_details import deep_start_trial, hybrid_details_text
 from stmviewer.ui.local_details import LocalDetails, local_overlays, local_start_trial
@@ -40,12 +42,14 @@ class PairComparisonDialog(QDialog):
                  backend: ShiftBackend | None = None, reference_index: int | None = None,
                  initial_trial: PairTrial | None = None, initial_failure: str | None = None,
                  initial_local_failure: LocalDiagnostics | None = None,
-                 initial_correspondence_failure: CorrespondenceDiagnostics | None = None) -> None:
+                 initial_correspondence_failure: CorrespondenceDiagnostics | None = None,
+                 parameters: MethodParameterControls | None = None) -> None:
         if not 1 <= moving_index < len(frames):
             raise ValueError("Nieprawidłowa klatka przesuwana.")
         if reference_index is not None and not 0 <= reference_index < moving_index:
             raise ValueError("Nieprawidłowa klatka bazowa.")
         super().__init__(parent)
+        self._parameters = parameters or MethodParameterControls(parent)
         self._fixed_reference = reference_index
         self.setObjectName('pairComparison')
         self.setWindowTitle('Dopasowanie pary klatek')
@@ -158,6 +162,8 @@ class PairComparisonDialog(QDialog):
         self._details_toggle.toggled.connect(lambda opened: self._details_toggle.setArrowType(
             Qt.ArrowType.DownArrow if opened else Qt.ArrowType.RightArrow))
         choices.addWidget(self._result)
+        self._parameter_status = ParameterStatus(self._parameters, 'pairParameterStatus', self)
+        choices.addWidget(self._parameter_status)
         sidebar.addWidget(comparisons)
 
         automatic = QGroupBox('Dopasowanie automatyczne', self)
@@ -409,6 +415,8 @@ class PairComparisonDialog(QDialog):
         correspondence = (self._correspondence_failure if self._failure_view.isChecked()
                           else selected.correspondence if selected is not None else None)
         self._correspondence_details.set_details(correspondence)
+        shown_method = dict(correspondence.model_provenance).get('model', method) if correspondence else method
+        self._parameter_status.set_context(shown_method, correspondence.model_provenance if correspondence else None)
         self._failure_view.setEnabled(available and not editing)
         details = self._selected_local_details()
         self._local_details.set_details(details)
@@ -500,7 +508,7 @@ class PairComparisonDialog(QDialog):
         index = self._number.value() - 1
         job = PairJob(self._frames[self._reference_index], self._frames[index], self,
                       method=str(self._method.currentData()), deep_options=self._deep.options(),
-                      backend=self._backend)
+                      backend=self._backend, method_profiles=self._parameters.profiles)
         self._job = job
         self._message.setText('Obliczanie wyłącznie tej pary…')
         self._cancel.setEnabled(True)

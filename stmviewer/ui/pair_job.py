@@ -1,6 +1,7 @@
 """Background pair estimation; no complete-series aligned is materialized."""
 
 from threading import Event
+from stmviewer.method_parameters import MethodProfiles
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
@@ -17,9 +18,10 @@ class PairJob(QThread):
 
     def __init__(self, reference: ImageFrame, moving: ImageFrame, parent: QObject, *,
                  method: str, deep_options: DeepMatcherOptions,
-                 backend: ShiftBackend | None = None) -> None:
+                 backend: ShiftBackend | None = None, method_profiles: MethodProfiles = MethodProfiles()) -> None:
         super().__init__(parent)
         self._reference, self._moving = reference, moving
+        self._profiles = method_profiles
         self._method, self._options, self._backend = method, deep_options, backend
         self._cancelled = Event()
         self.result: PairTrial | None = None
@@ -36,7 +38,7 @@ class PairJob(QThread):
     def run(self) -> None:
         try:
             result = estimate_pair(self._reference, self._moving, method=self._method,
-                                   deep_options=self._options, backend=self._backend,
+                                   deep_options=self._options, backend=self._backend, method_profiles=self._profiles,
                                    cancelled=self.was_cancelled, progress=self.progress.emit)
             if not self.was_cancelled():
                 self.result = result

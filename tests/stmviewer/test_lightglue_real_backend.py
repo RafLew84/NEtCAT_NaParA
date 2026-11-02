@@ -87,3 +87,26 @@ def test_corrupt_checkpoint_is_rejected_before_loading(component, tmp_path):
     label = 'LightGlue' if component == 'matcher' else 'SuperPoint'
     with pytest.raises(RegistrationError, match='SHA-256 wag ' + label):
         load_lightglue_backend(altered)
+
+
+def test_changed_profile_reaches_real_worker_and_retains_known_xy():
+    from stmviewer.lightglue_matcher import load_lightglue_backend
+    from stmviewer.method_parameters import LightGlueParameters, ContrastParameters
+    from stmviewer.feature_provenance import recorded_profile
+    parameters = LightGlueParameters(detection_threshold=.001, nms_radius=2,
+        max_keypoints=1024, filter_threshold=.05, full_computation=True, radius=1.5,
+        contrast=ContrastParameters(mode='percentiles'))
+    backend = load_lightglue_backend(options('cpu'), parameters=parameters)
+    try:
+        reference, moving = images()
+        result = backend.estimate(reference, moving, moving_frame_index=1)
+        np.testing.assert_allclose(result.shift_xy, (-7, 5), atol=1.)
+        assert recorded_profile('lightglue_superpoint', backend.provenance) == parameters
+        metadata = dict(backend.provenance)
+        assert 'nms_radius=2' in metadata['extractor_config']
+        assert 'depth_confidence=-1' in metadata['model_config']
+        assert metadata['max_keypoints'] == '1024'
+        assert 'inlier_radius=1.5' in backend.last_diagnostics.settings_text
+        assert backend.last_diagnostics.preparation[0].normalization == 'percentiles-float32-v1'
+    finally:
+        backend.close()

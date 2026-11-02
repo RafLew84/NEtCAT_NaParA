@@ -2,6 +2,7 @@
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QPushButton, QWidget
 
+from stmviewer.ui.method_parameters import MethodParameterControls
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.frame import ImageFrame
 from stmviewer.graph_types import GraphTrial
@@ -16,9 +17,10 @@ class GraphControls(QObject):
     movie_restore_requested = pyqtSignal()
     movie_cancel_requested = pyqtSignal()
 
-    def __init__(self, parent: QWidget) -> None:
+    def __init__(self, parent: QWidget, *, parameters: MethodParameterControls | None = None) -> None:
         super().__init__(parent)
         self._parent = parent
+        self._parameters = parameters or MethodParameterControls(parent)
         self._trial: GraphTrial | None = None
         self._dialog: GraphComparisonDialog | None = None
         self._available = True
@@ -51,7 +53,7 @@ class GraphControls(QObject):
             self._dialog.activateWindow()
             return
         dialog = GraphComparisonDialog(frames, self._parent, registration=registration,
-                                        deep_options=deep_options, trial=self._trial, method=method)
+                                        deep_options=deep_options, trial=self._trial, method=method, parameters=self._parameters)
         self._dialog = dialog
         dialog.changed.connect(self._changed)
         dialog.movie_apply_requested.connect(self.movie_apply_requested)

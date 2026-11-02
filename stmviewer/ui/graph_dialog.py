@@ -10,6 +10,8 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
+from stmviewer.ui.method_parameters import MethodParameterControls
+from stmviewer.ui.parameter_status import ParameterStatus
 from stmviewer.deep_matcher import DeepMatcherOptions
 from stmviewer.efficient_matcher import EFFICIENT_METHOD
 from stmviewer.roma_matcher import ROMA_METHOD
@@ -55,8 +57,9 @@ class GraphComparisonDialog(QDialog):
     def __init__(self, frames: tuple[ImageFrame, ...], parent: QWidget, *,
                  registration: RegistrationResult | None = None,
                  deep_options: DeepMatcherOptions | None = None, trial: GraphTrial | None = None,
-                 method: str | None = None) -> None:
+                 method: str | None = None, parameters: MethodParameterControls | None = None) -> None:
         super().__init__(parent)
+        self._parameters = parameters or MethodParameterControls(parent)
         self.setObjectName('graphComparison')
         self.setWindowTitle('Dopasowanie wieloklatkowe — kandydat grafu')
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -143,6 +146,8 @@ class GraphComparisonDialog(QDialog):
         self._summary.setTextFormat(Qt.TextFormat.PlainText)
         self._summary.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         sidebar.addWidget(self._summary)
+        self._parameter_status = ParameterStatus(self._parameters, 'graphParameterStatus', self)
+        sidebar.addWidget(self._parameter_status)
         self._robust = RobustGraphControls(self)
         sidebar.addWidget(self._robust)
         sidebar.addStretch()
@@ -255,6 +260,8 @@ class GraphComparisonDialog(QDialog):
 
     def _present_trial(self, *, select_new_robust: bool = False) -> None:
         trial = self._trial
+        self._parameter_status.set_context(trial.config.method if trial else str(self._method.currentData()),
+                                           trial.config.backend_settings if trial else None)
         if trial is None:
             self._summary.setText('Brak kandydata. Wybierz metodę dopasowania par i oblicz graf.')
         else:
@@ -355,7 +362,8 @@ class GraphComparisonDialog(QDialog):
             return
         self._movie.pause()
         job = GraphJob(self._frames, self, window=int(self._window.currentData()),
-                        deep_options=self._deep.options(), previous=self._trial, method=str(self._method.currentData()))
+                        deep_options=self._deep.options(), previous=self._trial, method=str(self._method.currentData()),
+                        method_profiles=self._parameters.profiles)
         self._job = job
         self._cancel.setEnabled(True)
         self._progress.setRange(0, 0)
@@ -421,7 +429,7 @@ class GraphComparisonDialog(QDialog):
                                      initial_failure=edge.reason if edge.shift_xy is None else None,
                                      initial_local_failure=edge.local_diagnostics if edge.shift_xy is None else None,
                                      initial_correspondence_failure=edge.correspondence_diagnostics if edge.shift_xy is None else None,
-                                     deep_options=_model_options(trial.config))
+                                     deep_options=_model_options(trial.config), parameters=self._parameters)
         self._pair = pair
         pair.busy_changed.connect(self._pair_busy_changed)
         pair.finished.connect(lambda: self._pair_closed(pair))

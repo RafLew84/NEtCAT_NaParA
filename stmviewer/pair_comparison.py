@@ -7,6 +7,7 @@ from typing import Callable, Literal
 import numpy as np
 from numpy.typing import NDArray
 
+from stmviewer.method_parameters import MethodProfiles
 from stmviewer.akaze_matcher import AKAZE_METHOD, AKAZE_LABEL, AkazeBackend
 from stmviewer.lightglue_matcher import LIGHTGLUE_METHOD, LightGlueBackend, load_lightglue_backend
 from stmviewer.correspondence_types import CorrespondenceDiagnostics, CorrespondenceRefusal
@@ -55,6 +56,7 @@ class PairTrial:
 def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
                   method: str = 'phase_correlation',
                   deep_options: DeepMatcherOptions | None = None,
+                  method_profiles: MethodProfiles = MethodProfiles(),
                   backend: ShiftBackend | None = None,
                   cancelled: Callable[[], bool] | None = None,
                   progress: Callable[[str], None] | None = None) -> PairTrial:
@@ -86,10 +88,11 @@ def estimate_pair(reference: ImageFrame, moving: ImageFrame, *,
     device = 'CPU'
     settings = 'Oryginały; ustawienia NanoTrack'
     if method == AKAZE_METHOD:
-        akaze = AkazeBackend(cancelled=cancelled, progress=report)
+        akaze = AkazeBackend(parameters=method_profiles.akaze, cancelled=cancelled, progress=report)
         backend, settings = akaze, akaze.settings_text
     elif method == LIGHTGLUE_METHOD:
         lightglue = load_lightglue_backend(deep_options or DeepMatcherOptions(),
+                                         parameters=method_profiles.lightglue,
                                          cancelled=cancelled, progress=report)
         backend, device, settings = lightglue, lightglue.device, lightglue.settings_text
     elif method == MATCHANYTHING_METHOD:

@@ -119,7 +119,8 @@ def _correspondence_graph_config(window: int, provenance: tuple[tuple[str, str],
     root = Path(__file__).resolve().parent.parent
     files = ('stmviewer/graph_registration.py', 'stmviewer/graph_provenance.py',
              'stmviewer/graph_backends.py', 'stmviewer/correspondence_types.py',
-             'stmviewer/correspondence_consensus.py', *model_files)
+             'stmviewer/correspondence_consensus.py', 'stmviewer/feature_preparation.py',
+             'stmviewer/method_parameters.py', 'stmviewer/feature_provenance.py', *model_files)
     return GraphConfig(window, metadata['weights_path'], metadata['weights_sha256'],
                        metadata['requested_device'], metadata['actual_device'],
                        tuple(sorted(settings.items())), libraries, _code_version(root, files),
@@ -160,7 +161,9 @@ def akaze_graph_config(window: int, provenance: tuple[tuple[str, str], ...],
     settings = {**dict(provenance), 'cache_max_pairs': str(MAX_CACHED_PAIRS),
                 **{f'consensus_{key}': str(value) for key, value in consensus.items()}}
     root = Path(__file__).resolve().parent.parent
-    files = ('stmviewer/akaze_matcher.py', 'stmviewer/correspondence_consensus.py',
+    files = ('stmviewer/feature_preparation.py', 'stmviewer/method_parameters.py',
+             'stmviewer/feature_provenance.py',
+             'stmviewer/akaze_matcher.py', 'stmviewer/correspondence_consensus.py',
              'stmviewer/correspondence_types.py', 'stmviewer/graph_provenance.py',
              'stmviewer/graph_backends.py', 'stmviewer/graph_registration.py')
     libraries = tuple((key.removeprefix('library_'), value) for key, value in provenance

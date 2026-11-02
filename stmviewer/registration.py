@@ -12,6 +12,7 @@ from nanotrack.core import RegistrationFrameResult
 import numpy as np
 from numpy.typing import NDArray
 
+from stmviewer.method_parameters import MethodProfiles
 from stmviewer.akaze_matcher import AKAZE_METHOD, AKAZE_LABEL, AkazeBackend
 from stmviewer.lightglue_matcher import (
     LIGHTGLUE_METHOD, LIGHTGLUE_LABEL, LightGlueBackend, load_lightglue_backend,
@@ -134,6 +135,7 @@ class ShiftBackend(Protocol):
 def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_correlation",
                     backend: ShiftBackend | None = None,
                     deep_options: DeepMatcherOptions | None = None,
+                    method_profiles: MethodProfiles = MethodProfiles(),
                     progress: Callable[[int, int, str], None] | None = None,
                     cancelled: Callable[[], bool] | None = None) -> RegistrationResult:
     """Align adjacent originals with the selected method and fixed settings."""
@@ -163,10 +165,11 @@ def register_series(frames: tuple[ImageFrame, ...], *, method: str = "phase_corr
     device = 'CPU'
     completed_pairs = 0
     if method == AKAZE_METHOD:
-        backend = AkazeBackend(cancelled=cancelled, progress=lambda text: report(completed_pairs, text))
+        backend = AkazeBackend(parameters=method_profiles.akaze, cancelled=cancelled,
+                               progress=lambda text: report(completed_pairs, text))
     elif method == LIGHTGLUE_METHOD:
         lightglue = load_lightglue_backend(
-            deep_options or DeepMatcherOptions(),
+            deep_options or DeepMatcherOptions(), parameters=method_profiles.lightglue,
             progress=lambda text: report(completed_pairs, text), cancelled=cancelled,
         )
         backend, device = lightglue, lightglue.device

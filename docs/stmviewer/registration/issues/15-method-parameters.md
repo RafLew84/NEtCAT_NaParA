@@ -6,7 +6,9 @@ sprawdza parę, a następnie używa tej samej konfiguracji w filmie lub grafie.
 **Blocked by:** [REG-13](13-lightglue-superpoint.md) oraz [REG-14](14-akaze.md).
 REG-13 jest odebrany; REG-14 ma implementację i status ready-for-review,
 oczekuje manualnego odbioru. Dodanie ticketu nie oznacza tego odbioru.
-**Status:** ready-for-agent — zakres przygotowany; zależność REG-14 otwarta.
+**Status:** in-progress — wykonawca Codex; baza przeglądu f61a6aea65c8078ffc168731c8b8cb18b76bc0b1.
+**Zlecenie wykonania:** użytkownik zlecił REG-15 mimo otwartego odbioru REG-14;
+rozpoczęcie tego etapu nie zmienia statusu REG-14.
 **Manualny odbiór:** niewykonany; funkcja jeszcze niewdrożona.
 **Dodano do planu:** 2026-11-02, na zlecenie użytkownika.
 

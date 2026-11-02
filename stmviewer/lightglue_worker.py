@@ -21,6 +21,9 @@ from stmviewer.lightglue_resources import (
     MAX_KEYPOINTS, MODEL_CONFIG, PRECISION, PREPROCESSING, SOURCE_COMMIT,
     SOURCE_SHA256, validate_resources,
 )
+from stmviewer.method_parameters import LightGlueParameters, decode_profile
+from stmviewer.feature_provenance import lightglue_identity
+from dataclasses import asdict
 from stmviewer.roma_worker import _peak_rss_mib
 
 VERSION = 1
@@ -34,7 +37,9 @@ def _blocked(*args: Any, **kwargs: Any) -> Any:
 class Worker:
     def __init__(self, config: dict[str, Any], report: Callable[[str], None]) -> None:
         requested = config['device']
-        if requested not in ('cpu', 'cuda', 'auto') or config.get('samples') != MAX_KEYPOINTS:
+        parameters = decode_profile('lightglue_superpoint', config.get('parameters', asdict(LightGlueParameters())))
+        assert isinstance(parameters, LightGlueParameters)
+        if requested not in ('cpu', 'cuda', 'auto') or config.get('samples') != parameters.max_keypoints:
             raise ValueError('Nieprawidłowa konfiguracja LightGlue + SuperPoint.')
         if requested == 'cpu':
             os.environ['CUDA_VISIBLE_DEVICES'] = ''
@@ -78,8 +83,13 @@ class Worker:
         self.rbd = import_module('lightglue.utils').rbd
         report('LightGlue + SuperPoint: wczytywanie obu lokalnych checkpointów')
         started = time.monotonic()
-        self.extractor = upstream.SuperPoint(max_num_keypoints=MAX_KEYPOINTS).eval()
-        self.matcher = upstream.LightGlue(features='superpoint', flash=True, mp=False).eval()
+        self.extractor = upstream.SuperPoint(
+            max_num_keypoints=parameters.max_keypoints, detection_threshold=parameters.detection_threshold,
+            nms_radius=parameters.nms_radius).eval()
+        self.matcher = upstream.LightGlue(
+            features='superpoint', flash=True, mp=False, filter_threshold=parameters.filter_threshold,
+            depth_confidence=-1 if parameters.full_computation else .95,
+            width_confidence=-1 if parameters.full_computation else .99).eval()
         self._validate_state(weights, extractor_weights)
         self.extractor = self.extractor.to(device)
         self.matcher = self.matcher.to(device)
@@ -102,6 +112,7 @@ class Worker:
             'runtime': 'isolated same-interpreter process; local-only; eval; compile=False',
             'checkpoint_compatibility': 'legacy attention names; ignore exact log_assignment.0-8.r=[1]; generated confidence_thresholds; strict current state',
         }
+        self.provenance.update(lightglue_identity(parameters))
         for name in ('torch', 'torchvision', 'numpy', 'kornia', 'opencv-python', 'matplotlib'):
             self.provenance['library_' + name] = metadata.version(name)
         report('LightGlue + SuperPoint: model gotowy na ' + self.device)
