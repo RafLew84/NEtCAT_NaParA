@@ -1,5 +1,9 @@
 # Interaktywne STM Domains na bazie v0.4
 
+Gałąź implementacji: **`domains/interactive-v04-ui`**, utworzona z
+`domains/start` na commicie `b21e0ca`. Worktree:
+`/home/rlew/projekty/NEtCAT-domains`.
+
 Stan: **20 osobnych ticketów**, 2026-11-02. Podstawowe 01–15 zachowują
 status `draft`. Na polecenie użytkownika dodano omówione rozszerzenia:
 16–18 mają status `ready-for-agent` i wymagają ukończenia zależności,
