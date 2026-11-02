@@ -46,3 +46,32 @@ def test_series_dialog_applies_all_settings_and_exposes_frame_statuses(qtbot, tm
     assert not dialog.k.isEnabled() and dialog.calculate.isEnabled()
     window.close()
     qtbot.waitUntil(lambda: not controller.pending_task_count and not window.filmstrip.pending_task_count)
+
+
+def test_individual_tuning_is_distinguished_from_the_original_series_run(qtbot, tmp_path):
+    from stmdomains.analysis.series_settings import SeriesAnalysisPlan
+    from stmdomains.tools.class_discovery_demo import create_class_discovery_demo
+
+    window = STMDomainsMainWindow(prompts=Prompts())
+    qtbot.addWidget(window)
+    window.show()
+    controller = window.controller
+    controller.open_session(create_class_discovery_demo(tmp_path)["single"])
+    qtbot.waitUntil(lambda: not controller.is_busy)
+    controller.start_series_analysis(SeriesAnalysisPlan(k=1))
+    qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
+    run, saved = controller.series_run, controller.result
+    assert "spoza tego przebiegu" not in window.details_label.text()
+    window.domain_settings_action.trigger()
+    domain = window.domain_settings_dialog
+    domain.minimum.setValue(6)
+    qtbot.mouseClick(domain.calculate, Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
+    assert controller.result.parameters["minimum_domain_size"] == 6
+    assert "spoza tego przebiegu" in window.details_label.text()
+    assert controller.series_run is run and run.plan.domain_settings.minimum_domain_size == 8
+    assert controller.previous_result is saved
+    domain.comparison.setCurrentIndex(1)
+    assert "spoza tego przebiegu" not in window.details_label.text()
+    window.close()
+    qtbot.waitUntil(lambda: not controller.pending_task_count and not window.filmstrip.pending_task_count)

@@ -72,6 +72,10 @@ def recalculate_domains(
             rejection_reason="" if domain else member.rejection_reason or "small_or_fragmented_component",
         )
     check()
+    metadata = dict(previous.metadata)
+    # This is a new individual result, not a result of the unchanged batch plan.
+    metadata.pop("series_analysis", None)
+    metadata.update(barriers=barrier_metadata, domain_construction=geometry_metadata)
     return replace(previous, assignments=assignments, domain_labels=regions,
                    parameters={**previous.parameters, **settings.parameters()},
-                   metadata={**previous.metadata, "barriers": barrier_metadata, "domain_construction": geometry_metadata})
+                   metadata=metadata)
