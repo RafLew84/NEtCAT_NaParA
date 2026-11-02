@@ -1,22 +1,26 @@
 """Compose the raw series browser; input parsing lives outside Qt."""
 
 import json
+from collections.abc import Mapping
 
 from PyQt6.QtCore import QCoreApplication, QEvent, QObject, QSignalBlocker, Qt
 from PyQt6.QtGui import QCloseEvent, QKeySequence
 from PyQt6.QtWidgets import (
     QDialog, QHBoxLayout, QLabel, QMainWindow, QPlainTextEdit,
-    QProgressBar, QPushButton, QSlider, QSpinBox,
+    QProgressBar, QPushButton, QSizePolicy, QSlider, QSpinBox,
     QVBoxLayout, QWidget,
 )
 
 from stmdomains.core.series import Series
 from stmdomains.core.annotations import Detection, Segmentation
+from stmdomains.core.domain_results import DomainResult
 from stmdomains.ui.annotation_controls import AnnotationControls
 from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.filmstrip import Filmstrip
 from stmdomains.ui.import_prompts import ImportPrompts, QtImportPrompts
 from stmdomains.ui.playback_controls import PlaybackControls
+from stmdomains.ui.result_controls import ResultControls
+from stmdomains.ui.result_style import assignment_description
 from stmdomains.ui.session_controller import PresentedFrame, SessionController
 
 
@@ -37,6 +41,11 @@ class STMDomainsMainWindow(QMainWindow):
         self.open_button.setObjectName("openButton")
         self.open_button.clicked.connect(lambda: self.controller.open_session())
         files.addWidget(self.open_button)
+        self.result_open_button = QPushButton("Otwórz wynik v0.4…")
+        self.result_open_button.setEnabled(False)
+        self.result_open_button.setToolTip("Najpierw otwórz zapis MolTrack, potem wskaż paczkę wyniku.")
+        self.result_open_button.clicked.connect(lambda: self.controller.open_result())
+        files.addWidget(self.result_open_button)
         self.source_label = QLabel("Brak otwartej serii")
         files.addWidget(self.source_label, 1)
         layout.addLayout(files)
@@ -98,6 +107,10 @@ class STMDomainsMainWindow(QMainWindow):
         )
         self.playback_controls.gamma.valueChanged.connect(self.controller.set_gamma)
         layout.addWidget(self.playback_controls)
+        self.result_controls = ResultControls()
+        self.result_controls.mode_changed.connect(self._select_result_mode)
+        self.result_controls.details_button.clicked.connect(self._show_result_metadata)
+        layout.addWidget(self.result_controls)
         for spin_control in (self.frame_number, self.playback_controls.gamma):
             spin_control.installEventFilter(self)
             editor = spin_control.lineEdit()
@@ -109,7 +122,7 @@ class STMDomainsMainWindow(QMainWindow):
         selection = QHBoxLayout()
         self.selection_label = QLabel("Kliknij oznaczenie, aby zobaczyć jego dane.")
         self.selection_label.setTextFormat(Qt.TextFormat.PlainText)
-        self.selection_label.setWordWrap(True)
+        self.selection_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         selection.addWidget(self.selection_label, 1)
         self.metadata_button = QPushButton("Dane oznaczenia…")
         self.metadata_button.setEnabled(False)
@@ -161,6 +174,7 @@ class STMDomainsMainWindow(QMainWindow):
         self.controller.frame_changed.connect(self._show_frame)
         self.controller.busy_changed.connect(self._show_progress)
         self.controller.playback_changed.connect(self._show_playback)
+        self.controller.result_changed.connect(self._result_loaded)
         app = QCoreApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(self._finish_background_work)
@@ -199,6 +213,7 @@ class STMDomainsMainWindow(QMainWindow):
         height, width = view.rendered.rgba.shape[:2]
         self._presented = view
         self.image_view.set_frame(view)
+        self.result_controls.set_frame(view)
         self._select_annotation(None)
         self.frame_info_button.setEnabled(True)
         presenter = self.controller.presenter
@@ -235,6 +250,7 @@ class STMDomainsMainWindow(QMainWindow):
         self.progress_label.setText(text)
         self.progress_bar.setVisible(busy)
         self.cancel_button.setVisible(busy)
+        self.result_open_button.setEnabled(self.controller.can_open_result)
         self._show_playback()
         if not busy:
             self._sync_frame_slider()
@@ -264,6 +280,29 @@ class STMDomainsMainWindow(QMainWindow):
     def _select_view(self, index: int) -> None:
         self.controller.set_view_mode("raw" if index == 0 else "expanded_aligned")
 
+    def _result_loaded(self, result: DomainResult | None) -> None:
+        with QSignalBlocker(self.result_controls.mode):
+            self.result_controls.mode.setCurrentIndex(0)
+        self.image_view.set_assignment_mode("domains")
+        self.details_label.setText(
+            f"Wynik eksperymentalny v0.4 · analizowane klatki: {result.frame_count} · "
+            "auto kontrast oryginału · px" if result is not None else
+            "Auto kontrast oryginału · jednostki obrazu: px"
+        )
+
+    def _select_result_mode(self, mode: str) -> None:
+        self.image_view.set_assignment_mode(mode)
+
+    def _show_result_metadata(self) -> None:
+        result = self.controller.result
+        if result is not None:
+            self._show_text("Dane wyniku v0.4 — wynik eksperymentalny", json.dumps(
+                {"paczka": str(result.package_path), "klatki_analizowane": result.frame_count,
+                 "dane_zapisanego_wyniku": dict(result.metadata)},
+                ensure_ascii=False, indent=2,
+                default=lambda value: dict(value) if isinstance(value, Mapping) else str(value),
+            ))
+
     def _set_layers(self) -> None:
         controls = self.annotation_controls
         self.image_view.set_layers(
@@ -276,6 +315,7 @@ class STMDomainsMainWindow(QMainWindow):
         self.metadata_button.setEnabled(selected is not None)
         if selected is None:
             self.selection_label.setText("Kliknij oznaczenie, aby zobaczyć jego dane.")
+            self.selection_label.setToolTip("")
             return
         metadata = selected.metadata
         if isinstance(selected, Detection):
@@ -284,10 +324,15 @@ class STMDomainsMainWindow(QMainWindow):
         else:
             identity = selected.segmentation_id
             confidence = metadata.get("score")
-        self.selection_label.setText(
+        description = ""
+        if isinstance(selected, Detection) and self._presented is not None and self._presented.result is not None:
+            description = assignment_description(self._presented.result, selected.detection_id) + " · "
+        text = description + (
             f"ID: {identity} · pochodzenie: {metadata.get('origin', 'nieznane')}"
             + f" · pewność: {confidence if confidence is not None else 'nieznana'}"
         )
+        self.selection_label.setText(text)
+        self.selection_label.setToolTip(text)
 
     def _show_text(self, title: str, text: str) -> None:
         self.controller.pause()
@@ -306,8 +351,17 @@ class STMDomainsMainWindow(QMainWindow):
 
     def _show_metadata(self) -> None:
         if self._selected is not None:
+            metadata = dict(self._selected.metadata)
+            if isinstance(self._selected, Detection) and self._presented is not None:
+                result = self._presented.result
+                if result is not None:
+                    assignment = result.assignments.get(self._selected.detection_id)
+                    metadata["wynik_v04"] = {
+                        "opis": assignment_description(result, self._selected.detection_id),
+                        "rekord": None if assignment is None else dict(assignment.metadata),
+                    }
             self._show_text("Dane zapisanego oznaczenia", json.dumps(
-                dict(self._selected.metadata), ensure_ascii=False, indent=2, default=str,
+                metadata, ensure_ascii=False, indent=2, default=str,
             ))
 
     def _show_frame_info(self) -> None:

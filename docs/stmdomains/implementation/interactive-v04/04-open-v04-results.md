@@ -6,7 +6,14 @@
 
 **Blocked by:** [02: Pokaż molekuły i poprawną geometrię obrazu](02-molecules-and-geometry.md).
 
-**Status:** draft — podział oczekuje na zatwierdzenie użytkownika.
+**Status:** in_progress — realizacja na polecenie użytkownika `implement 04`.
+
+Baza implementacji i przeglądu: `24625f2`, gałąź `domains/interactive-v04-ui`.
+Środowisko: `netcat`. Publiczne granice testów wynikające z kryteriów ticketu:
+import kompletnej paczki względem otwartej serii (pochodzenie, mapy, ID,
+współrzędne i liczniki) oraz pełna ścieżka import–podgląd (kolory, legenda,
+przyczyna odmowy, brak wyniku i zero domen). Wstępne etykiety klas pozostają
+diagnostyką; widok Klasy używa końcowych przypisań `class_id`.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 

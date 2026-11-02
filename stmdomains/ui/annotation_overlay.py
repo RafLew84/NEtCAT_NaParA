@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QGraphicsObject, QStyleOptionGraphicsItem, QWidget
 
 from stmdomains.core.annotations import Detection, Segmentation
 from stmdomains.core.frame_presentation import PresentedFrame
+from stmdomains.ui.result_style import assignment_color
 
 
 class AnnotationOverlay(QGraphicsObject):
@@ -18,6 +19,7 @@ class AnnotationOverlay(QGraphicsObject):
         self.boxes = False
         self.masks = False
         self.mask_opacity = 0.45
+        self.assignment_mode = "domains"
         self.selected_id: str | None = None
         self.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
 
@@ -56,18 +58,24 @@ class AnnotationOverlay(QGraphicsObject):
                 if segmentation.polygon_xy:
                     painter.drawPolygon(QPolygonF([QPointF(x, y) for x, y in segmentation.polygon_xy]))
             painter.setOpacity(1)
-        for detection in self.view.annotations.detections:
+        # Suppressed boxes may almost coincide with their retained molecule.
+        detections = sorted(self.view.annotations.detections, key=self._suppressed, reverse=True)
+        for detection in detections:
             if detection.outside_field:
                 continue
             x1, y1, x2, y2 = detection.bbox_xyxy
             selected = detection.detection_id == self.selected_id
-            pen.setColor(QColor("#ffdb71") if selected else QColor(70, 230, 190))
+            color = QColor(assignment_color(self.view.result, detection.detection_id, self.assignment_mode))
+            pen.setColor(QColor("#ffdb71") if selected else color)
             pen.setWidthF(2 if selected else 1.2)
             painter.setPen(pen)
             if self.boxes or selected:
                 painter.drawRect(QRectF(x1, y1, x2 - x1, y2 - y1))
             if self.centers:
-                painter.setBrush(pen.color())
+                pen.setColor(color)
+                pen.setWidthF(1.2)
+                painter.setPen(pen)
+                painter.setBrush(color)
                 painter.drawEllipse(QPointF(*detection.center_xy), 0.8, 0.8)
                 painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.restore()
@@ -82,8 +90,10 @@ class AnnotationOverlay(QGraphicsObject):
                 if not detection.outside_field and x1 <= point.x() <= x2 and y1 <= point.y() <= y2:
                     candidates.append(detection)
             if candidates:
-                return min(candidates, key=lambda d: (d.bbox_xyxy[2] - d.bbox_xyxy[0])
-                           * (d.bbox_xyxy[3] - d.bbox_xyxy[1]))
+                return min(candidates, key=lambda d: (
+                    self._suppressed(d),
+                    (d.bbox_xyxy[2] - d.bbox_xyxy[0]) * (d.bbox_xyxy[3] - d.bbox_xyxy[1]),
+                ))
         if self.boxes:
             for segmentation in self.view.annotations.segmentations:
                 if segmentation.bbox_xyxy is not None:
@@ -101,3 +111,9 @@ class AnnotationOverlay(QGraphicsObject):
                     if polygon.containsPoint(point, Qt.FillRule.OddEvenFill):
                         return segmentation
         return None
+
+    def _suppressed(self, detection: Detection) -> bool:
+        if self.assignment_mode == "input" or self.view is None or self.view.result is None:
+            return False
+        assignment = self.view.result.assignments.get(detection.detection_id)
+        return assignment is not None and assignment.status == "suppressed_duplicate"

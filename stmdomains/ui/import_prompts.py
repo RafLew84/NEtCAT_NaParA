@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
 class ImportPrompts(Protocol):
     def choose_session(self) -> Path | None: ...
+    def choose_result(self) -> Path | None: ...
     def choose_source(self, message: str, suggested: Path | None) -> Path | None: ...
     def confirm_source(self, path: Path, reasons: tuple[str, ...]) -> bool: ...
     def show_error(self, message: str) -> None: ...
@@ -32,6 +33,13 @@ class QtImportPrompts:
         )
         return Path(filename) if filename else None
 
+    def choose_result(self) -> Path | None:
+        filename, _ = QFileDialog.getOpenFileName(
+            self.parent, "Dołącz wynik v0.4 do otwartej serii", "",
+            "Paczka v0.4 (*.zip MANIFEST_v04.json);;Wszystkie pliki (*)",
+        )
+        return Path(filename) if filename else None
+
     def confirm_source(self, path: Path, reasons: tuple[str, ...]) -> bool:
         dialog = QMessageBox(
             QMessageBox.Icon.Question, "Potwierdź źródło obrazów",
@@ -48,4 +56,4 @@ class QtImportPrompts:
         return dialog.exec() == QMessageBox.StandardButton.Yes
 
     def show_error(self, message: str) -> None:
-        QMessageBox.warning(self.parent, "Nie można otworzyć obrazu", message)
+        QMessageBox.warning(self.parent, "Nie można otworzyć danych", message)
