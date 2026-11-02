@@ -11,6 +11,14 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: wdrożono [REG-13](registration/issues/13-lightglue-superpoint.md),
+  status `ready-for-review`. [Instrukcja](registration/lightglue-manual.md),
+  [wyniki](registration/lightglue-results.md), [testy](registration/reviews/REG-13.md).
+  Para, łańcuch, graf, sesja i eksport działają; 814 testów Viewera zaliczonych.
+  LightGlue dał wynik dla 12/18 par; oba pełne grafy STM pozostały rozłączne.
+  Manualny odbiór użytkownika niewykonany, REG-14 czeka. Poniższe wpisy
+  zachowują historię przygotowania i wcześniejszych decyzji.
+
 - 2026-11-02: na osobne zlecenie pobrano [kod i wagi LightGlue/SuperPoint](registration/lightglue-environment.md).
   Próby CPU/CUDA na znanym XY zaliczone, bez zmian pakietów `netcat`.
   REG-13 nadal `ready-for-agent`; funkcja w aplikacji i manualny odbiór przed nami.

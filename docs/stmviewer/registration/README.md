@@ -4,10 +4,14 @@
 [Rekomendacje i projekt porównania po REG-12](next-methods-research.md).
 Na zlecenie użytkownika dodano [REG-13: LightGlue + SuperPoint](issues/13-lightglue-superpoint.md)
 i [REG-14: AKAZE](issues/14-akaze.md), z Deep outdoor (LoFTR) i RoMa Turbo
-jako bazami. Tickety są przygotowane do realizacji; REG-14 czeka na ręczny
-odbiór REG-13. Nie rozpoczęto implementacji ani pilotażu jakości.
-[Kod i oba checkpointy REG-13](lightglue-environment.md) są pobrane;
-próby znanego XY na CPU/CUDA w `netcat` zaliczone bez instalowania pakietów.
+jako bazami. **REG-13: ready-for-review** — metoda działa w parze, filmie
+i grafie, z zapisem sesji i eksportem. [Instrukcja](lightglue-manual.md),
+[wyniki](lightglue-results.md), [testy i przeglądy](reviews/REG-13.md).
+814 testów Viewera zaliczonych; osobno rzeczywiste próby CPU/CUDA.
+LightGlue dał wynik dla 12/18 par; pełne grafy MOVIE_4/MOVIE_8 są rozłączne.
+REG-14 czeka na ręczny odbiór i ocenę jakości REG-13.
+[Kod i oba checkpointy](lightglue-environment.md) są lokalne; `netcat`
+nie wymagał instalowania pakietów.
 
 Data: 2026-10-28; rozszerzenia ręczne: REG-01a 2026-10-30, REG-02a 2026-10-31.
 Rozszerzenie o graf dopasowań i nowe modele: 2026-10-31, na zlecenie użytkownika.
@@ -158,10 +162,10 @@ użytkownika 2026-10-31. REG-02 i REG-02a również odebrano 2026-10-31 (`done`)
 REG-04 i REG-05 mają status `done` po odbiorze użytkownika 2026-10-31.
 REG-07 ma status `done` po odbiorze 2026-11-01. REG-08a ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08b ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-08c ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-01; REG-10 ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-02; REG-11 ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-02.
 REG-12 ma status `done` po potwierdzeniu „testy manualne ok” 2026-11-02.
-REG-13 i REG-14 mają status `ready-for-agent`; implementacja i odbiór jeszcze
-nie nastąpiły. REG-13 może rozpocząć się po osobnym zleceniu; REG-14 ma
-niespełnioną blokadę odbioru REG-13. Wspólny pilotaż obejmuje 54 wyniki par
-w REG-13 oraz 18 dodatkowych wyników AKAZE w REG-14, zgodnie z protokołem.
+REG-13 ma status `ready-for-review`: wdrożono metodę i wykonano pilotaż
+54 prób par, wzorce oraz oba pełne filmy. Odbiór użytkownika pozostaje
+niewykonany. REG-14 ma status `ready-for-agent` z niespełnioną blokadą
+odbioru REG-13; dołoży 18 wyników AKAZE do wspólnego porównania.
 REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d ma status `planned` jako odłożony po wycofaniu implementacji; REG-09

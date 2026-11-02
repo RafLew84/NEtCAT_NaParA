@@ -2,8 +2,11 @@
 
 Przygotowano **2026-11-02** na zlecenie użytkownika. Kod oraz oba checkpointy
 są lokalne i przeszły próbę CPU/CUDA w `netcat`, bez pobierania podczas
-obliczeń. [REG-13](issues/13-lightglue-superpoint.md) pozostaje
-`ready-for-agent`: integracja z aplikacją i odbiór ręczny jeszcze nie nastąpiły.
+obliczeń. Następnie wdrożono [REG-13](issues/13-lightglue-superpoint.md),
+status **ready-for-review**: [instrukcja GUI](lightglue-manual.md),
+[wyniki modelu i filmów](lightglue-results.md), [testy](reviews/REG-13.md).
+Odbiór ręczny pozostaje niewykonany. Poniższe pomiary środowiska pochodzą
+z wcześniejszego przygotowania zasobów, oddzielnie od prób adaptera.
 
 ## Lokalne zasoby
 
@@ -62,14 +65,16 @@ zmieniano środowiska**. Inwentarz 213 pakietów pozostał identyczny,
 
 Pakiet `lightglue` nie jest globalnie zainstalowany w `netcat`: skrypt
 próby dodaje lokalny `source/` do ścieżki importu w swoim procesie.
-To sposób uruchomienia zasobów, a nie gotowa integracja REG-13.
+Produkcyjny adapter REG-13 także używa lokalnego kodu w osobnym procesie
+tego samego interpretera. Opcjonalne zależności opisuje
+[requirements-lightglue.txt](../../../stmviewer/requirements-lightglue.txt).
 
 Konstruktory upstream wołają Torch Hub. Próba przechwytuje wyłącznie dwa
 oczekiwane URL-e i odczytuje odpowiadające im lokalne pliki przez
 `torch.load(..., weights_only=True, map_location='cpu')`. Pozostałe pobieranie
 i połączenia sieciowe są blokowane; raporty nie wykazały prób użycia sieci.
-Nie zmieniano kodu autorów. REG-13 musi zachować ten kontrakt lokalnych zasobów
-w docelowym adapterze i obsłużyć brak/uszkodzenie wag.
+Nie zmieniano kodu autorów. Adapter REG-13 zachowuje ten kontrakt, sprawdza
+sumy kodu i obu wag przed importem oraz zgłasza brak/uszkodzenie zasobów.
 
 SuperPoint używa starszego formatu serializacji, nieobsługiwanego przez
 statyczny skaner `get_unsafe_globals_in_checkpoint`; `weights_only=True`
@@ -121,9 +126,11 @@ Próby wymagają lokalnego checkoutu Viewera do końcowego konsensusu;
 ścieżkę można zmienić przez `--viewer`. Sam model korzysta z lokalnego `source/`.
 
 Audyt skryptu i sposobu ładowania nie wykazał blokujących uwag.
-Nie wykonano pilotażu 18 par, pełnych MOVIE_4/MOVIE_8, GUI, sesji, grafu,
-anulowania, eksportów ani Windows. Nie uruchamiano pełnych testów aplikacji,
-ponieważ jej kod nie zmienił się. Te sprawdzenia pozostają w REG-13.
+Na etapie przygotowania nie wykonywano pilotażu ani testów aplikacji.
+Późniejsze próby adaptera, 18 par, wzorców, pełnych filmów, Qt offscreen,
+sesji i eksportów opisują [wyniki REG-13](lightglue-results.md) oraz
+[karta sprawdzeń](reviews/REG-13.md). Windows i manualny odbiór pozostają
+niesprawdzone.
 
 ## Licencje i uwagi dla integracji
 
@@ -135,7 +142,7 @@ wskazują, że odrębne warunki dotyczą także wag i pliku inference SuperPoint
 Nie przypisujemy całemu zestawowi licencji Apache-2.0.
 
 `extract()` domyślnie zmienia długi bok do 1024, ale zwraca punkty przeliczone
-z powrotem na współrzędne wejścia. REG-13 musi zapisać przygotowanie i nie
-odwracać skali ponownie. Kod LightGlue zmienia ustawienia Torch dotyczące
-attention; próbę wykonano w osobnym procesie. Adapter musi określić sposób
-izolacji tych ustawień i nie wpływać niejawnie na pozostałe metody.
+z powrotem na współrzędne wejścia. Adapter jawnie wybiera `resize=None`,
+zapisuje przygotowanie i używa współrzędnych original bez ponownego skalowania.
+Kod LightGlue zmienia ustawienia Torch dotyczące attention; proces roboczy
+izoluje te ustawienia od GUI i pozostałych metod.

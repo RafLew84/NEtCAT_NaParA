@@ -1,3 +1,46 @@
+# REG-13: LightGlue + SuperPoint do odbioru — 2026-11-02
+
+Baza `d86baba`, implementacja `243f83a`, końcowe testy/harness `811d765`.
+Commit tej dokumentacji podano w końcowej odpowiedzi.
+Status **ready-for-review**; manualny odbiór użytkownika niewykonany.
+[Ticket](registration/issues/13-lightglue-superpoint.md),
+[instrukcja GUI](registration/lightglue-manual.md),
+[wyniki modelu](registration/lightglue-results.md),
+[testy i przeglądy](registration/reviews/REG-13.md).
+
+Nowa metoda działa w parze, łańcuchu i grafie LS/Huber. Wspólny konsensus v2,
+dwa lokalne checkpointy, izolowany proces w `netcat`, CPU/CUDA, jawne odmowy,
+postęp/anulowanie oraz zachowanie poprzedniego aligned. Sesja zachowuje
+aktywną i zapamiętaną konfigurację, hash zasobów i diagnostykę; wynik można
+odczytać bez modeli. Sprawdzono zastosowanie, korektę/cofnięcie i MPP/AVI.
+Nie instalowano pakietów; lokalne zasoby opisuje instrukcja środowiska.
+
+Końcowy cały Viewer: **814 passed, 36 skipped**, mypy **99 modułów bez błędów**.
+Pełne repo: **2595 passed, 19 failed, 50 skipped**; pięć starych oczekiwań
+liczby metod poprawiono i powtórzono cały Viewer. Pozostałe 14 identyfikatorów
+błędów jest takie samo jak w REG-12 (MolTrack/NanoTrack); pełnego repo po
+zmianie samych testów Viewera nie powtarzano. Rzeczywiste próby dodatkowe:
+5 backend CPU/CUDA, 1 integracyjna CPU oraz 2 GUI Qt offscreen — zaliczone.
+Standards **0**, Spec **0**, również dla końcowego diffu testów/harnessu.
+Największy zmieniony plik Python ma 987 linii.
+
+W pilotażu 54 prób trzech metod LightGlue dostarczył **12/18** wyników par.
+Pełne MOVIE_4 i MOVIE_8 mają odpowiednio 41 i 3 składowe grafu; nie można
+zastosować niekompletnego wyniku do filmu. Przeprowadzono też 27 prób
+wzorców i kompletny cykl małego `cpu.mpp`, z sesją/MPP i czterema AVI.
+Wyniki lokalne: `data/registration-reg13/`; nie są wersjonowane.
+Nie wykazano przewagi jakościowej LightGlue. Raport zachowuje odmowy
+i rozróżnia współczesny pilotaż par od historycznych pełnych baz Deep/RoMa.
+
+Uruchomienie: `conda activate netcat`, `python -m stmviewer.main`;
+wybierz **LightGlue + SuperPoint**, następnie **Sprawdź model**.
+Domyślne ścieżki wskazują przygotowane zasoby. Ręczna próba, ocena jakości,
+VLC, Windows i stanowisko GPU 8 GB pozostają niewykonane. REG-14 czeka
+na manualny odbiór REG-13. Odłożone REG-06/08d/09 pozostają bez zmian.
+Zmiany tylko w `stmviewer/`, `tests/stmviewer/`, `docs/stmviewer/`;
+brak potrzeb wspólnej implementacji, scalania i publikowania gałęzi.
+Poniżej historia wcześniejszych przygotowań.
+
 # REG-13: przygotowanie LightGlue/SuperPoint — 2026-11-02
 
 Pobrano zamówiony kod i oba checkpointy do `/home/rlew/.cache/stmviewer/lightglue/`.
