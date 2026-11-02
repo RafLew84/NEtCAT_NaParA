@@ -1,10 +1,10 @@
 # REG-08e: metody w dopasowaniu wieloklatkowym — 2026-11-02
 
-Status: **ready-for-review**; ręczny odbiór oczekuje na użytkownika.
+Status: **done**; użytkownik potwierdził „testy manualne ok” 2026-11-02.
 Gałąź: `viewer/registration-difficult-movies`.
 Baza: `a631c79661dff5cb5d7b1bc387edcb22a4a490d6`.
 Implementacja: `2626588`; poprawka przeglądu: `c0c5abc`.
-Finalny commit dokumentacji zostanie podany w wiadomości przekazania.
+Dokumentacja wykonania: `b910234`. Commit potwierdzenia odbioru w wiadomości przekazania.
 
 W istniejącym oknie **Dopasowanie wieloklatkowe…** dodano wybór ośmiu metod
 par. Wspólne LS/Huber pracują na zapisanych pomiarach; wynik wymaga jawnego
@@ -25,8 +25,12 @@ Uruchomienie z tego worktree, w `netcat`: `python -m stmviewer.main`.
 - Rzeczywiste próby: wszystkie metody na wzorcu, pełne MOVIE_4/MOVIE_8
   Optical Flow i Deep, sesje/korekty/przywracanie/MPP/AVI. Odczyt 58 sesji
   i 76 AVI oraz trzech starszych sesji Deep sprawdzono osobno.
-- Ręczny odbiór użytkownika i jakości STM, Windows 11, VLC oraz stanowisko
-  docelowe pozostają niewykonane. REG-10–12 nie rozpoczęto; REG-08d nie przywrócono.
+- Użytkownik potwierdził odbiór manualny 2026-11-02. Nie podał szczegółowej
+  oceny jakości metod ani systemu, odtwarzacza i sprzętu; potwierdzeniu nie
+  przypisujemy osobnego odbioru Windows 11, VLC ani stanowiska docelowego.
+  REG-10–12 nie rozpoczęto; REG-08d nie przywrócono.
+- Aktualizacja odbioru dotyczy dokumentacji: kontrola statusów, lokalnych
+  odnośników i diff-check, bez ponownego uruchamiania testów programu.
 
 **Do integracji:** wspólny Tile+RANSAC pomijał wszystkie wyjątki lokalnej
 korelacji, także brak pamięci, oraz błędne wektory. Lokalny adapter

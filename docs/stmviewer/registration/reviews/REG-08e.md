@@ -1,6 +1,6 @@
 # REG-08e — karta wykonania i odbioru
 
-Data: 2026-11-02. Status: **ready-for-review**; ręczny odbiór użytkownika niewykonany.
+Data: 2026-11-02. Status: **done**; użytkownik potwierdził „testy manualne ok”.
 Gałąź: `viewer/registration-difficult-movies`.
 Baza: `a631c79661dff5cb5d7b1bc387edcb22a4a490d6`.
 Implementacja: `2626588`; poprawka po przeglądzie: `c0c5abc`.
@@ -81,3 +81,14 @@ samej zbieżności. Windows 11, zewnętrzny VLC i stanowisko docelowe nie były
 odebrane ręcznie. REG-10–12 pozostają nierozpoczęte.
 
 Przeglądy: Standards — 0 otwartych uwag po poprawce; Spec — 0 ustaleń.
+
+## Odbiór użytkownika — 2026-11-02
+
+Użytkownik potwierdził **„testy manualne ok”**; REG-08e zamknięto jako **done**.
+Nie podano szczegółowego porównania jakości metod, systemu, sprzętu ani
+odtwarzacza. Potwierdzeniu nie przypisujemy przewagi konkretnego algorytmu
+ani osobnego odbioru Windows 11, VLC czy stanowiska docelowego.
+REG-10–12 pozostają nierozpoczęte.
+
+Aktualizacja odbioru dotyczy wyłącznie dokumentacji. Sprawdzono spójność
+statusów, odnośniki lokalne i `git diff --check`; nie powtarzano testów programu.

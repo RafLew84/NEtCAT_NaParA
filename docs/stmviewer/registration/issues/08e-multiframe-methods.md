@@ -4,8 +4,8 @@
 oknie **Dopasowanie wieloklatkowe…**, oblicza wspólne położenia klatek przez
 LS albo Huber i stosuje wybrany wynik do filmu.
 **Blocked by:** [REG-08c](08c-graph-movie-application.md), odebrany.
-**Status:** ready-for-review
-**Manualny odbiór:** oczekuje na użytkownika; implementacja i przeglądy zakończone.
+**Status:** done
+**Manualny odbiór:** przyjęty 2026-11-02 — użytkownik potwierdził „testy manualne ok”.
 **Start:** 2026-11-02, na jawne zlecenie użytkownika.
 **Baza przeglądu:** `a631c79661dff5cb5d7b1bc387edcb22a4a490d6`.
 **Dodano do planu:** 2026-11-02, na zlecenie użytkownika.
@@ -46,8 +46,8 @@ Zestaw jest zamknięty do powyższych metod; nowe modele należą do REG-10–12
 
 ## Kryteria odbioru
 
-Poniższe funkcje wdrożono i sprawdzono automatycznie. Końcowy odbiór GUI oraz
-ocena jakości STM przez użytkownika pozostają niewykonane.
+Poniższe funkcje wdrożono i sprawdzono automatycznie. Użytkownik potwierdził
+odbiór manualny 2026-11-02. Nie podał osobnego porównania jakości metod.
 [Instrukcja i gotowe sesje](../multiframe-methods-manual.md),
 [wyniki rzeczywistych prób](../multiframe-methods-results.md),
 [testy i przeglądy](../reviews/REG-08e.md).

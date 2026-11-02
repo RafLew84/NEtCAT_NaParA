@@ -2,7 +2,8 @@
 
 Data: 2026-11-02. [Ticket](issues/08e-multiframe-methods.md),
 [instrukcja manualna](multiframe-methods-manual.md).
-To wykonane próby automatyczne; ręczny odbiór użytkownika pozostaje niewykonany.
+Poniżej opisano wykonane próby automatyczne. Użytkownik potwierdził odbiór
+manualny 2026-11-02: „testy manualne ok”; REG-08e ma status **done**.
 
 ## Dane ze znanymi przesunięciami
 
@@ -102,5 +103,6 @@ Nie przypisujemy wynikowi przewagi wizualnej na MOVIE_4/MOVIE_8 na podstawie
 samej zbieżności, rozmiaru aligned ani wielkości ruchu. Użytkownik powinien
 obejrzeć pierwsze 150 klatek MOVIE_4 i pary 29→30, 35→36, 44–46, 61→62, 94–97,
 w numeracji po usunięciu pierwszych dwóch klatek. Oddzielnie ocenia tearing.
-Instrukcja manualna podaje ścieżkę porównania. Windows 11, VLC i stanowisko
-docelowe nie zostały w tym zadaniu odebrane ręcznie.
+Instrukcja manualna podaje ścieżkę porównania. Potwierdzenie użytkownika nie
+zawiera szczegółowej oceny jakości metod ani informacji o systemie, odtwarzaczu
+i sprzęcie; nie przypisujemy mu osobnego odbioru Windows 11, VLC ani stanowiska docelowego.

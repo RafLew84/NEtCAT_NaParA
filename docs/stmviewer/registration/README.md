@@ -4,7 +4,7 @@ Data: 2026-10-28; rozszerzenia ręczne: REG-01a 2026-10-30, REG-02a 2026-10-31.
 Rozszerzenie o graf dopasowań i nowe modele: 2026-10-31, na zlecenie użytkownika.
 Gałąź: `viewer/registration-difficult-movies`.
 Baza rozpoznania: `c85aecb`; przegląd metod: `81ff1a0`.
-Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b i REG-08c `done`. Użytkownik potwierdził odbiór REG-02
+Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b, REG-08c i REG-08e `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
 Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
@@ -73,8 +73,8 @@ REG-08a jest podgląd filmu z położeniami wyznaczonymi z wielu dopasowań.
 **Rozszerzenie metod — 2026-11-02:** użytkownik zlecił osobny
 [REG-08e](issues/08e-multiframe-methods.md): wybór wszystkich istniejących
 metod dopasowania par w tym samym oknie wieloklatkowym, z LS/Huberem,
-sesją i zastosowaniem do filmu. Status `ready-for-review`; implementacja,
-testy i przeglądy zakończone, ręczny odbiór oczekuje na użytkownika.
+sesją i zastosowaniem do filmu. Status `done`; użytkownik potwierdził
+„testy manualne ok” 2026-11-02, po implementacji, testach i przeglądach.
 [Instrukcja i sesje](multiframe-methods-manual.md), [karta wykonania](reviews/REG-08e.md).
 REG-08e pozostaje po REG-08c, przed próbami nowych modeli.
 To osobny zakres od REG-08d, którego implementację wycofano na życzenie
@@ -129,7 +129,7 @@ zlecenia użytkownika i zakończenia blokujących ticketów. REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d ma status `planned` jako odłożony po wycofaniu implementacji; REG-09
 pozostaje `planned` jako warunkowa osobna odnoga. REG-08e ma status
-`ready-for-review`: kod i przeglądy ukończono 2026-11-02; oczekuje na ręczny odbiór.
+`done`: użytkownik potwierdził „testy manualne ok” 2026-11-02.
 Żadnego z tych etapów nie uruchamiamy automatycznie.
 
 Kolejność podstawowa: REG-01 → REG-01a → REG-02 → REG-02a → REG-04 → REG-05
@@ -208,7 +208,7 @@ użytkownik ocenił Outdoor jako znacznie lepszy; pozostaje bazą dalszych prób
   okna 3/5 oraz obecne LS/Huber. Poprawne XY bez oceny pewności pozostaje
   pomiarem, a lokalna odmowa pozostaje brakiem. Dane różnych metod nie
   współdzielą pamięci pomiarów; CPU nie wymaga wag Deep. Rozszerzenie sesji
-  zachowuje odczyt dotychczasowych grafów Deep. Funkcja czeka na ręczny odbiór.
+  zachowuje odczyt dotychczasowych grafów Deep. Funkcję odebrano ręcznie 2026-11-02.
 - Podgląd kandydatów grafu, dostarczony w REG-08a i rozszerzony w REG-08b, przechowuje ustawienia,
   przesunięcia i metadane, renderując oglądane klatki na żądanie. Nie utrzymuje
   dwóch dodatkowych pełnych filmów float64. Ten interfejs dostarczył REG-08a,

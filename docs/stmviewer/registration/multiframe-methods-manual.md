@@ -1,6 +1,6 @@
 # REG-08e — wybór metody w dopasowaniu wieloklatkowym
 
-Status: **ready-for-review**; ręczny odbiór użytkownika niewykonany.
+Status: **done**; użytkownik potwierdził „testy manualne ok” 2026-11-02.
 [Ticket](issues/08e-multiframe-methods.md), [wyniki automatyczne](multiframe-methods-results.md).
 
 Z katalogu `/home/rlew/projekty/NEtCAT-viewer`, w środowisku `netcat`:
