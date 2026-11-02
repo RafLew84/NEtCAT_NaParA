@@ -216,3 +216,53 @@ PYTHONPATH=.:tests/stmviewer python tests/stmviewer/diagnostics/lightglue_trial.
 PYTHONPATH=.:tests/stmviewer python tests/stmviewer/diagnostics/lightglue_trial.py \
   --mode visuals --output /tmp/reg13-repeat
 ```
+
+## Zgłoszenie użytkownika: odmowa 2/32 na pierwszej parze
+
+Na `8151970`, CUDA RTX 5090, dwukrotnie odtworzono odmowę dla źródłowych
+klatek 3 i 4 MOVIE_4, czyli bieżącej pary 1→2 po usunięciu pierwszych dwóch:
+
+```text
+Za mało zgodnych wektorów przesunięcia: 2/32; wymagane co najmniej 4 zgodne.
+```
+
+32 oznacza korespondencje punktów między obrazami, nie liczbę par klatek.
+Konsensus przy tolerancji 2 px zachował dwa wektory. Łańcuch potrzebuje
+przesunięcia każdej sąsiedniej pary, więc kończy zadanie odmową.
+To ten sam przypadek, który zapisano wcześniej w pilotażu REG-13.
+
+Sprawdzono trzy hipotezy: rozmiar wejścia, tolerancję zgodności i skalowanie
+współrzędnych. Zmieniano jeden parametr naraz, bez edycji programu:
+
+| Długi bok wejścia | Punkty SuperPoint A/B | Korespondencje | Zgodne przy 2 px |
+| --- | ---: | ---: | ---: |
+| Natywne 256 px | 148 / 165 | 32 | 2 — odmowa |
+| 512 px | 299 / 290 | 19 | 1 — odmowa |
+| 1024 px | 2048 / 2048 | 16 | 1 — odmowa |
+
+Powiększenie wejścia, także do domyślnego rozmiaru biblioteki 1024 px,
+nie pomogło. Na tych samych 32 natywnych wektorach tolerancja 4 px dała
+5 zgodnych i XY (14; 14), a 8 px — 11 zgodnych i XY (16; 13). Oba wyniki
+mają ograniczone poparcie przestrzenne; 4 px także niski udział zgodnych
+punktów. Nie ustalono prawdziwego dryfu ani przewagi tych oszacowań.
+
+Kontrola na niekwadratowym wzorcu 137×219 ze znanym XY (−7; +5) dała:
+natywnie (−7; +5), przy 512 px około (−6,844; +5,137), przy 1024 px
+około (−7,058; +4,923). Sprawdzono też kod autorów: `extract` oddaje punkty
+już przeliczone do układu wejścia. Nie stwierdzono podwójnego skalowania.
+
+Wniosek: uzyskane korespondencje nie dają wystarczająco zgodnych wektorów
+tej pary. Zmniejszenie minimum do dwóch dopuściłoby słabo poparty ruch,
+bez dowodu naprawy dopasowania. **Kod i progi pozostały bez zmian;
+odmowa nadal występuje.** Odbiór REG-13 pozostaje niezamknięty.
+
+Lokalne artefakty: `data/registration-reg13/first-pair-diagnosis/`: manifest,
+`summary.json`, surowe punkty `.npz` oraz dwa skrypty. W `netcat` z CUDA:
+
+```bash
+python data/registration-reg13/first-pair-diagnosis/reg13-first-pair-repro.py
+```
+
+Obecny rezultat: kod 1 i odmowa 2/32. Po poprawce algorytmu skrypt może
+zwrócić przesunięcie i kod 0. Nie wykonano nowego odbioru GUI ani pełnych
+testów aplikacji, ponieważ nie zmieniono jej kodu.

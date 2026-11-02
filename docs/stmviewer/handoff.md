@@ -1,3 +1,20 @@
+# REG-13: diagnoza zgłoszenia 2/32 — 2026-11-02
+
+Na bazie `8151970` dwukrotnie odtworzono odmowę pierwszej pary MOVIE_4
+po usunięciu pierwszych dwóch klatek. LightGlue daje 32 korespondencje,
+z których konsensus zachowuje dwa wektory przy wymaganym minimum czterech.
+[Próby i wniosek](registration/lightglue-results.md#zgłoszenie-użytkownika-odmowa-232-na-pierwszej-parze).
+Powiększenie wejścia do 512/1024 nie pomogło (1/19 i 1/16); znany
+niekwadratowy wzorzec nie wskazał błędu skali. Szersza tolerancja daje
+słabo poparte oszacowania, bez dowodu ich poprawności na STM.
+
+Zmiana wyłącznie dokumentacji; kod, modele i progi pozostają bez zmian.
+Odmowa nie jest naprawiona, odbiór REG-13 niezamknięty (`ready-for-review`).
+Nie wykonano nowych pełnych testów ani odbioru GUI; rzeczywiste próby CUDA
+i punkty zapisano w `data/registration-reg13/first-pair-diagnosis/`.
+Sprawdzono dokumentację i `git diff --check`. Brak zmian wspólnych i
+publikowania. Commit wpisu podano w końcowej odpowiedzi.
+
 # REG-13: LightGlue + SuperPoint do odbioru — 2026-11-02
 
 Baza `d86baba`, implementacja `243f83a`, końcowe testy/harness `811d765`.

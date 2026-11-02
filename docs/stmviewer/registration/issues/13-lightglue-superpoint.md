@@ -6,7 +6,9 @@ zapisać w sesji i wyeksportować.
 **Blocked by:** [REG-12](12-matchanything.md), w tym odbiór manualny — spełnione.
 **Status:** ready-for-review
 **Wykonawca:** Codex; baza przeglądu `d86baba`, implementacja `243f83a`.
-**Manualny odbiór:** niewykonany; funkcja gotowa do próby użytkownika.
+**Manualny odbiór:** niezamknięty; użytkownik zgłosił odmowę 2/32 na pierwszej parze MOVIE_4.
+[Diagnoza zgłoszenia](../lightglue-results.md#zgłoszenie-użytkownika-odmowa-232-na-pierwszej-parze):
+odmowa potwierdzona; powiększenie wejścia nie pomogło. Kod i progi bez zmian.
 **Dodano do planu:** 2026-11-02, na zlecenie użytkownika.
 
 Obowiązują [plan](../README.md), [protokół](../manual-protocol.md),
