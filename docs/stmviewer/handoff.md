@@ -1,3 +1,21 @@
+# REG-13/14: diagnoza jasności — 2026-11-02
+
+Na bazie e0cd6b4 sprawdzono hipotezę wpływu jasności/kontrastu na odmowy.
+[Raport i reproduktor](registration/brightness-diagnosis.md).
+60 prób rzeczywistych backendów: cztery pary STM i kontrola znanego XY,
+sześć wariantów przygotowania, AKAZE CPU i LightGlue CUDA.
+
+Niski kontrast ogranicza wykrywanie cech AKAZE. Percentyle pomagają na
+kontroli znanego XY i wybranych parach, ale pierwsza para MOVIE_4 nadal
+odmawia w obu metodach po każdej sprawdzonej korekcji. Globalna zmiana liniowa
+nie zmienia wyniku. Nie ustalono jednej przyczyny wszystkich niepowodzeń.
+
+Kod, progi i statusy ticketów bez zmian; brak ponawiania pełnych testów
+dla samej dokumentacji. Artefakty i skrypt diagnostyczny pozostają lokalne
+w data/registration-brightness-20261102/. Sprawdzono odnośniki i diff.
+Brak nowego odbioru GUI, zmian wspólnych ani publikacji.
+Commit dokumentacji podano w końcowej odpowiedzi.
+
 # REG-14: AKAZE do odbioru — 2026-11-02
 
 Baza cc8dfcd; implementacja a9abf0f; poprawka po przeglądzie 9dd0337.
