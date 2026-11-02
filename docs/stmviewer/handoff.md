@@ -1,3 +1,43 @@
+# REG-11: RoMa v2 — wdrożenie do odbioru — 2026-11-02
+
+Zakres `3a3a684..4e69d40`: implementacja `cfc1547`, poprawka przeglądu
+`4e69d40`. Status **ready-for-review**, ręczny odbiór użytkownika niewykonany.
+Końcowy commit dokumentacji podany w odpowiedzi sesji.
+
+RoMa działa dla pary, filmu i grafu w osobnym procesie `netcat-romav2`;
+GUI, konsensus v2, LS/Huber i eksport pozostają w `netcat`. Jeden model na
+zadanie, lokalny kod/wagi z SHA-256, bez pobierania i zmiany urządzenia po
+błędzie. Próbkowanie ogranicza punkty w siatce 8 × 8 obu oryginałów.
+Wynik pozostaje jedną translacją, z istniejącym rendererem.
+
+Sesja v6 zapisuje także nieaktywną konfigurację RoMa; graf v6 i MPP V9
+zachowują pochodzenie i diagnostykę. Poprzednie formaty są odczytywane,
+otwarcie sesji nie uruchamia interpretera. Anulowanie i błędy zachowują aligned.
+
+- Końcowy Viewer: **761 passed, 14 skipped**, mypy **94 moduły** bez błędów.
+- Osobno **4 rzeczywiste testy CPU/CUDA** i **2 rzeczywiste testy Qt offscreen**
+  zaliczone. Anulowanie i zły SHA wag zachowały identyczny poprzedni obraz.
+- Pełne MOVIE_4 (bez źródłowych 1/2) i MOVIE_8: kompletne łańcuchy i LS,
+  sesje, ręczna korekta przez API, ponowny odczyt MPP i zapis MJPG/FFV1.
+  Huber w obu filmach osiągnął limit 200 iteracji — brak wariantu do zastosowania.
+- Porównanie tych samych 9 par wzorców: RoMa, EfficientLoFTR v2, Deep outdoor.
+  RoMa myli ruch z nieruchomym pasem; nie deklarujemy przewagi jakościowej.
+- Pełne repo: 2539 passed, 18 failed, 26 skipped przed poprawką oczekiwanej
+  listy metod. Cztery niepowodzenia Viewera usunięto i potwierdzono końcowym
+  biegiem; pozostałe 14 ID MolTrack/NanoTrack identyczne z logami REG-10.
+- Standards: 0 uwag. Spec: 1 P2 utrwalania konfiguracji naprawiony,
+  ponowny przegląd zamknięty z 0 otwartymi uwagami.
+
+[Instrukcja ręczna](registration/roma-manual.md),
+[wyniki i lokalne sesje](registration/roma-results.md),
+[pełne sprawdzenia i przeglądy](registration/reviews/REG-11.md).
+Uruchomienie nadal `conda activate netcat` i `python -m stmviewer.main`.
+Domyślne ścieżki lokalnego środowiska RoMa są już przygotowane.
+
+Ręczna ocena STM, VLC, Windows i stanowisko 8 GB pozostają niewykonane.
+Nie zmieniono bibliotek `netcat`, wspólnych modułów ani konfiguracji głównej.
+REG-12 nie rozpoczęto. Brak publikacji i scalania.
+
 # REG-11: osobne środowisko i kontrakt procesu — 2026-11-02
 
 Na wyraźne zlecenie użytkownika przygotowano **tylko środowisko i aktualizację

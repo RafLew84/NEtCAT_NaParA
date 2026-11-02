@@ -11,6 +11,12 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: na kolejne zlecenie wdrożono [REG-11](registration/issues/11-roma-v2.md)
+  z procesem RoMa w osobnym środowisku. Po przeglądzie poprawiono zachowanie
+  konfiguracji RoMa przy zapisie innej wybranej metody. Status `ready-for-review`;
+  [wyniki](registration/roma-results.md) i [ręczna próba](registration/roma-manual.md).
+  REG-12 pozostaje zablokowany odbiorem. Jakość modelu nie jest założona z góry.
+
 - 2026-11-02: użytkownik wybrał osobne środowisko `netcat-romav2` i proces
   dla modelu, przy zachowaniu GUI i reszty programu w `netcat`. Zlecił tylko
   przygotowanie środowiska i aktualizację [REG-11](registration/issues/11-roma-v2.md).

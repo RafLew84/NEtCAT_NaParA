@@ -10,10 +10,14 @@ graf LS obu filmów jest kompletny; MOVIE_8 działa także w łańcuchu.
 Użytkownik potwierdził „testy manualne ok” po poprawce; odbiór REG-10 zamknięty.
 
 
-**REG-11 — przygotowanie (2026-11-02):** utworzono osobne środowisko
-`netcat-romav2`, pobrano lokalne zasoby i sprawdzono proces CPU/CUDA.
-[Opis środowiska](registration/roma-environment.md). Interfejs pozostaje
-w `netcat`; integracja RoMa z GUI czeka na osobną realizację REG-11.
+**REG-11: RoMa v2 — ready-for-review (2026-11-02).** Metoda działa dla
+pary, filmu i grafu w osobnym procesie `netcat-romav2`; aplikacja pozostaje
+w `netcat`. [Instrukcja ręczna](registration/roma-manual.md),
+[wyniki i ograniczenia](registration/roma-results.md),
+[testy i przeglądy](registration/reviews/REG-11.md).
+761 testów Viewera zaliczonych; osobno rzeczywiste CPU/CUDA i Qt offscreen.
+Pełne MOVIE_4/MOVIE_8 mają łańcuch i LS; ręczna ocena jakości czeka na użytkownika.
+[Opis środowiska](registration/roma-environment.md).
 
 Program do przeglądania obrazów i sekwencji STP/S94/MPP, rejestracji
 oraz eksportu MPP/AVI. Katalog aplikacji: `stmviewer/`.

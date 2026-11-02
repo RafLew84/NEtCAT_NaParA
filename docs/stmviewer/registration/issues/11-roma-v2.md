@@ -3,8 +3,8 @@
 **What to build:** Użytkownik porównuje RoMa v2 z odebranymi modelami i widzi,
 czy gęste korespondencje poprawiają globalne XY na trudnych obrazach STM.
 **Blocked by:** [REG-10](10-efficient-loftr.md), w tym odbiór manualny.
-**Status:** in-progress
-**Manualny odbiór:** niewykonany; implementacja rozpoczęta 2026-11-02.
+**Status:** ready-for-review
+**Manualny odbiór:** oczekuje na użytkownika; automatyczne Qt offscreen CPU/CUDA zaliczone.
 **Wykonawca:** Codex; baza przeglądu `3a3a684`.
 **Dodano do planu:** 2026-10-31, na zlecenie użytkownika po research.
 
@@ -13,7 +13,15 @@ czy gęste korespondencje poprawiają globalne XY na trudnych obrazach STM.
 w `netcat`. Na tym etapie zlecił tylko przygotowanie środowiska i aktualizację
 ticketu. [Zasoby, wersje i sprawdzenia](../roma-environment.md).
 Po przygotowaniu status wynosił `ready-for-agent`. Na kolejne zlecenie
-użytkownika rozpoczęto pełną implementację REG-11. REG-10 ma odbiór `done`.
+użytkownika wdrożono pełną integrację REG-11. REG-10 ma odbiór `done`.
+
+**Wynik — 2026-11-02:** implementacja `cfc1547`, poprawka przeglądu `4e69d40`.
+[Instrukcja ręczna](../roma-manual.md), [wyniki rzeczywiste](../roma-results.md),
+[testy i przeglądy](../reviews/REG-11.md). 761 testów Viewera zaliczonych,
+14 pominiętych; osobno 4 rzeczywiste testy modelu i 2 rzeczywiste testy GUI.
+Oba filmy mają kompletny łańcuch i LS; Huber osiągnął limit iteracji.
+RoMa podąża za nieruchomym pasem w jednym wzorcu; jakość STM wymaga oceny.
+REG-12 pozostaje nierozpoczęty, zablokowany odbiorem tego etapu.
 
 Obowiązują [plan](../README.md), [protokół odbioru](../manual-protocol.md)
 i [przegląd modeli](../../registration-multiframe-research.md).
@@ -49,52 +57,52 @@ i nie wymaga jego wag podczas własnych obliczeń.
 
 ## Zakres i kryteria odbioru
 
-- [ ] RoMa v2 jest osobnym wyborem dla pary, całej serii sąsiednich klatek
+- [x] RoMa v2 jest osobnym wyborem dla pary, całej serii sąsiednich klatek
   i odebranego grafu. Wszystkie drogi korzystają z tego samego estymatora
   pary. Dotychczasowe modele pozostają dostępne bez automatycznej promocji.
-- [ ] Adapter jawnie przelicza współrzędne znormalizowane/gęstego pola
+- [x] Adapter jawnie przelicza współrzędne znormalizowane/gęstego pola
   oraz przygotowanych wejść na piksele obu oryginałów. Zapisuje skalowanie,
   padding, kanały i normalizację. Próbkowanie gęstych korespondencji ma
   wersjonowane parametry, limit liczby punktów i seed, jeśli jest losowe.
-- [ ] Po odrzuceniu korespondencji poza ważnymi próbkami wyznaczamy jedno
+- [x] Po odrzuceniu korespondencji poza ważnymi próbkami wyznaczamy jedno
   XY agregacją korespondencji odebraną w REG-10, bez wyszukiwania wycinków
   z REG-05. Gęste punkty z jednego zakłócenia nie są niezależną większością.
   Ocena pokrycia i precyzji modelu pozostaje
   jego diagnostyką, bez udawanej kalibracji prawdopodobieństwa poprawnego STM.
-- [ ] GUI pokazuje pokrycie dopasowaniami, przestrzenne poparcie i odmowy.
+- [x] GUI pokazuje pokrycie dopasowaniami, przestrzenne poparcie i odmowy.
   Porównanie z EfficientLoFTR zachowuje tę samą agregację z REG-10, listę
   kandydatów par, graf, progi w pikselach original i renderer. Historyczny
   Deep jest dodatkowym porównaniem całych estymatorów. Różnice przygotowania
   wejścia oraz kwalifikacji punktów są jawne w zapisanej konfiguracji.
-- [ ] Wynikiem do renderowania pozostaje jedna translacja na klatkę.
+- [x] Wynikiem do renderowania pozostaje jedna translacja na klatkę.
   Nie zapisujemy gęstego pola jako deformacji pomiaru, nie poprawiamy lokalnie
   ruchu molekuł i nie stosujemy automatycznie ECC po RoMa v2.
-- [ ] Opcjonalny adapter działa z lokalnymi wagami i pełnym zestawem
+- [x] Opcjonalny adapter działa z lokalnymi wagami i pełnym zestawem
   potrzebnych zasobów DINOv3. Instrukcja przypina wersje kodu/bibliotek,
   warianty i SHA-256 wag oraz warunki kodu i modeli. Brak któregokolwiek
   zasobu daje przyczynę niedostępności, bez próby pobierania w tle.
-- [ ] Brak pamięci, błąd modelu lub brak wskazanego urządzenia pozostawia
+- [x] Brak pamięci, błąd modelu lub brak wskazanego urządzenia pozostawia
   poprzedni wynik. Nie zmieniamy po cichu modelu, urządzenia ani rozdzielczości.
   Możliwy jawny preset o mniejszym koszcie jest odrębną zapisaną konfiguracją.
   Model ładuje się raz na zadanie; dane gęste pary zwalniamy po próbkowaniu,
   zachowując tylko potrzebną, ograniczoną diagnostykę.
-- [ ] RoMa v2 działa w osobnym procesie środowiska `netcat-romav2`, zgodnie
+- [x] RoMa v2 działa w osobnym procesie środowiska `netcat-romav2`, zgodnie
   z powyższym kontraktem. GUI i pozostałe metody zachowują środowisko `netcat`.
   Brak interpretera lub zależności daje konkretną niedostępność tej metody.
   Konfiguracja i wymagania procesu są w zakresie Viewera; ewentualne zmiany
   modułów wspólnych lub konfiguracji głównej trafiają do handoff.
-- [ ] Ten ticket rozszerza sesję o konfigurację modelu/próbkowania, urządzenie,
+- [x] Ten ticket rozszerza sesję o konfigurację modelu/próbkowania, urządzenie,
   pochodzenie wag, XY i diagnozy. Odczyt oraz porównanie nie wymagają modelu.
   Przywracamy zapisany aktywny film, bez stosowania niezastosowanego kandydata.
   Nowe obliczenie sprawdza dostępność zasobów.
   Zastosowanie, ręczne korekty i MPP/AVI zachowują kontrakt REG-08c.
-- [ ] Raport oddziela poparcie modelu od oceny obrazowej. REG-06 jest
+- [x] Raport oddziela poparcie modelu od oceny obrazowej. REG-06 jest
   odłożony; nie wymagamy jego implementacji ani oznaczania fragmentów,
   a brak kontroli pozostaje brakiem oceny. Po ewentualnym wznowieniu REG-06
   wskazujemy ocenę zależną, jeśli model lub przygotowanie wejścia używały
   danych kontrolnych. Wybranie punktów poza prostokątem nie usuwa wpływu
   tych pikseli przez kontekstowe cechy DINOv3.
-- [ ] Raport rzeczywistych prób obejmuje czas estymacji, solvera i renderu,
+- [x] Raport rzeczywistych prób obejmuje czas estymacji, solvera i renderu,
   RAM/VRAM, faktyczne urządzenie, odmowy i ocenę obrazową osobno. Uruchomienie
   na GPU z większą pamięcią nie potwierdza dostępności wariantu na 8 GB.
   Brak próby na docelowym budżecie pozostaje ograniczeniem, a nie sukcesem.

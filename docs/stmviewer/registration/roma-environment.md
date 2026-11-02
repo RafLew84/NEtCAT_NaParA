@@ -1,9 +1,11 @@
 # REG-11: osobne środowisko RoMa v2
 
 Data: 2026-11-02. **Przygotowanie środowiska zakończone.**
-Użytkownik wybrał „Przygotuj środowisko i zaktualizuj REG-11”.
-[REG-11](issues/11-roma-v2.md) pozostaje `ready-for-agent`: nie wdrożono jeszcze
-wyboru RoMa w GUI ani produkcyjnego procesu obsługującego zadania aplikacji.
+Pierwotnie użytkownik wybrał „Przygotuj środowisko i zaktualizuj REG-11”.
+Poniższe pomiary opisują tamten etap przygotowania. Na późniejsze zlecenie
+wdrożono [REG-11](issues/11-roma-v2.md); status `ready-for-review`.
+Aktualne próby integracji i produkcyjnego procesu: [wyniki](roma-results.md),
+[obsługa w GUI](roma-manual.md).
 
 ## Podział wykonania
 
@@ -12,7 +14,7 @@ wyboru RoMa w GUI ani produkcyjnego procesu obsługującego zadania aplikacji.
 - **`netcat-romav2`**: osobny proces wykonujący model RoMa v2 i próbkowanie
   gęstych dopasowań. Jego biblioteki nie są importowane do procesu GUI.
 
-Proces będzie uruchamiany bezpośrednio interpreterem nowego środowiska,
+Proces jest uruchamiany bezpośrednio interpreterem nowego środowiska,
 bez `conda activate` wewnątrz programu. Jeden model obsłuży całe zadanie
 pary, serii albo grafu. Wymiana JSON/NumPy, anulowanie, sprzątanie i zapis
 konfiguracji są opisane jako wymagania w tickecie REG-11.
@@ -130,4 +132,4 @@ Przykład powtórzenia lokalnej próby (z podmienioną nazwą pliku wyniku):
 Te sprawdzenia potwierdzają gotowość środowiska i możliwość uruchomienia
 modelu w osobnym procesie. Nie stanowią wdrożenia GUI, testu anulowania
 produkcyjnego zadania ani oceny jakości RoMa na rzeczywistych filmach STM.
-Te elementy pozostają w REG-11.
+Ich późniejsze wykonanie opisuje raport wyników REG-11 podlinkowany powyżej.
