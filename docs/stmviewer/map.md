@@ -11,6 +11,12 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: na zlecenie użytkownika dodano
+  [REG-15: Okno parametrów metod](registration/issues/15-method-parameters.md).
+  Menu główne otwiera mały edytor AKAZE/LightGlue, z przygotowaniem kontrastu,
+  wspólną konfiguracją pary/filmu/grafu i zapisem parametrów wyniku w sesji/MPP.
+  Zakres przygotowany, implementacja niewykonana; status REG-14 bez zmian.
+
 - 2026-11-02: wdrożono [REG-14: AKAZE](registration/issues/14-akaze.md),
   status `ready-for-review`. [Instrukcja](registration/akaze-manual.md),
   [wyniki 72 prób](registration/akaze-results.md), [testy](registration/reviews/REG-14.md).

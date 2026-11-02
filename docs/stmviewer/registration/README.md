@@ -1,5 +1,13 @@
 # Plan rozwoju rejestracji trudnych filmów STM
 
+**Nowy ticket — 2026-11-02:**
+[REG-15: Okno parametrów AKAZE i LightGlue/SuperPoint](issues/15-method-parameters.md).
+Menu **Rejestracja → Parametry metod…**, osobne ustawienia metod i kontrastu,
+wspólne użycie w parze/filmie/grafie oraz zapis konfiguracji w sesji i MPP.
+Status `ready-for-agent` oznacza przygotowany zakres; REG-14 nadal czeka
+na odbiór manualny. REG-15 nie jest jeszcze wdrożony i nie zmienia jego statusu.
+Podstawa: [diagnoza jasności](brightness-diagnosis.md).
+
 **Przegląd kolejnych metod — 2026-11-02:**
 [Rekomendacje i projekt porównania po REG-12](next-methods-research.md).
 Na zlecenie użytkownika dodano [REG-13: LightGlue + SuperPoint](issues/13-lightglue-superpoint.md)
@@ -133,7 +141,7 @@ Nowe zlecenie rozpoczyna etap rozwoju metod odłożony w
 [mapie pierwszej wersji](../map.md). Nie zmienia historycznych odbiorów 01–21.
 Zachowujemy dotychczasowe identyfikatory ticketów, w tym **REG-01a i REG-02a**,
 aby uniknąć kolizji i zmian numerów istniejących zadań. Bieżąca ścieżka obejmuje
-szesnaście etapów podstawowych; REG-06 jest odłożony, REG-08d odłożono
+siedemnaście etapów podstawowych; REG-06 jest odłożony, REG-08d odłożono
 po wycofaniu implementacji, a REG-09 odłożono na życzenie użytkownika 2026-11-02. REG-08e rozszerza
 wybór istniejących metod w grafie REG-08a–08c; REG-09 zachowuje swój zakres.
 
@@ -158,6 +166,7 @@ wybór istniejących metod w grafie REG-08a–08c; REG-09 zachowuje swój zakres
 | [REG-12: MatchAnything-ELoFTR](issues/12-matchanything.md) | Kontrola wpływu treningu: porównanie z EfficientLoFTR przy tym samym konsensusie i grafie. | REG-11 |
 | [REG-13: LightGlue + SuperPoint](issues/13-lightglue-superpoint.md) | Rzadkie punkty SuperPoint dopasowane przez LightGlue; para, film, graf, sesja i eksport, osobna ocena jakości. | REG-12, odebrany |
 | [REG-14: AKAZE](issues/14-akaze.md) | Cechy MLDB i dopasowanie Hamming na CPU bez wag; ten sam cykl pracy oraz porównanie z bazami i REG-13. | REG-13, odebrany |
+| [REG-15: Parametry metod](issues/15-method-parameters.md) | Małe okno z menu głównego: parametry AKAZE/LightGlue i kontrastu, wspólne dla pary, filmu i grafu, z pamięcią w sesji oraz pochodzeniem wyników. | REG-13 i REG-14; odbiór REG-14 oczekiwany |
 | [REG-08d: Dalsze klatki odniesienia](issues/08d-long-range-references.md) | Odłożony po wycofaniu implementacji 2026-11-02; nie jest częścią REG-08e. | REG-08c + decyzja po odbiorze |
 | [REG-09: Rozpoznanie deformacji w pasach](issues/09-scanline-diagnostics.md) | Odłożony 2026-11-02: podgląd lokalnych rozbieżności po globalnym XY i podstawa decyzji o korekcji tearingu. | REG-07 + decyzja o wznowieniu |
 
@@ -173,6 +182,8 @@ wzorce oraz oba pełne filmy. Użytkownik potwierdził odbiór 2026-11-02,
 po diagnozie odmowy 2/32; ograniczenia metody pozostają zapisane.
 REG-14 ma status `ready-for-review`: metoda oraz 18 dodatkowych prób AKAZE
 są gotowe; ograniczenia jakości opisuje raport. Odbiór manualny niewykonany.
+REG-15 ma status `ready-for-agent`, z przygotowanym zakresem i otwartą
+zależnością od odbioru REG-14. Dodanie ticketu nie uruchamia implementacji.
 REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d ma status `planned` jako odłożony po wycofaniu implementacji; REG-09
@@ -182,7 +193,7 @@ pozostaje `planned` jako odłożony na życzenie użytkownika 2026-11-02. Nie bl
 
 Kolejność podstawowa: REG-01 → REG-01a → REG-02 → REG-02a → REG-04 → REG-05
 → REG-07 → REG-08a → REG-08b → REG-08c → REG-08e → REG-10 → REG-11
-→ REG-12 → REG-13 → REG-14. To także kolejność ręcznych odbiorów, nawet gdy
+→ REG-12 → REG-13 → REG-14 → REG-15. To także kolejność ręcznych odbiorów, nawet gdy
 część kodu można technicznie napisać niezależnie. REG-14 nie wymaga modeli
 LightGlue/SuperPoint do działania; zależność od odbioru REG-13 zapewnia
 osobną ocenę każdego etapu i została już spełniona. Zależność między REG-10/11/12 porządkuje

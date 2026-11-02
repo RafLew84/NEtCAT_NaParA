@@ -1,3 +1,23 @@
+# REG-15: ticket okna parametrów — 2026-11-02
+
+Na bazie 4269010, na zlecenie użytkownika, dodano
+[REG-15](registration/issues/15-method-parameters.md): małe okno
+**Rejestracja → Parametry metod…** dla AKAZE i LightGlue/SuperPoint.
+Zakres obejmuje parametry detektora/matchera i konsensusu, przygotowanie
+kontrastu, wspólne użycie w parze/filmie/grafie, osobne ustawienia metod,
+niezmienną konfigurację gotowych wyników, cache oraz sesję/MPP.
+Dodano granice TDD, próby ręczne i limit 1000/1500 linii kodu.
+
+Zaktualizowano plan, mapę i README. REG-15: ready-for-agent (przygotowany
+zakres); zależności REG-13 i REG-14, przy czym REG-14 nadal oczekuje
+manualnego odbioru. Nie uznano zgłoszenia odmowy AKAZE za pozytywny odbiór.
+Obecne zlecenie dotyczy wyłącznie dopisania ticketu, bez implementacji.
+
+Wykonano kontrolę odnośników, zgodności numeracji/liczby etapów
+i git diff --check. Nie uruchamiano programu ani testów — brak zmian kodu.
+Brak nowych potrzeb wspólnych modułów, scalania i publikacji.
+Commit tej dokumentacji podano w końcowej odpowiedzi.
+
 # REG-13/14: diagnoza jasności — 2026-11-02
 
 Na bazie e0cd6b4 sprawdzono hipotezę wpływu jasności/kontrastu na odmowy.
