@@ -11,7 +11,7 @@ opisuje zgodność metod ze strukturami obrazu przy zakłóceniach i tearing.
 Domyślne algorytmy aplikacji pozostają bez zmian.
 [Plan rozwoju i tickety](registration/README.md) obejmuje czternaście etapów
 bieżącej ścieżki (w tym REG-01a, REG-02a i REG-08e), odłożony REG-06,
-REG-08d po wycofaniu implementacji oraz warunkowy REG-09.
+REG-08d po wycofaniu implementacji oraz odłożony REG-09.
 Każdy realizowany etap kończy się ręcznym odbiorem
 funkcji oraz jakości; kolejny etap czeka na decyzję użytkownika.
 [Wspólny protokół prób](registration/manual-protocol.md) ustala dane i sposób porównania.
@@ -24,7 +24,8 @@ odpornego grafu (REG-08b), zastosowanie
 do filmu i eksport (REG-08c), wybór istniejących metod par (REG-08e),
 następnie osobno EfficientLoFTR (REG-10), RoMa v2 (REG-11) i
 MatchAnything-ELoFTR (REG-12). Implementację REG-08d wycofano na życzenie
-użytkownika 2026-11-02; tearing REG-09 pozostaje warunkowy.
+użytkownika 2026-11-02. Tego samego dnia użytkownik odłożył diagnostykę
+tearingu REG-09 („pomińmy na razie ten etap”); nie blokuje ona REG-10.
 Użytkownik odłożył REG-06 („na razie pominiemy 06”).
 REG-07 zastępuje bibliotekę prób A/B **zapisem i odczytem sesji**.
 Jeden `.stmsession` zawiera obrazy original i gotowy aligned, metadane,

@@ -11,6 +11,10 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-02: użytkownik odłożył [REG-09](registration/issues/09-scanline-diagnostics.md)
+  („pomińmy na razie ten etap”). Status `planned`, implementacja nierozpoczęta;
+  wznowienie wymaga osobnego zlecenia. Etap nie blokuje REG-10.
+
 - 2026-11-02: na osobne zlecenie użytkownika rozpoczęto implementację REG-08e.
   Osiem istniejących metod zasila wspólny LS/Huber; przygotowano
   [sesje i instrukcję ręcznej próby](registration/multiframe-methods-manual.md).

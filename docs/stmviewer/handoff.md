@@ -1,3 +1,14 @@
+# REG-09: odłożenie etapu — 2026-11-02
+
+Użytkownik zdecydował: **„pomińmy na razie ten etap”**. REG-09 pozostaje
+`planned`, jest odłożony i nie ma implementacji. Zakres zachowano w tickecie;
+wznowienie wymaga osobnego zlecenia. REG-09 nie blokuje REG-10.
+
+Zaktualizowano ticket, plan i mapę. Zmiana dotyczy wyłącznie dokumentacji;
+sprawdzono odnośniki oraz `git diff --check`, bez testów programu.
+REG-10 ma status `ready-for-agent`; prośba o opis nie uruchamia implementacji.
+Commit tej decyzji w wiadomości przekazania.
+
 # REG-08e: metody w dopasowaniu wieloklatkowym — 2026-11-02
 
 Status: **done**; użytkownik potwierdził „testy manualne ok” 2026-11-02.

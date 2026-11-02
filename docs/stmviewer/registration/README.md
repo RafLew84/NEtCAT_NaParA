@@ -94,7 +94,7 @@ Nowe zlecenie rozpoczyna etap rozwoju metod odłożony w
 Zachowujemy dotychczasowe identyfikatory ticketów, w tym **REG-01a i REG-02a**,
 aby uniknąć kolizji i zmian numerów istniejących zadań. Bieżąca ścieżka obejmuje
 czternaście etapów podstawowych; REG-06 jest odłożony, REG-08d odłożono
-po wycofaniu implementacji, a REG-09 pozostaje warunkowy. REG-08e rozszerza
+po wycofaniu implementacji, a REG-09 odłożono na życzenie użytkownika 2026-11-02. REG-08e rozszerza
 wybór istniejących metod w grafie REG-08a–08c; REG-09 zachowuje swój zakres.
 
 ## Kolejność i wynik każdego ticketu
@@ -117,7 +117,7 @@ wybór istniejących metod w grafie REG-08a–08c; REG-09 zachowuje swój zakres
 | [REG-11: RoMa v2](issues/11-roma-v2.md) | Gęste korespondencje jako źródło jednej translacji XY; osobna ocena jakości i zasobów. | REG-10 |
 | [REG-12: MatchAnything-ELoFTR](issues/12-matchanything.md) | Kontrola wpływu treningu: porównanie z EfficientLoFTR przy tym samym konsensusie i grafie. | REG-11 |
 | [REG-08d: Dalsze klatki odniesienia](issues/08d-long-range-references.md) | Odłożony po wycofaniu implementacji 2026-11-02; nie jest częścią REG-08e. | REG-08c + decyzja po odbiorze |
-| [REG-09: Rozpoznanie deformacji w pasach](issues/09-scanline-diagnostics.md) | Warunkowo: podgląd lokalnych rozbieżności po globalnym XY i podstawa decyzji o korekcji tearingu. | REG-07 + decyzja po odbiorze |
+| [REG-09: Rozpoznanie deformacji w pasach](issues/09-scanline-diagnostics.md) | Odłożony 2026-11-02: podgląd lokalnych rozbieżności po globalnym XY i podstawa decyzji o korekcji tearingu. | REG-07 + decyzja o wznowieniu |
 
 REG-01 ma status `done` po odbiorze użytkownika 2026-10-29:
 [instrukcja próby](pair-comparison-manual.md),
@@ -128,7 +128,7 @@ REG-07 ma status `done` po odbiorze 2026-11-01. REG-08a ma status `done` po potw
 zlecenia użytkownika i zakończenia blokujących ticketów. REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d ma status `planned` jako odłożony po wycofaniu implementacji; REG-09
-pozostaje `planned` jako warunkowa osobna odnoga. REG-08e ma status
+pozostaje `planned` jako odłożony na życzenie użytkownika 2026-11-02. Nie blokuje REG-10. REG-08e ma status
 `done`: użytkownik potwierdził „testy manualne ok” 2026-11-02.
 Żadnego z tych etapów nie uruchamiamy automatycznie.
 

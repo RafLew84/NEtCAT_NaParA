@@ -1,10 +1,11 @@
-# REG-09: Rozpoznanie deformacji w pasach — etap warunkowy
+# REG-09: Rozpoznanie deformacji w pasach — etap odłożony
 
 **What to build:** Użytkownik ogląda pozostałe przesunięcia różnych pasów
 obrazu po globalnym XY, aby rozstrzygnąć potrzebę osobnej korekcji tearingu.
 **Blocked by:** [REG-07](07-session-save-load.md) — spełnione 2026-11-01 —
-i osobna decyzja użytkownika o uruchomieniu etapu, nadal oczekiwana.
-**Status:** planned
+i osobna decyzja użytkownika o wznowieniu odłożonego etapu.
+**Status:** planned — odłożony na życzenie użytkownika 2026-11-02.
+**Decyzja:** „pomińmy na razie ten etap”; zakres pozostaje w planie, bez implementacji.
 **Manualny odbiór:** niewykonany; implementacja nierozpoczęta.
 
 Obowiązują [plan](../README.md) i [protokół odbioru](../manual-protocol.md).
