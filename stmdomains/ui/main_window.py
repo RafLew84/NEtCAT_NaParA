@@ -2,7 +2,7 @@
 
 import json
 
-from PyQt6.QtCore import QEvent, QObject, QSignalBlocker, Qt
+from PyQt6.QtCore import QCoreApplication, QEvent, QObject, QSignalBlocker, Qt
 from PyQt6.QtGui import QCloseEvent, QKeySequence
 from PyQt6.QtWidgets import (
     QDialog, QHBoxLayout, QLabel, QMainWindow, QPlainTextEdit,
@@ -161,6 +161,9 @@ class STMDomainsMainWindow(QMainWindow):
         self.controller.frame_changed.connect(self._show_frame)
         self.controller.busy_changed.connect(self._show_progress)
         self.controller.playback_changed.connect(self._show_playback)
+        app = QCoreApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self._finish_background_work)
 
     def _select_frame(self, number: int) -> None:
         # The displayed number changes together with the prepared image.
@@ -324,6 +327,13 @@ class STMDomainsMainWindow(QMainWindow):
         self.filmstrip.shutdown()
         self.controller.shutdown()
         super().closeEvent(event)
+
+    def _finish_background_work(self) -> None:
+        # Stop both producers before joining; workers must not outlive Qt signals.
+        self.filmstrip.shutdown()
+        self.controller.shutdown()
+        self.filmstrip.wait_for_workers()
+        self.controller.wait_for_workers()
 
     def eventFilter(self, watched: QObject | None, event: QEvent | None) -> bool:
         if event is not None and event.type() in (QEvent.Type.FocusIn, QEvent.Type.MouseButtonPress):

@@ -5,11 +5,18 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-02
 
+**Odbiór 03 potwierdzony; poprawiono także błąd wyjścia:** po potwierdzeniu
+testów ręcznych wersji `0745e4e` użytkownik zgłosił crash `TaskSignals has
+been deleted`. Program kończy teraz pracę obu pul przed usunięciem obiektów Qt.
+25 celowanych testów PASS, w tym 4 regresje osobnych procesów; 4 próby X11
+PASS, mypy PASS. [Raport i ręczne sprawdzenie zamknięcia](implementation/interactive-v04/acceptance-03.md#poprawka-wyjścia-z-programu).
+Ręczny odbiór tej nowej poprawki pozostaje do wykonania.
+
 **Poprawka UI po sprawdzeniu 03:** usunięto skakanie obrazu i nawigacji
 podczas pojawiania się postępu ładowania. Miejsce na pasek postępu i Anuluj
 pozostaje zarezerwowane. **13 testów okna PASS**, mypy PASS, rzeczywiste GUI
-TTMAPP sprawdzone w dwóch rozmiarach okna; odbiór poprawki przez użytkownika
-pozostaje do wykonania. [Szczegóły i test ręczny](implementation/interactive-v04/acceptance-03.md#poprawka-po-zgłoszeniu-użytkownika--stabilny-układ-okna).
+TTMAPP sprawdzone w dwóch rozmiarach okna; **odbiór poprawki `0745e4e`
+potwierdzony przez użytkownika**. [Szczegóły i test ręczny](implementation/interactive-v04/acceptance-03.md#poprawka-po-zgłoszeniu-użytkownika--stabilny-układ-okna).
 
 **Wykonano SD-V4-03:** pasek miniatur, play/pauza, od początku, tempa
 1/2/5/10/20 kl./s i gamma 0,2–5. Odtwarzanie zachowuje kolejność wszystkich
@@ -19,7 +26,7 @@ W `netcat`: **300 testów PASS**, mypy **27 plików PASS**, największy zmienion
 plik ma **327 linii**. Przegląd kodu zakończony po poprawkach. Rzeczywiste GUI:
 wszystkie 268 klatek TTMAPP, bez pomijania. **Następny ticket to SD-V4-04**;
 uwagę z ręcznego sprawdzenia 03 i poprawkę opisano powyżej. Implementacja `93701af`,
-końcowe poprawki i raport w następnym commicie. Historyczne wpisy poniżej
+poprawki i raport `c5deb59`. Historyczne wpisy poniżej
 zachowują wyniki wcześniejszych etapów.
 
 **Wykonano SD-V4-02:** podgląd zapisanych centrów, ramek, masek i obrysów,

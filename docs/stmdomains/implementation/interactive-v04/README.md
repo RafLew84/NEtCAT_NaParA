@@ -10,7 +10,9 @@ działa otwieranie MolTrack/MPP, podgląd oryginałów i nawigacja z suwakiem;
 geometrię raw/aligned — [uruchomienie i odbiór 02](acceptance-02.md).
 **03** dodaje miniatury, odtwarzanie i gamma — [raport i test ręczny 03](acceptance-03.md).
 300 testów PASS; GUI sprawdzone na pełnej serii TTMAPP. Ręczny odbiór 03
-przez użytkownika pozostaje do wykonania. **Następny ticket: 04**.
+i poprawki układu `0745e4e` potwierdzony przez użytkownika. Późniejsza
+[poprawka błędu wyjścia](acceptance-03.md#poprawka-wyjścia-z-programu) przeszła
+testy techniczne i czeka na ręczne sprawdzenie. **Następny ticket: 04**.
 04–15 zachowują status `draft`. Na polecenie użytkownika dodano omówione rozszerzenia:
 16–18 mają status `ready-for-agent` i wymagają ukończenia zależności,
 a dalsze 19–20 status `deferred` z jawnym warunkiem wyboru.

@@ -251,3 +251,7 @@ class Filmstrip(QListView):
         self._refresh.stop()
         if self._task is not None:
             self._task.cancelled.set()
+
+    def wait_for_workers(self) -> None:
+        """Join cancelled work while its Qt signal objects are still alive."""
+        self._pool.waitForDone()

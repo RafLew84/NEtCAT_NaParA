@@ -6,17 +6,21 @@
 
 **Blocked by:** [01: Otwórz zapis i przeglądaj obrazy](01-open-images.md).
 
-**Status:** done — implementacja i sprawdzenia techniczne zakończone;
-odbiór ręczny użytkownika pozostaje do wykonania.
+**Status:** done — implementacja i odbiór ręczny funkcji 03 zakończone.
+Późniejsza poprawka błędu przy wyjściu czeka na ręczne sprawdzenie.
 
 Baza implementacji i przeglądu: `d862333`, gałąź `domains/interactive-v04-ui`.
 Środowisko: `netcat`. Testy przez publiczne interfejsy renderera, paska miniatur,
 kontrolera i pełną ścieżkę import–widok, zgodnie z kryteriami podglądu.
-Implementacja: `93701af`; końcowy commit zawiera poprawki pauzy/zaznaczenia
+Implementacja: `93701af`; commit `c5deb59` zawiera poprawki pauzy/zaznaczenia
 i [raport z instrukcją testu ręcznego](acceptance-03.md).
 Po wstępnym sprawdzeniu użytkownika poprawiono skakanie układu podczas
 ładowania; [raport poprawki](acceptance-03.md#poprawka-po-zgłoszeniu-użytkownika--stabilny-układ-okna)
-zawiera scenariusz ponownego sprawdzenia. Odbiór poprawki pozostaje otwarty.
+zawiera scenariusz ponownego sprawdzenia. **Użytkownik potwierdził pomyślny
+ręczny odbiór 03 i poprawki `0745e4e` 2026-11-02: „testy manualne ok”.**
+Następnie usunięto zgłoszony błąd wyjścia podczas pracy w tle;
+[scenariusz sprawdzenia zamknięcia](acceptance-03.md#poprawka-wyjścia-z-programu)
+pozostaje do wykonania przez użytkownika.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
@@ -27,7 +31,7 @@ Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 - [x] Kontrast jest ustalany na oryginalnej klatce i wspólny dla jej widoków. Gamma, zoom i warstwy są zachowywane podczas nawigacji zgodnie z kontraktem.
 - [x] Miniatury i cache mają ograniczony koszt; stale spóźnione żądania nie mieszają klatek. Po dołączeniu oznaczeń i wyników są publikowane razem z obrazem.
 - [x] Testy obejmują pauzę, koniec, opóźnione przygotowanie, pojedynczą klatkę i niepoprawne próbki obrazu.
-- [x] Sprawdzono automatycznie, w rzeczywistym GUI sterowanym Qt i przez ogląd zrzutów. Raport odróżnia te sprawdzenia od oczekującego odbioru ręcznego użytkownika.
+- [x] Sprawdzono automatycznie, w rzeczywistym GUI sterowanym Qt i przez ogląd zrzutów. Użytkownik potwierdził odbiór ręczny 03 i poprawki układu; późniejsza poprawka zamknięcia ma osobny scenariusz.
 - [x] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
 
 ## Test ręczny użytkownika

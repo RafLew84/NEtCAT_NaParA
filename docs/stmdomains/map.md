@@ -14,16 +14,23 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Odbiór 03 i poprawka wyjścia — 2026-11-02:** użytkownik potwierdził
+ręczne testy wersji `0745e4e`. Następnie zgłoszony crash przy zamykaniu
+usunięto przez zakończenie pracy pul przed destrukcją Qt. 25 celowanych
+testów PASS, 4 próby procesów na X11 PASS, mypy PASS.
+[Raport i test wyjścia](implementation/interactive-v04/acceptance-03.md#poprawka-wyjścia-z-programu).
+Ta nowa poprawka czeka na ręczne sprawdzenie; kolejny ticket nadal SD-V4-04.
+
 **Poprawka SD-V4-03 po zgłoszeniu użytkownika — 2026-11-02:** usunięto
 zmianę geometrii obrazu/nawigacji przy pokazywaniu postępu. 13 celowanych
 testów PASS, mypy PASS i 12 przejść TTMAPP w dwóch rozmiarach okna bez skoków.
 [Raport i test ręczny poprawki](implementation/interactive-v04/acceptance-03.md#poprawka-po-zgłoszeniu-użytkownika--stabilny-układ-okna).
-Ponowne sprawdzenie poprawki przez użytkownika pozostaje do wykonania.
+Użytkownik potwierdził pomyślne ręczne sprawdzenie poprawki `0745e4e`.
 
 **Implementacja SD-V4-03 — 2026-11-02:** wykonano miniatury, odtwarzanie
 z pauzą/restartem i gamma. [Raport i test ręczny](implementation/interactive-v04/acceptance-03.md).
 300 testów PASS, mypy PASS, pełna seria 268 klatek TTMAPP sprawdzona w GUI.
-Odbiór ręczny użytkownika 03 pozostaje do wykonania. Kolejny ticket nowego
+Odbiór ręczny użytkownika 03 potwierdzono dla `0745e4e`. Kolejny ticket nowego
 planu to SD-V4-04; historyczny odbiór całego szkieletu pozostaje osobny.
 
 **Implementacja SD-V4-02 — 2026-11-02:** działają oznaczenia molekuł,

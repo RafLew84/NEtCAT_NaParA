@@ -309,3 +309,7 @@ class SessionController(QObject):
         for task in self._tasks.values():
             task.cancelled.set()
         self._open_token = self._frame_token = None
+
+    def wait_for_workers(self) -> None:
+        """Join cancelled work before Qt destroys the signals used by run()."""
+        self._pool.waitForDone()

@@ -3,7 +3,9 @@
 **Wykonano SD-V4-03 — 2026-11-02:** miniatury, odtwarzanie bez pomijania
 klatek, pauza/restart i gamma. [Uruchomienie i test ręczny](interactive-v04/acceptance-03.md).
 300 testów PASS, mypy 27 plików PASS; pełne 268 klatek TTMAPP sprawdzone
-w GUI. Ręczny odbiór użytkownika 03 pozostaje do wykonania. Następny ticket
+w GUI. Ręczny odbiór 03 wraz z poprawką układu `0745e4e` potwierdzono;
+późniejsza [poprawka wyjścia](interactive-v04/acceptance-03.md#poprawka-wyjścia-z-programu)
+czeka na ręczne sprawdzenie. Następny ticket
 nowego planu: SD-V4-04. Historyczny odbiór całego szkieletu pozostaje otwarty.
 
 **Wykonano SD-V4-02 — 2026-11-02:** działają zapisane oznaczenia, maski,

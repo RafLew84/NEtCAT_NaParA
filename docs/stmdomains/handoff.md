@@ -1,5 +1,25 @@
 # STM Domains — wykonano SD-V4-03: miniatury i odtwarzanie
 
+**Odbiór ręczny i poprawka wyjścia — 2026-11-02:** użytkownik potwierdził
+„testy manualne ok” dla 03 wraz z poprawką układu **`0745e4e`**, po czym
+zgłosił crash przy wyjściu: `TaskSignals has been deleted` w `finished.emit`.
+Odtworzono dokładny traceback w osobnym procesie. Qt usuwało obiekty sygnałów
+przed końcem workerów. `aboutToQuit` zatrzymuje teraz obie pule i czeka na
+ich zakończenie przy żywych obiektach Qt; działa dla zamknięcia okna i app.quit.
+Nie przerywa siłowo odczytu, więc zakończenie procesu może chwilę potrwać.
+
+W `netcat`: **25 celowanych testów PASS**, w tym 4 nowe regresje procesów;
+te same **4 przypadki X11/xcb PASS**, mypy **27 plików PASS**. Kontrola
+5 plików kodu/testów, maksimum **341 linii**. Pierwotna reprodukcja kończy
+się kodem 0. **3/3 dodatkowe próby TTMAPP na X11 PASS**: wyjście w trakcie
+importu, miniatur i play; kod 0, pusty stderr, obie pule zakończone.
+Przegląd poprawki bez uwag. Pełnego zestawu nie powtarzano.
+[Raport i sprawdzenie wyjścia](implementation/interactive-v04/acceptance-03.md#poprawka-wyjścia-z-programu).
+**Ręczny odbiór poprawki wyjścia pozostaje do wykonania.** Artefakty:
+`.scratch/stmdomains-ui-03/shutdown-debug/`. Baza `0745e4e`; commit poprawki
+w odpowiedzi końcowej. Zmiany tylko w aplikacji, testach i dokumentacji;
+bez instalacji. Następny ticket nadal SD-V4-04.
+
 **Poprawka po odbiorze użytkownika — 2026-11-02, baza `c5deb59`:**
 zgłoszony skok przy ładowaniu klatki został odtworzony i usunięty. Pokazywanie
 paska postępu i przycisku Anuluj zwiększało dolny wiersz o 8 px; układ
@@ -9,9 +29,9 @@ linii. Rzeczywiste GUI X11: 12 przejść TTMAPP w 1100×760 i 900×650 bez zmian
 geometrii przy ładowaniu i publikacji, także przy różnych komunikatach.
 Artefakty `.scratch/stmdomains-ui-03/layout-debug/`. Pełnego zestawu 300
 testów nie powtarzano. [Scenariusz ponownego sprawdzenia](implementation/interactive-v04/acceptance-03.md#poprawka-po-zgłoszeniu-użytkownika--stabilny-układ-okna).
-Użytkownik wstępnie sprawdził funkcje 03; **odbiór poprawki pozostaje do
-wykonania**. Zmiany tylko w aplikacji, testach i dokumentacji, bez instalacji.
-Commit poprawki podano w odpowiedzi końcowej. Poniżej pierwotny raport 03.
+Użytkownik potwierdził ręczny odbiór funkcji 03 i tej poprawki (`0745e4e`).
+Zmiany tylko w aplikacji, testach i dokumentacji, bez instalacji.
+Poniżej pierwotny raport 03.
 
 Data: **2026-11-02**. Na polecenie `implement 03` wykonano
 [SD-V4-03](implementation/interactive-v04/03-filmstrip-and-playback.md), `done`.
@@ -26,7 +46,7 @@ otwiera klatkę 268 wyrównaną, inaczej niż początkowy oryginał w 02.
 Uruchomienie w **netcat**: `python -m stmdomains.main`. Przykłady 8 klatek,
 niepoprawnych próbek, stałej klatki i jednej klatki:
 `python -m stmdomains.tools.browsing_demo`. **Odbiór ręczny użytkownika 03
-pozostaje do wykonania.** Potwierdzenia 01 i 02 pozostają zachowane.
+potwierdzono dla `0745e4e`.** Potwierdzenia 01 i 02 pozostają zachowane.
 
 Sprawdzenia: **300 testów STM Domains PASS, bez pominięć, 13,58 s**, w tym
 21 nowych; mypy **27 plików PASS**; kontrola **12 plików, maksimum 327 linii**.
@@ -50,8 +70,8 @@ około **1132 MiB**. Otwarcie około 0,83 s, 267 przejść przy limicie
 Tempo podglądu nie jest czasem pomiaru; ograniczenia kalibracji pozostają.
 
 Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/interactive-v04-ui`,
-baza **`d862333`**, implementacja **`93701af`**. Końcowy commit poprawek
-i raportu wskazano w odpowiedzi końcowej. Zmiany tylko w aplikacji, testach
+baza **`d862333`**, implementacja **`93701af`**, poprawki i raport **`c5deb59`**.
+Zmiany tylko w aplikacji, testach
 i dokumentacji; bez nowych zależności lub instalacji. Wcześniejsze zgłoszenie
 NumPy/SciPy/pytest-qt do integratora nadal aktualne, wspólny kod i CI bez zmian.
 **Następny ticket: SD-V4-04**, otwarcie wyników v0.4 i przynależność molekuł.

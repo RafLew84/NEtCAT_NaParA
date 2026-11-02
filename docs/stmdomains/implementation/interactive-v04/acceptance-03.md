@@ -2,14 +2,52 @@
 
 Data: **2026-11-02**. [Ticket 03](03-filmstrip-and-playback.md) wykonano na
 `domains/interactive-v04-ui`, baza `d862333`, implementacja **`93701af`**.
-Końcowy commit zawiera poprawki zaznaczenia/pauzy i ten raport; jego identyfikator
-jest w historii Git i odpowiedzi końcowej. Użytkownik sprawdził 03 i zgłosił
-skakanie układu okna podczas ładowania klatki. **Ponowne ręczne sprawdzenie
-poniższej poprawki pozostaje do wykonania.**
+Poprawki zaznaczenia/pauzy i raport: **`c5deb59`**, stabilność układu okna:
+**`0745e4e`**. **2026-11-02 użytkownik potwierdził ręczny odbiór 03 wraz
+z poprawką układu** słowami „testy manualne ok”. Następnie zgłosił opisany
+poniżej błąd wyjścia. Jego poprawka wymaga jeszcze ręcznego sprawdzenia.
+
+## Poprawka wyjścia z programu
+
+2026-11-02, baza `0745e4e`. Zgłoszono awaryjne zakończenie procesu:
+`RuntimeError: wrapped C/C++ object of type TaskSignals has been deleted`
+przy `finished.emit` w `Task.run`. Reprodukcja w osobnym procesie odtworzyła
+ten sam traceback i kod wyjścia 134 dwukrotnie podczas zamykania okna
+w trakcie odczytu pliku.
+
+Przyczyną było niszczenie obiektów Qt przed zakończeniem pracy wątków.
+Anulowanie odrzucało wynik, lecz worker nadal potrzebował swojego obiektu
+sygnałów do zakończenia `run`. Na `aboutToQuit` okno zatrzymuje teraz oba
+źródła pracy i timery, a następnie dołącza własne pule kontrolera i miniatur
+przez `waitForDone`, przy żywych obiektach Qt. Dotyczy to zamknięcia ostatniego
+okna oraz `QApplication.quit()`. Nie zależy od dostarczenia slotów GUI
+i nie przerywa siłowo odczytu. Proces może chwilę zaczekać na trwającą
+operację, zanim wróci do powłoki.
+
+W `netcat`: **25 celowanych testów PASS**, w tym **4 nowe regresje osobnych
+procesów** dla importu/miniatur × zamknięcie okna/wyjście aplikacji. Testy
+sprawdzają rzeczywisty koniec procesu, brak traceback i zakończenie pracy
+pul przed destrukcją Qt. Kontrolowane opóźnienia dotyczą odczytu pliku
+i obliczeń NumPy; zwalnia je osobny wątek, niezależnie od pętli GUI.
+Te cztery przypadki sprawdzono także na **X11/xcb: 4 PASS**. Pierwotna
+reprodukcja również kończy się teraz kodem 0. Dodatkowo **3/3 rzeczywiste
+próby TTMAPP na X11 PASS**: zamknięcie podczas importu, przygotowywania
+miniatur po pierwszym obrazie i odtwarzania. Każdy proces kończy się kodem 0,
+bez stderr i z obiema pulami bez aktywnych wątków. Mypy **27 plików PASS**;
+**5 zmienionych/nowych plików kodu i testów, maksimum 341 linii**.
+Przegląd poprawki bez uwag. Pełnego zestawu testów aplikacji nie powtarzano.
+Lokalne skrypty diagnostyczne pozostają w `.scratch/stmdomains-ui-03/shutdown-debug/`.
+
+**Do ręcznego sprawdzenia:** uruchom program w `netcat`, otwórz TTMAPP
+i zamknij okno podczas ładowania lub odtwarzania. Sprawdź również wyjście
+przez **Plik → Zakończ**. Terminal powinien wrócić do znaku zachęty bez
+traceback ani „Przerwane (zrzut pamięci)”. Potwierdzony odbiór funkcji 03
+i stabilności układu pozostaje zachowany; ten scenariusz dotyczy nowej poprawki.
 
 ## Poprawka po zgłoszeniu użytkownika — stabilny układ okna
 
-2026-11-02, baza `c5deb59`. Pokazywanie paska postępu i przycisku **Anuluj**
+2026-11-02, baza `c5deb59`, poprawka **`0745e4e`**, odbiór ręczny potwierdzony
+przez użytkownika. Pokazywanie paska postępu i przycisku **Anuluj**
 zwiększało wysokość dolnego wiersza. W odtworzonym przypadku obraz kurczył
 się o **8 px**, a suwak i miniatury przesuwały się o tę samą wartość.
 Ukryte elementy zachowują teraz swoje miejsce w układzie; informacja
