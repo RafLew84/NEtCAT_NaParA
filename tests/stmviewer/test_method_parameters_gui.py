@@ -1,4 +1,5 @@
 """User-visible parameter editing and shared configuration in the Qt workflow."""
+import pytest
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QLabel, QLineEdit, QPushButton
 
@@ -174,4 +175,34 @@ def test_reopening_editor_does_not_round_small_thresholds(qtbot):
     dialog = editor(window)
     assert float(field(dialog, 'akaze', 'threshold').text()) == .000123456789123
     finish(qtbot, dialog, QDialogButtonBox.StandardButton.Cancel)
+    window.close()
+
+
+@pytest.mark.parametrize('graph_result', [False, True])
+def test_reopened_mpp_shows_recorded_parameters_on_every_frame(qtbot, monkeypatch, tmp_path, graph_result):
+    from PyQt6.QtWidgets import QSpinBox
+    from stmviewer.method_parameters import MethodProfiles, AkazeParameters
+    from stmviewer.registration import register_series
+    from stmviewer.graph_registration import register_graph
+    from stmviewer.graph_application import apply_graph_to_movie
+    from stmviewer.mpp_export import save_aligned_mpp
+    from test_akaze_integration import frames
+    from test_registration_gui import open_file
+    originals = frames()
+    profiles = MethodProfiles(akaze=AkazeParameters(threshold=.0001))
+    result = (apply_graph_to_movie(originals, register_graph(originals, method='akaze', method_profiles=profiles))
+              if graph_result else register_series(originals, method='akaze', method_profiles=profiles))
+    path = tmp_path/'recorded-parameters.mpp'
+    save_aligned_mpp(path, result)
+    window = STMViewerMainWindow()
+    qtbot.addWidget(window)
+    window.show()
+    dialog = editor(window)
+    field(dialog, 'akaze', 'threshold').setText('0.002')
+    finish(qtbot, dialog, QDialogButtonBox.StandardButton.Ok)
+    open_file(qtbot, window, monkeypatch, path)
+    for number in (1, 2, 3):
+        window.findChild(QSpinBox, 'frameNumber').setValue(number)
+        text = window.findChild(QLabel, 'movieParameterStatus').text()
+        assert '0.0001' in text and '0.002' in text and 'różnią' in text
     window.close()

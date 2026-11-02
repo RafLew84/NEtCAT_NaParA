@@ -43,6 +43,8 @@ class ContrastParameters:
             raise ValueError('Limit CLAHE musi być dodatni.')
         _integer(self.grid_x, 1)
         _integer(self.grid_y, 1)
+        for name in ('lower', 'upper', 'clip_limit'):
+            object.__setattr__(self, name, _number(getattr(self, name)))
 
     def normalization(self, *, uint8: bool) -> str:
         suffix = 'uint8-round' if uint8 else 'float32'
@@ -60,6 +62,8 @@ class AkazeParameters:
             raise ValueError('Próg AKAZE i tolerancja zgodności muszą być dodatnie.')
         if not isinstance(self.contrast, ContrastParameters):
             raise ValueError('Nieprawidłowe przygotowanie kontrastu.')
+        object.__setattr__(self, 'threshold', _number(self.threshold))
+        object.__setattr__(self, 'radius', _number(self.radius))
 
 
 @dataclass(frozen=True)
@@ -84,6 +88,13 @@ class LightGlueParameters:
         _boolean(self.full_computation)
         if not isinstance(self.contrast, ContrastParameters):
             raise ValueError('Nieprawidłowe przygotowanie kontrastu.')
+        for name in ('detection_threshold', 'filter_threshold', 'radius'):
+            object.__setattr__(self, name, _number(getattr(self, name)))
+
+    @property
+    def adaptive_thresholds(self) -> tuple[float, float]:
+        """LightGlue depth and width thresholds used both by runtime and evidence."""
+        return (-1., -1.) if self.full_computation else (.95, .99)
 
 
 FeatureParameters = AkazeParameters | LightGlueParameters

@@ -2,6 +2,7 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QLabel, QWidget
 
+from stmviewer.frame import ImageFrame
 from stmviewer.feature_provenance import recorded_profile
 from stmviewer.method_parameters import PARAMETER_METHODS, AkazeParameters, FeatureParameters
 from stmviewer.registration import RegistrationResult
@@ -35,13 +36,25 @@ class ParameterStatus(QLabel):
         self.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self._controls = controls
         self._method = ''
+        self._recorded = False
         self._provenance: tuple[tuple[str, str], ...] | None = None
         controls.changed.connect(self._refresh)
 
-    def set_context(self, method: str, provenance: tuple[tuple[str, str], ...] | None = None) -> None:
+    def set_context(self, method: str, provenance: tuple[tuple[str, str], ...] | None = None,
+                    *, recorded: bool = False) -> None:
         aliases = {label: key for key, label in PARAMETER_METHODS.items()}
         self._method, self._provenance = aliases.get(method, method), provenance
+        self._recorded = recorded
         self._refresh()
+
+    def set_movie(self, result: RegistrationResult | None, frames: tuple[ImageFrame, ...],
+                  index: int, selected_method: str) -> None:
+        if result is not None:
+            self.set_context(*movie_parameter_context(result, index), recorded=True)
+        elif frames[index].alignment is not None:
+            self.set_context(*imported_parameter_context(frames, index), recorded=True)
+        else:
+            self.set_context(selected_method)
 
     def _refresh(self) -> None:
         if self._method not in PARAMETER_METHODS:
@@ -51,7 +64,9 @@ class ParameterStatus(QLabel):
         current = self._controls.profiles.get(self._method)
         label = PARAMETER_METHODS[self._method]
         if self._provenance is None:
-            text = f'Parametry {label}: {parameter_summary(current)}.'
+            text = (f'Parametry zapisanego wyniku {label} są niedostępne. '
+                    f'Następne obliczenie: {parameter_summary(current)}.' if self._recorded else
+                    f'Parametry {label}: {parameter_summary(current)}.')
         else:
             used = recorded_profile(self._method, self._provenance)
             text = f'Parametry wyniku {label}: {parameter_summary(used)}.'
@@ -73,3 +88,28 @@ def movie_parameter_context(result: RegistrationResult, index: int
     if detail is None:
         detail = next((item for item in diagnostics if item is not None), None)
     return result.method, detail.model_provenance if detail is not None else None
+
+
+def imported_parameter_context(frames: tuple[ImageFrame, ...], index: int
+                               ) -> tuple[str, tuple[tuple[str, str], ...] | None]:
+    alignment = frames[index].alignment
+    assert alignment is not None
+    history = alignment.manual_movie
+    if history is not None and history.graph_provenance is not None:
+        config = history.graph_provenance.config
+        return config.method, config.backend_settings
+    detail = alignment.correspondence
+    if detail is None:
+        # The reference has no pair. An exported MPP is one registration:
+        # require the same opened file, reference and, when present, revision.
+        for frame in frames:
+            other = frame.alignment
+            if (other is not None and other.method == alignment.method
+                    and frame.source == frames[index].source
+                    and other.reference == alignment.reference
+                    and (history is None or (other.manual_movie is not None
+                         and other.manual_movie.revision == history.revision))
+                    and other.correspondence is not None):
+                detail = other.correspondence
+                break
+    return alignment.method, detail.model_provenance if detail is not None else None

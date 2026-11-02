@@ -66,3 +66,14 @@ def test_session_profiles_do_not_relabel_old_result_and_legacy_loads_defaults(tm
     legacy = decode_session(manifest, arrays)
     assert legacy.display.method_profiles == MethodProfiles()
     assert legacy.registration.correspondence_diagnostics == old_result.correspondence_diagnostics
+
+
+def test_integer_radius_remains_a_portable_valid_parameter():
+    from stmviewer.session_metadata import encode_session, decode_session
+    from stmviewer.session_state import SessionState
+    originals = frames()
+    profiles = MethodProfiles(akaze=AkazeParameters(radius=3))
+    movie = register_series(originals, method='akaze', method_profiles=profiles)
+    manifest, arrays = encode_session(SessionState(originals, movie))
+    restored = decode_session(manifest, arrays)
+    assert restored.registration.correspondence_diagnostics == movie.correspondence_diagnostics

@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 )
 
 from stmviewer.ui.method_parameters import MethodParameterControls
-from stmviewer.ui.parameter_status import ParameterStatus, movie_parameter_context
+from stmviewer.ui.parameter_status import ParameterStatus
 from stmviewer.frame import ImageFrame
 from stmviewer.session_state import SessionState, SessionViewState
 from stmviewer.ui.session_controls import SessionControls
@@ -994,14 +994,8 @@ class STMViewerMainWindow(QMainWindow):
     def _show_registration_info(self) -> None:
         if not self._frames:
             return
-        if self._registration is not None:
-            self._parameter_status.set_context(*movie_parameter_context(self._registration, self._index))
-        else:
-            alignment = self._frames[self._index].alignment
-            detail = alignment.correspondence if alignment else None
-            self._parameter_status.set_context(
-                alignment.method if alignment and detail else str(self._method.currentData()),
-                detail.model_provenance if detail else None)
+        self._parameter_status.set_movie(self._registration, self._frames, self._index,
+                                         str(self._method.currentData()))
         text = (alignment_history_text(self._frames[self._index]) if self._registration is None else
                 registration_info(self._registration, self._index, self._pixel_proportions.isChecked()))
         self._registration_text.setText(text)

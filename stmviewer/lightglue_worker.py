@@ -86,10 +86,10 @@ class Worker:
         self.extractor = upstream.SuperPoint(
             max_num_keypoints=parameters.max_keypoints, detection_threshold=parameters.detection_threshold,
             nms_radius=parameters.nms_radius).eval()
+        depth, width = parameters.adaptive_thresholds
         self.matcher = upstream.LightGlue(
             features='superpoint', flash=True, mp=False, filter_threshold=parameters.filter_threshold,
-            depth_confidence=-1 if parameters.full_computation else .95,
-            width_confidence=-1 if parameters.full_computation else .99).eval()
+            depth_confidence=depth, width_confidence=width).eval()
         self._validate_state(weights, extractor_weights)
         self.extractor = self.extractor.to(device)
         self.matcher = self.matcher.to(device)

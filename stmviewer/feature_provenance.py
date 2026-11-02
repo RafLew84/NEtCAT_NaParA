@@ -29,7 +29,7 @@ def akaze_detector_text(parameters: AkazeParameters) -> str:
 
 
 def lightglue_identity(parameters: 'LightGlueParameters') -> dict[str, str]:
-    depth, width = ((-1., -1.) if parameters.full_computation else (.95, .99))
+    depth, width = parameters.adaptive_thresholds
     return {
         'extractor_config': ('SuperPoint; '
             f'max_num_keypoints={parameters.max_keypoints}; detection_threshold={parameters.detection_threshold:g}; '
