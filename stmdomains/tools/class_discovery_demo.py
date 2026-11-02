@@ -17,13 +17,16 @@ def create_class_discovery_demo(directory: Path) -> dict[str, Path]:
     # A 45-degree lattice keeps this K1 control separate from the method's
     # near-horizontal image-barrier control (provided by analysis_demo).
     small = (np.array([(12. * x, 12. * y) for y in range(4) for x in range(4)])
-             @ (np.array([[1., 1.], [-1., 1.]]) / np.sqrt(2)) + (200., 200.))
+             @ (np.array([[1., 1.], [-1., 1.]]) / np.sqrt(2)) + (64., 40.))
     empty = np.empty((0, 2))
     cases = {"single": [small], "pair_a": [patches, patches, patches],
              "pair_b": [patches, different, empty], "empty": [empty]}
     paths = {}
     for name, points in cases.items():
         images = np.stack([molecule_image(p) for p in points])
+        if name == "single":
+            # Keep spots visible with the browser's 2–98 percentile contrast.
+            images = images[:, :128, :128]
         source = write_mpp(directory / f"{name}.mpp", images[:, ::-1, ::-1])
         session = write_session(directory / f"{name}.moltrack.json", source, range(len(points)))
         write_analysis_annotations(session, points, duplicate=False)
@@ -32,7 +35,7 @@ def create_class_discovery_demo(directory: Path) -> dict[str, Path]:
         "STM Domains — SD-V4-07, syntetyczne wejścia do ręcznego odbioru\n\n"
         "Uruchom w netcat: python -m stmdomains.main\n"
         "Menu Analiza → Klasy i zakres…, Bieżąca klatka.\n"
-        "single.moltrack.json: jedna klatka, 16 centrów w siatce 4×4 obróconej o 45°. "
+        "single.moltrack.json: jedna klatka 128×128 px, 16 centrów w siatce 4×4 obróconej o 45°. "
         "K1 daje 12/16 i jedną domenę; K8 odmawia dopasowania z powodu zbyt małej "
         "liczby różnych użytecznych otoczeń. Zachowaj i obejrzyj poprzedni wynik K1.\n"
         "pair_a / pair_b: pierwsza klatka jest identyczna, pozostałe się różnią. "

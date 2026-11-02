@@ -72,6 +72,41 @@ def test_failed_new_fit_keeps_previous_result_and_catalogue(qtbot, controller, t
     assert "K8" in controller.prompts.errors[-1]
 
 
+def test_main_analysis_refusal_after_navigation_preserves_both_result_versions(qtbot, controller, tmp_path):
+    import numpy as np
+    from stmdomains.tools.analysis_demo import lattice_patches, molecule_image, write_analysis_annotations
+    from stmdomains.tools.demo_inputs import write_mpp, write_session
+
+    small = (np.array([(12. * x, 12. * y) for y in range(4) for x in range(4)])
+             @ (np.array([[1., 1.], [-1., 1.]]) / np.sqrt(2)) + (200., 200.))
+    points = [small, lattice_patches()]
+    images = np.stack([molecule_image(p) for p in points])
+    source = write_mpp(tmp_path / "mixed.mpp", images[:, ::-1, ::-1])
+    path = write_session(tmp_path / "mixed.moltrack.json", source, range(2))
+    write_analysis_annotations(path, points, duplicate=False)
+    controller.open_session(path)
+    qtbot.waitUntil(lambda: not controller.is_busy)
+    controller.fit_current_classes(ClassFitSettings(k=1))
+    qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
+    controller.recalculate_domains(DomainSettings(minimum_domain_size=6))
+    qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
+    saved, previous = controller.result, controller.previous_result
+    assert saved.status == previous.status == "complete"
+    controller.show_frame(1)
+    qtbot.waitUntil(lambda: not controller.is_busy)
+    controller.fit_current_classes(ClassFitSettings(k=8))
+    qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
+    active = controller.active_catalogue
+    assert active.k == 8 and controller.result.status == "complete"
+    controller.show_frame(0)
+    qtbot.waitUntil(lambda: not controller.is_busy)
+    controller.analyze_current_frame()
+    qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
+    assert controller.result is saved and controller.previous_result is previous
+    assert controller.active_catalogue is active and controller.result_version == "new"
+    assert "K8" in controller.prompts.errors[-1]
+
+
 @pytest.mark.parametrize("action", ["cancel", "navigate", "reopen", "gamma"])
 def test_pending_shared_fit_is_atomic_with_navigation_and_cancel(qtbot, qapp, controller, tmp_path, action):
     path = create_analysis_demo(tmp_path)["series"]

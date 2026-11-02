@@ -347,11 +347,13 @@ class SessionController(QObject):
         if self._closed:
             return
         if token == self._analysis_token and isinstance(result, FrameAnalysis):
-            self._analysis_token = None
             if (self.series is not None and result.series_id == self.series.identity
                     and result.working_index == self.current_index == self._requested_index
                     and result.source_index == self.series.frame(self.current_index).source_index):
                 previous = self.latest_result
+                if previous is not None and previous.status == "complete" and result.status != "complete":
+                    self._failed(token, result.message)
+                    return
                 if (previous is not None and previous.status == result.status == "complete"
                         and previous.metadata.get("input_sha256") == result.metadata.get("input_sha256")):
                     self._previous_results[self.current_index] = previous
@@ -363,6 +365,7 @@ class SessionController(QObject):
                     self._active_catalogue = result.catalogue
                 if self._frame_token is None:
                     self._refresh_result()
+            self._analysis_token = None
             self._busy()
         elif token == self._open_token:
             if isinstance(result, SourceRequest):

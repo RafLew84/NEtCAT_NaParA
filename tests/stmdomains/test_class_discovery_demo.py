@@ -1,6 +1,7 @@
 """User-runnable controls for K1, excessive K, and untouched out-of-scope frames."""
 
 import pytest
+import numpy as np
 
 from stmdomains.analysis import discover_classes
 from stmdomains.analysis.class_settings import ClassFitSettings
@@ -12,6 +13,7 @@ from stmdomains.tools.class_discovery_demo import create_class_discovery_demo
 def test_single_frame_demo_supports_k1_but_refuses_k8(tmp_path):
     paths = create_class_discovery_demo(tmp_path)
     presenter = FramePresenter(prepare_import(paths["single"]).series)
+    assert np.ptp(presenter.present(0).rendered.rgba[:, :, 0]) > 100  # Molecules must be visible with normal auto contrast.
     result = discover_classes(presenter.analysis_input, frame_count=1, current_index=0,
                               settings=ClassFitSettings(k=1))
     assert result.status == "complete" and result.catalogue.k == 1 and result.domain_count == 1
