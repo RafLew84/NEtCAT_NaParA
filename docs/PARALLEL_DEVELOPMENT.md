@@ -41,7 +41,8 @@ W VS Code wybierz interpreter z katalogu bieżącego worktree.
 
 Jeśli systemowy Python nie ma `ensurepip`, można utworzyć środowisko poleceniem
 `python3.12 -m venv --without-pip .venv`, a następnie użyć innego Pythona
-z pip: `python -m pip --python .venv install pip -r requirements/stm-apps.txt`.
+z pip: `python -m pip --python .venv install pip -r stmviewer/requirements-ecc.txt`
+dla Viewera. Dla szkieletu Domains użyj `requirements/stm-apps.txt`.
 To instaluje pakiety w docelowym `.venv`.
 
 ## Mapy i przekazanie
@@ -86,3 +87,12 @@ git merge stm-next
 
 Nadrzędna sesja nie aktualizuje plików drugiego worktree podczas pracy jego agenta.
 Lokalne scalanie nie publikuje zmian na GitHub; publikacja jest osobnym działaniem.
+
+## Publikacja na main
+
+Na zlecenie użytkownika nadrzędna sesja może przełączyć główny worktree na
+`main`, scalić sprawdzony stan `stm-next` i wypchnąć `main` do `origin`.
+Wcześniej sprawdza aktualny `origin/main` i zapisuje zakres oraz wyniki testów
+w dokumentacji integrowanej aplikacji. Po publikacji wspólne zmiany nadal
+przygotowuje na `stm-next`; przed ich rozpoczęciem scala tam aktualne `main`.
+Pozostałe worktree zachowują swoje gałęzie i lokalne dane.
