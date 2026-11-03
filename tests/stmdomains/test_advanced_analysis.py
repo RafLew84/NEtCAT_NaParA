@@ -100,6 +100,7 @@ def test_barrier_changes_preserve_fitted_classes_and_change_observed_masks(monke
 
 
 def test_rebuilding_domains_keeps_nondefault_descriptor_and_barriers():
+    from dataclasses import replace
     from stmdomains.analysis.descriptor_settings import DescriptorSettings
     from stmdomains.analysis.barrier_settings import BarrierSettings
     from stmdomains.analysis.domain_settings import DomainSettings
@@ -113,6 +114,9 @@ def test_rebuilding_domains_keeps_nondefault_descriptor_and_barriers():
     assert rebuilt.parameters['barrier_high_percentile'] == 95
     assert rebuilt.metadata['barriers']['parameters']['high_percentile'] == 95
     np.testing.assert_array_equal(rebuilt.barrier_mask, result.barrier_mask)
+    tampered = replace(result, parameters={**result.parameters, 'descriptor_sigma_factor': 1.25})
+    with pytest.raises(ValueError, match='Analizuj klatkę'):
+        recalculate_domains(data, tampered, DomainSettings())
 
 
 def test_incompatible_model_dimensions_fail_before_preparing_frame():
