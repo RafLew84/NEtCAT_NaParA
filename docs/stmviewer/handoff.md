@@ -1,3 +1,37 @@
+# Instrukcje instalacji i obsługi dla początkujących — 2026-11-03
+
+Na zlecenie użytkownika przygotowano [instalację krok po kroku](installation.md),
+[instrukcję obsługi](user-guide.md) i [opcjonalne modele](installation-models.md).
+[guide.html](guide.html) łączy materiały w samodzielny dokument do przeglądarki,
+z nawigacją i drukowaniem do PDF. [Raport sprawdzeń](installation-validation.md)
+oddziela faktycznie wykonane próby od jeszcze niewykonanych.
+
+Wymagania Viewera zmieniono z dokładnych przypięć na zakresy. Usunięto
+dołączanie wspólnych pinów Qt6/sip; PyQt6 dobiera własne komponenty.
+Zachowano romav2==2.0.1, wymagane przez weryfikację kodu modelu.
+Pozostałe biblioteki modeli mają zakresy; zależności fused-local-corr mogą
+nadal narzucić konkretny Torch. Kod i wagi modeli pozostają weryfikowane.
+
+Nowa instalacja Linux w /tmp używa PyQt6/Qt6 6.12.0, NumPy 2.5.4,
+SciPy 1.18.1, scikit-image 0.26.0 i OpenCV 4.14.0.94; pip check poprawny.
+180 wybranych przypadków działało. Test izolowanej nieobecności Kornia
+poprawiono o pominięcie, gdy nie jest zainstalowany również Torch;
+dotknięty plik po poprawce: 33 passed / 1 skipped.
+W netcat wszystkie 5 wariantów braku zależności zaliczono.
+
+Windows: resolver potwierdził dostępne zgodne pakiety win_amd64/Python 3.12;
+nie wykonano uruchomienia GUI ani interaktywnego instalatora na Windows.
+Modele GPU/RoMa nie były instalowane na nowo. Istniejące biblioteki netcat
+oraz netcat-romav2 spełniają nowe zakresy; tych środowisk nie zmieniano.
+
+Sprawdzono HTML, lokalne odnośniki, Ruff F, składnię i długości plików
+oraz git diff --check. Kod aplikacji i algorytmy pozostały bez zmian.
+Wspólny requirements/stm-apps.txt pozostawiono sesji integracyjnej:
+Viewer już go nie dołącza, więc nie wymaga to wspólnej zmiany dla tej instrukcji.
+Próby Qt offscreen były automatyczne; odbiór instrukcji przez początkującego
+użytkownika i próby interaktywne pozostają niewykonane.
+Baza pracy: 5cc1d03. Statusy REG-15/15a/15b bez zmian.
+
 # REG-15: odbiór manualny — 2026-11-03
 
 Użytkownik potwierdził „testy manualne ok”. REG-15 ma status **done**.

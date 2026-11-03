@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>STM Viewer — instalacja i obsługa</title><style>
+body { color: #192b3a; background: #f4f6f8; margin: 0; font: 17px/1.65 system-ui, sans-serif; }
+main { max-width: 1000px; margin: auto; padding: 32px 44px 80px; background: white; }
+h1 { margin-top: 2.5em; border-top: 3px solid #21677a; padding-top: 24px; line-height: 1.3; }
+h2 { margin-top: 2em; line-height: 1.35; } h3 { margin-top: 1.5em; }
+a { color: #065a83; } a:hover { text-decoration-thickness: 2px; }
+pre { background: #edf3f6; padding: 16px; border-left: 4px solid #21677a; overflow: auto; }
+code { font-size: .92em; overflow-wrap: anywhere; } pre code { overflow-wrap: normal; }
+table { width: 100%; border-collapse: collapse; font-size: .93em; }
+td, th { padding: 9px 12px; border: 1px solid #cbd5dc; text-align: left; vertical-align: top; }
+th { background: #edf3f6; } li { margin: 5px 0; }
+.toc { padding: 12px 24px; background: #f4f7f9; } .toc ul { padding-left: 24px; }
+button { border: 1px solid #21677a; padding: 10px 16px; background: white; color: #065a83; cursor: pointer; }
+@media (max-width: 700px) { main { padding: 18px; } table { font-size: .85em; } }
+@media print {
+ body, main { background: white; } main { max-width: none; padding: 0; font-size: 10pt; }
+ button { display: none; } h1 { break-before: page; } h1, h2, h3 { break-after: avoid; }
+ tr, pre { break-inside: avoid; } pre { white-space: pre-wrap; }
+ a { color: inherit; } @page { margin: 18mm; }
+}
+</style></head><body><main><p><strong>STM Viewer — podręcznik użytkownika</strong> · 3 listopada 2026</p><p>Instalacja, obsługa i opcjonalne modele. Ten plik można otworzyć bezpośrednio w przeglądarce.</p><button onclick="window.print()">Drukuj / zapisz jako PDF</button>
+<div class="toc">
+<ul>
+<li><a href="#instalacja">Instalacja STM Viewer — krok po kroku</a><ul>
+<li><a href="#co-bedzie-potrzebne">Co będzie potrzebne</a></li>
+<li><a href="#1-przygotuj-folder-programu">1. Przygotuj folder programu</a></li>
+<li><a href="#2-przygotuj-miniforge">2. Przygotuj Miniforge</a></li>
+<li><a href="#3-jak-wklejac-polecenia">3. Jak wklejać polecenia</a></li>
+<li><a href="#4-utworz-srodowisko-tylko-przy-pierwszej-instalacji">4. Utwórz środowisko — tylko przy pierwszej instalacji</a></li>
+<li><a href="#5-przejdz-do-folderu-programu">5. Przejdź do folderu programu</a></li>
+<li><a href="#6-zainstaluj-biblioteki">6. Zainstaluj biblioteki</a></li>
+<li><a href="#7-pierwsze-uruchomienie-i-krotka-proba">7. Pierwsze uruchomienie i krótka próba</a></li>
+<li><a href="#8-nastepne-uruchomienia">8. Następne uruchomienia</a></li>
+<li><a href="#9-co-oznaczaja-poluzowane-wersje">9. Co oznaczają poluzowane wersje</a></li>
+<li><a href="#10-najczestsze-problemy">10. Najczęstsze problemy</a></li>
+</ul>
+</li>
+<li><a href="#obsluga">STM Viewer — instrukcja obsługi</a><ul>
+<li><a href="#pierwszy-film-w-pieciu-krokach">Pierwszy film w pięciu krokach</a></li>
+<li><a href="#1-wczytywanie-danych">1. Wczytywanie danych</a></li>
+<li><a href="#2-poruszanie-sie-po-filmie">2. Poruszanie się po filmie</a></li>
+<li><a href="#3-powiekszenie-przesuwanie-i-jasnosc">3. Powiększenie, przesuwanie i jasność</a></li>
+<li><a href="#4-rejestracja-caego-filmu">4. Rejestracja całego filmu</a></li>
+<li><a href="#5-parametry-akaze-i-lightglue">5. Parametry AKAZE i LightGlue</a></li>
+<li><a href="#6-obejrzenie-i-reczna-poprawa-pary">6. Obejrzenie i ręczna poprawa pary</a></li>
+<li><a href="#7-dopasowanie-wieloklatkowe">7. Dopasowanie wieloklatkowe</a></li>
+<li><a href="#8-co-i-kiedy-zapisac">8. Co i kiedy zapisać</a></li>
+<li><a href="#9-gdy-wynik-nie-wyglada-dobrze">9. Gdy wynik nie wygląda dobrze</a></li>
+</ul>
+</li>
+<li><a href="#modele">Opcjonalne modele rejestracji — instalacja</a><ul>
+<li><a href="#1-przygotuj-torch-wybierz-cpu-albo-gpu">1. Przygotuj Torch: wybierz CPU albo GPU</a></li>
+<li><a href="#2-doinstaluj-tylko-wybrane-metody">2. Doinstaluj tylko wybrane metody</a></li>
+<li><a href="#3-skad-wziac-pliki-modeli-i-gdzie-je-wskazac">3. Skąd wziąć pliki modeli i gdzie je wskazać</a></li>
+<li><a href="#4-roma-v2-osobne-srodowisko">4. RoMa v2 — osobne środowisko</a></li>
+<li><a href="#5-typowe-problemy-z-modelami">5. Typowe problemy z modelami</a></li>
+</ul>
+</li>
+<li><a href="#sprawdzenia">Sprawdzenie instrukcji i zakresów zależności</a><ul>
+<li><a href="#co-zmieniono">Co zmieniono</a></li>
+<li><a href="#nowe-srodowisko-linux">Nowe środowisko Linux</a></li>
+<li><a href="#windows_1">Windows</a></li>
+<li><a href="#pozostae-granice-weryfikacji">Pozostałe granice weryfikacji</a></li>
+<li><a href="#aktualizowanie-wersji-html">Aktualizowanie wersji HTML</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<h1 id="instalacja">Instalacja STM Viewer — krok po kroku</h1>
+<p>Instrukcja dla Ubuntu 24.04 i Windows 11, komputerów Intel/AMD 64-bit.
+Stan programu: 3 listopada 2026. Zacznij od instalacji podstawowej; pozwala
+oglądać i wyrównywać filmy oraz zapisywać wyniki. Modele neuronowe można
+dołączyć później według <a href="#modele">osobnej instrukcji</a>.</p>
+<h2 id="co-bedzie-potrzebne">Co będzie potrzebne</h2>
+<ul>
+<li>Całe repozytorium programu, rozpakowane do zwykłego folderu.</li>
+<li>Internet podczas instalacji. Podstawowy program później działa lokalnie.</li>
+<li>Dla dużych serii: SSD i około 16 GB <strong>wolnego</strong> RAM. Małe filmy można
+  otworzyć na słabszym komputerze.</li>
+<li>Karta NVIDIA nie jest potrzebna do podstawowej instalacji.
+  Dla modeli na GPU przyjmujemy co najmniej 8 GB VRAM; wymagania konkretnego
+  modelu i rozmiaru filmu mogą być większe.</li>
+</ul>
+<p><strong>Repozytorium</strong> oznacza folder z kodem programu. <strong>Środowisko</strong> to osobny
+zestaw Pythona i bibliotek, przygotowany dla tej aplikacji. Utworzymy
+środowisko o nazwie <code>stmviewer</code>, aby nie zmieniać innych programów na komputerze.</p>
+<p>Jeżeli masz już działający program w środowisku <code>netcat</code>, nie musisz
+instalować go ponownie. Do uruchomienia wystarcza aktywowanie <code>netcat</code>
+zamiast <code>stmviewer</code> i przejście do folderu repozytorium.</p>
+<h2 id="1-przygotuj-folder-programu">1. Przygotuj folder programu</h2>
+<p>Najprościej otrzymać od opiekuna projektu archiwum ZIP całego repozytorium
+w wersji przeznaczonej do pracy. Jeśli pobierasz je przez GitHub, wybierz
+właściwą gałąź, potem <strong>Code → Download ZIP</strong>. Domyślna gałąź może nie
+zawierać bieżących funkcji; tę instrukcję przygotowano na
+<code>viewer/registration-difficult-movies</code>.</p>
+<p>W menedżerze plików wybierz <strong>Wyodrębnij wszystko…</strong> / <strong>Rozpakuj</strong>.
+Nie uruchamiaj programu z wnętrza ZIP-a. Nazwij rozpakowany folder <code>NEtCAT</code>.
+W jego środku powinny znajdować się m.in. foldery:</p>
+<ul>
+<li><code>stmviewer</code></li>
+<li><code>napara</code></li>
+<li><code>nanotrack</code></li>
+<li><code>tests</code></li>
+<li><code>docs</code></li>
+</ul>
+<p>Potrzebne są również pliki repozytorium leżące obok tych folderów.
+Samo skopiowanie <code>stmviewer</code> nie wystarczy. Przykładowe lokalizacje:</p>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>Folder programu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Windows</td>
+<td><code>C:\NEtCAT</code> albo inny folder, w którym możesz zapisywać</td>
+</tr>
+<tr>
+<td>Ubuntu</td>
+<td><code>NEtCAT</code> w katalogu domowym, czyli <code>~/NEtCAT</code></td>
+</tr>
+</tbody>
+</table>
+<p>Możesz wybrać inną lokalizację. Wtedy w poleceniach <code>cd</code> poniżej wstaw
+własną ścieżkę, zachowując cudzysłowy.</p>
+<h2 id="2-przygotuj-miniforge">2. Przygotuj Miniforge</h2>
+<p>Miniforge udostępnia Pythona i polecenie <code>conda</code>.
+Jeśli masz już działającą Minicondę/Anacondę/Miniforge, pomiń instalator.</p>
+<h3 id="windows">Windows</h3>
+<ol>
+<li>Na <a href="https://github.com/conda-forge/miniforge">oficjalnej stronie Miniforge</a>
+   pobierz <strong>Miniforge3-Windows-x86_64.exe</strong>.</li>
+<li>Uruchom plik; wybierz instalację <strong>Just Me</strong> i folder dla swojego konta.
+   Pozostaw dodawanie do PATH wyłączone.</li>
+<li>Po instalacji otwórz menu Start i wyszukaj <strong>Miniforge Prompt</strong>.
+   Dalsze polecenia wpisuj w tym oknie.</li>
+</ol>
+<h3 id="ubuntu">Ubuntu</h3>
+<ol>
+<li>Z tej samej <a href="https://github.com/conda-forge/miniforge">strony Miniforge</a>
+   pobierz <strong>Miniforge3-Linux-x86_64.sh</strong>.</li>
+<li>Otwórz folder z pobranym plikiem. Kliknij tło prawym przyciskiem
+   i wybierz <strong>Otwórz w terminalu</strong>.</li>
+<li>Wpisz:</li>
+</ol>
+<pre><code class="language-bash">bash Miniforge3-Linux-x86_64.sh
+</code></pre>
+<ol>
+<li>Przejdź przez licencję, zaakceptuj ją po przeczytaniu, pozostaw
+   domyślny folder instalacji. Na pytanie o inicjalizację conda odpowiedz <code>yes</code>.</li>
+<li>Zamknij terminal i otwórz nowy: <strong>Ctrl+Alt+T</strong>.</li>
+</ol>
+<p>To procedura oparta na instrukcji autorów Miniforge, bez przypinania
+wydania instalatora.</p>
+<h2 id="3-jak-wklejac-polecenia">3. Jak wklejać polecenia</h2>
+<p>Każdy wiersz to jedno polecenie. Wklej je i naciśnij <strong>Enter</strong>.
+Czekaj na zakończenie, zanim przejdziesz dalej.</p>
+<ul>
+<li>Ubuntu: wklejanie przez <strong>Ctrl+Shift+V</strong>.</li>
+<li>Windows Miniforge Prompt: zwykle <strong>Ctrl+V</strong> lub prawy przycisk myszy.</li>
+<li>Nie przepisuj tekstu <code>(base)</code>, <code>(stmviewer)</code>, znaku <code>&gt;</code> ani znaku <code>$</code>
+  z przykładów ekranu. To fragmenty wyglądu terminala.</li>
+<li>Jeżeli zobaczysz <code>&gt;&gt;&gt;</code>, jesteś w konsoli Pythona. Wpisz <code>exit()</code> i Enter,
+  aby wrócić do terminala.</li>
+<li>Po uruchomieniu programu terminal pozostaje zajęty do zamknięcia jego
+  okna. To prawidłowe zachowanie.</li>
+</ul>
+<h2 id="4-utworz-srodowisko-tylko-przy-pierwszej-instalacji">4. Utwórz środowisko — tylko przy pierwszej instalacji</h2>
+<p>W terminalu / Miniforge Prompt:</p>
+<pre><code class="language-text">conda create -n stmviewer python=3.12 pip
+</code></pre>
+<p>Gdy pojawi się pytanie <code>Proceed ([y]/n)?</code>, wpisz <code>y</code> i Enter.
+Potem:</p>
+<pre><code class="language-text">conda activate stmviewer
+</code></pre>
+<p>Na początku wiersza powinno pojawić się <code>(stmviewer)</code>.
+Python 3.12 to sprawdzony punkt startu, z dowolną aktualizacją poprawkową;
+nie jest to wymaganie jednej konkretnej wersji wszystkich bibliotek.
+Inne wydania Pythona wymagają sprawdzenia także wybranych modeli.
+Tworzenie i aktywację opisuje <a href="https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html">dokumentacja conda</a>.</p>
+<p>Jeżeli środowisko <code>stmviewer</code> już istnieje, użyj tylko <code>conda activate stmviewer</code>.
+Nie twórz go ponownie.</p>
+<h2 id="5-przejdz-do-folderu-programu">5. Przejdź do folderu programu</h2>
+<p><strong>Windows, w Miniforge Prompt:</strong></p>
+<pre><code class="language-bat">cd /d &quot;C:\NEtCAT&quot;
+</code></pre>
+<p><strong>Ubuntu:</strong></p>
+<pre><code class="language-bash">cd &quot;$HOME/NEtCAT&quot;
+</code></pre>
+<p>Własną ścieżkę możesz skopiować z paska adresu menedżera plików.
+W Ubuntu kliknij ten pasek lub użyj Ctrl+L. W Windows
+<code>cd /d</code> zmienia również dysk, np. z C: na D:.</p>
+<h2 id="6-zainstaluj-biblioteki">6. Zainstaluj biblioteki</h2>
+<p>W aktywnym środowisku, z folderu programu:</p>
+<pre><code class="language-text">python -m pip install --upgrade pip
+python -m pip install -r stmviewer/requirements-ecc.txt
+python -m pip check
+</code></pre>
+<p>Plik o nazwie <code>requirements-ecc.txt</code> zawiera <strong>cały zestaw podstawowy</strong>:
+interfejs, odczyt, sesje, Phase, korelację bez normalizacji,
+Tile+RANSAC, ECC, Optical Flow, AKAZE i zapis AVI.
+Nie trzeba osobno instalować <code>requirements.txt</code>.</p>
+<p>Ostatnie polecenie powinno wypisać <code>No broken requirements found</code>.
+Samo to sprawdza zależności pakietów; działanie okna sprawdzisz za chwilę.
+Instalowanie z listy wymagań opisuje <a href="https://pip.pypa.io/en/stable/cli/pip_install/">dokumentacja pip</a>.</p>
+<p>Nie instaluj osobno <code>PyQt6-Qt6</code>, <code>PyQt6-sip</code> ani kilku odmian OpenCV.
+PyQt6 dobiera swoje komponenty, a ten zestaw używa <code>opencv-python</code>.
+Odmiany OpenCV dzielą jeden moduł <code>cv2</code>, więc nie powinny współistnieć.
+<a href="https://pypi.org/project/opencv-python/">Instrukcja autorów OpenCV</a>.</p>
+<h2 id="7-pierwsze-uruchomienie-i-krotka-proba">7. Pierwsze uruchomienie i krótka próba</h2>
+<pre><code class="language-text">python -m stmviewer.main
+</code></pre>
+<p>Powinno pojawić się okno <strong>STM Viewer</strong>.</p>
+<ol>
+<li>Kliknij <strong>Otwórz STP/S94/MPP…</strong>.</li>
+<li>W folderze programu otwórz
+   <code>tests/stmviewer/fixtures/registration/cpu.mpp</code>.</li>
+<li>Kliknij <strong>Play</strong>, następnie <strong>Pause</strong>. Film ma trzy klatki.</li>
+<li>Wybierz metodę <strong>Phase</strong> i kliknij <strong>Rejestruj</strong>.</li>
+<li>Po zakończeniu wybierz <code>original</code> i <code>aligned</code>, porównując obrazy.</li>
+<li>Kliknij <strong>Zapisz sesję…</strong>, zapisz plik w swoim folderze z wynikami,
+   potem otwórz go przyciskiem <strong>Otwórz sesję…</strong>.</li>
+</ol>
+<p>To kontrola instalacji na małym wzorcu. Nie jest oceną jakości dopasowania
+Twoich pomiarów. Dalsze kroki opisuje <a href="#obsluga">instrukcja obsługi</a>.</p>
+<h2 id="8-nastepne-uruchomienia">8. Następne uruchomienia</h2>
+<p>Instalację wykonujesz raz. Przy następnej pracy wystarczą trzy polecenia.</p>
+<p><strong>Windows — otwórz Miniforge Prompt:</strong></p>
+<pre><code class="language-bat">conda activate stmviewer
+cd /d &quot;C:\NEtCAT&quot;
+python -m stmviewer.main
+</code></pre>
+<p><strong>Ubuntu — otwórz terminal:</strong></p>
+<pre><code class="language-bash">conda activate stmviewer
+cd &quot;$HOME/NEtCAT&quot;
+python -m stmviewer.main
+</code></pre>
+<p>Nie zamykaj terminala podczas pracy programu. Zakończ przez krzyżyk
+okna STM Viewer albo <strong>Plik → Zakończ</strong>, a potem zamknij terminal.
+Zapisz wcześniej sesję, jeżeli chcesz kontynuować tę pracę.</p>
+<h2 id="9-co-oznaczaja-poluzowane-wersje">9. Co oznaczają poluzowane wersje</h2>
+<p>Listy bibliotek stosują zakresy, np. <code>PyQt6&gt;=6.9,&lt;7</code>.
+Oznacza to wersję 6.9 lub nowszą z rodziny 6, zamiast jednej konkretnej
+poprawki. Podobnie potraktowano biblioteki numeryczne, OpenCV i większość
+zależności modeli. Instalator rozwiązuje ich wspólne wymagania.</p>
+<p>Dolne granice są punktami startowymi deklarowanego wsparcia, nie dowodem,
+że każda kombinacja została przebadana. Górne ograniczenia oddzielają
+większe zmiany API. Już działającego środowiska nie trzeba aktualizować:
+zwykłe <code>pip install -r ...</code> pozostawia zainstalowaną zgodną wersję,
+o ile inne zależności nie wymagają jej zmiany.
+<a href="https://pip.pypa.io/en/stable/cli/pip_install/">Zasady pip</a>.</p>
+<p><strong>Kod modelu i jego wagi są osobną sprawą.</strong> Aplikacja sprawdza ich zgodność.
+RoMa wymaga obecnie <code>romav2==2.0.1</code>; inne wydanie odrzuci istniejący adapter.
+To wyjątek wynikający z działania programu, a nie ogólne przypięcie bibliotek.</p>
+<p>Przed większą aktualizacją zachowaj działające środowisko i zapisz sesję.
+Opiekun może utworzyć drugie środowisko i sprawdzić aktualizację tam.
+Nie trzeba wykonywać aktualizacji przy każdym uruchomieniu.</p>
+<h2 id="10-najczestsze-problemy">10. Najczęstsze problemy</h2>
+<table>
+<thead>
+<tr>
+<th>Komunikat lub objaw</th>
+<th>Co zrobić</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>conda</code> nie jest rozpoznawana</td>
+<td>Windows: otwórz <strong>Miniforge Prompt</strong>. Ubuntu: otwórz nowy terminal po instalacji; jeśli nie pomogło, użyj polecenia poniżej.</td>
+</tr>
+<tr>
+<td><code>No module named stmviewer</code></td>
+<td>Polecenie uruchomiono z niewłaściwego folderu. Wróć do kroku 5; w bieżącym folderze musi być katalog <code>stmviewer</code>.</td>
+</tr>
+<tr>
+<td>Nie znaleziono <code>requirements-ecc.txt</code></td>
+<td>Wróć do kroku 1 i 5. Nie wchodź dodatkowo do podfolderu <code>stmviewer</code>.</td>
+</tr>
+<tr>
+<td><code>No module named PyQt6</code>, <code>numpy</code> lub <code>cv2</code></td>
+<td>Sprawdź <code>(stmviewer)</code> i powtórz krok 6 w tym środowisku.</td>
+</tr>
+<tr>
+<td>Metoda z modelem jest niedostępna</td>
+<td>Podstawowa instalacja nie zawiera modeli. Przejdź do instrukcji modeli; inne funkcje mogą działać.</td>
+</tr>
+<tr>
+<td>Błąd <code>xcb</code> / biblioteki graficznej w Ubuntu</td>
+<td>Zastosuj kroki poniżej. Nie ustawiaj trybu <code>offscreen</code> do zwykłej pracy.</td>
+</tr>
+<tr>
+<td><code>pip check</code> zgłasza konflikt</td>
+<td>Zapisz pełny komunikat. Nie używaj <code>--no-deps</code>; najlepiej przygotować świeże środowisko zgodnie z tą instrukcją.</td>
+</tr>
+<tr>
+<td>Okno otworzyło się, ale późniejsze obliczenie nie działa</td>
+<td>Zapisz komunikat i nazwę metody. Poprawny start GUI nie sprawdza jeszcze wszystkich modeli i kodeków.</td>
+</tr>
+</tbody>
+</table>
+<p>Ubuntu, gdy conda nadal nie jest rozpoznawana przy domyślnym folderze
+instalacji Miniforge:</p>
+<pre><code class="language-bash">source &quot;$HOME/miniforge3/etc/profile.d/conda.sh&quot;
+conda activate stmviewer
+</code></pre>
+<p>Ubuntu 24.04, gdy brakuje bibliotek Qt/X11:</p>
+<pre><code class="language-bash">sudo apt update
+sudo apt install libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-render-util0 libgl1
+</code></pre>
+<p><code>sudo</code> poprosi o hasło użytkownika Ubuntu. Podczas wpisywania nie widać
+znaków — to prawidłowe. Są to biblioteki systemowe okna, opisane w
+<a href="https://doc.qt.io/qt-6/linux-requirements.html">wymaganiach Qt dla Linuksa</a>.
+Jeżeli błąd nadal występuje, prześlij pełną treść; przyczyny <code>xcb</code> mogą być różne.</p>
+<p>Do zgłoszenia problemu dołącz zrzut/tekst komunikatu, system i wersje.
+Po zamknięciu programu wykonaj:</p>
+<pre><code class="language-text">python --version
+python -m pip list
+</code></pre>
+<p>Nie trzeba znać znaczenia wszystkich nazw. Lista pomaga odtworzyć problem.
+Szczegóły wykonanych sprawdzeń tej instrukcji są w
+<a href="#sprawdzenia">raporcie instalacji</a>.</p>
+<h1 id="obsluga">STM Viewer — instrukcja obsługi</h1>
+<p>Program służy do przeglądania obrazów STM, wyrównywania kolejnych klatek
+i zapisywania wyników. <strong>Rejestracja</strong> oznacza tu wyznaczenie przesunięcia
+obrazów, aby rozpoznawalne struktury pozostawały w podobnym miejscu filmu.</p>
+<p>Jeżeli program nie jest jeszcze zainstalowany, zacznij od
+<a href="#instalacja">instrukcji instalacji</a>. Ta instrukcja opisuje dostępne
+funkcje, włącznie z edytorem parametrów AKAZE i LightGlue.</p>
+<h2 id="pierwszy-film-w-pieciu-krokach">Pierwszy film w pięciu krokach</h2>
+<ol>
+<li>Kliknij <strong>Otwórz STP/S94/MPP…</strong> i wybierz swój MPP.</li>
+<li>Obejrzyj kilka klatek przez <strong>Play/Pause</strong> i miniatury na dole.</li>
+<li>Wybierz metodę <strong>Phase</strong>, a następnie <strong>Rejestruj</strong>.</li>
+<li>Obejrzyj <code>aligned</code> i porównaj z <code>original</code>.</li>
+<li>Zapisz <strong>sesję</strong>, aby zachować pracę. MPP i AVI zapisuj jako dodatkowe
+   wyniki, zależnie od ich przeznaczenia.</li>
+</ol>
+<p>Phase jest wygodną próbą uruchomienia. Na trudnych filmach porównaj
+inne metody; jeden algorytm nie jest najlepszy dla wszystkich danych.</p>
+<h2 id="1-wczytywanie-danych">1. Wczytywanie danych</h2>
+<p><strong>Otwórz STP/S94/MPP…</strong> lub <strong>Ctrl+O</strong> otwiera wybór danych.</p>
+<table>
+<thead>
+<tr>
+<th>Co wybierasz</th>
+<th>Jak zaznaczyć</th>
+<th>Co dostaniesz</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Jeden MPP</td>
+<td>Jeden plik</td>
+<td>Wszystkie zawarte w nim klatki, w zapisanej kolejności</td>
+</tr>
+<tr>
+<td>STP lub S94</td>
+<td>Jeden albo wiele plików; Ctrl/Shift w oknie wyboru</td>
+<td>Serię obrazów, sortowaną naturalnie po nazwach, np. 2 przed 10</td>
+</tr>
+<tr>
+<td>Sesja <code>.stmsession</code></td>
+<td>Osobny przycisk <strong>Otwórz sesję…</strong></td>
+<td>Obrazy i zapisany stan pracy</td>
+</tr>
+</tbody>
+</table>
+<p>MPP otwieraj pojedynczo. Import wielu obrazów wymaga jednakowych wymiarów
+w pikselach. Nie wykonuje automatycznego skalowania. Gdy nowego zestawu nie
+uda się otworzyć, wcześniejszy pozostaje. Poprawny import zastępuje bieżącą
+serię — przed zmianą filmu zapisz sesję, jeśli chcesz do niej wrócić.</p>
+<p>Jeżeli obok MPP jest plik <code>.mpp.stmviewer.json</code>, zostaw oba razem.
+Zawiera dodatkowe informacje potrzebne do pełnego odczytu historii
+i obszarów bez pomiaru.</p>
+<h2 id="2-poruszanie-sie-po-filmie">2. Poruszanie się po filmie</h2>
+<p>Na dole są miniatury, numer klatki oraz <strong>← Poprzednia</strong> / <strong>Następna →</strong>.
+Kliknięcie miniatury lub zmiana numeru wybiera jedną klatkę.</p>
+<ul>
+<li><strong>Play</strong> rozpoczyna odtwarzanie, <strong>Pause</strong> je zatrzymuje.</li>
+<li>Tempo wynosi domyślnie 5 kl./s; można wybrać 1–30.</li>
+<li><strong>Pętla</strong> powtarza film. Bez niej odtwarzanie zatrzymuje się na końcu.</li>
+<li>Kliknięcie Play na ostatniej klatce zaczyna film od pierwszej.</li>
+<li>Ręczny wybór klatki zatrzymuje odtwarzanie.</li>
+<li><strong>Usuń klatkę</strong> usuwa ją z bieżącej pracy, nie z pliku źródłowego.
+  Po usunięciu zobaczysz następną, a przy końcu serii poprzednią.</li>
+</ul>
+<p>Numer bieżący i numer źródłowy mogą się różnić. Po usunięciu dwóch
+początkowych klatek dawna klatka 3 ma bieżący numer 1.
+Pochodzenie nadal można odczytać w lewym panelu.</p>
+<h2 id="3-powiekszenie-przesuwanie-i-jasnosc">3. Powiększenie, przesuwanie i jasność</h2>
+<p>Kółko myszy powiększa i pomniejsza obraz. Przytrzymaj lewy przycisk myszy
+na obrazie i przeciągnij, aby przesunąć widok. Przeciąganie zachowuje
+powiększenie. Przyciski <strong>+</strong> i <strong>−</strong> także zmieniają zoom.</p>
+<p><strong>Dopasuj</strong> pokazuje cały obraz w oknie. Nie zmienia liczby pikseli
+pomiaru ani nie wykonuje rejestracji. Przy przechodzeniu między klatkami
+zoom zostaje; <code>original</code> i <code>aligned</code> mają osobno zapamiętany widok.</p>
+<p><strong>Gamma</strong> rozjaśnia lub przyciemnia podgląd. <strong>Reset gamma</strong> przywraca 1.
+Nie zmienia wartości pomiarowych ani ustawień algorytmu rejestracji.
+Przy AVI można wybrać gamma podglądu albo neutralną.</p>
+<p><strong>Proporcje pikselowe</strong> pomijają skalę fizyczną z nagłówka przy wyświetlaniu.
+Użyj tej opcji, jeśli skala jest nieznana lub zastępcza. Nie poprawia ona
+metadanych i nie wyznacza rzeczywistej kalibracji.</p>
+<h2 id="4-rejestracja-caego-filmu">4. Rejestracja całego filmu</h2>
+<ol>
+<li>Usuń niepotrzebne klatki <strong>przed</strong> obliczeniem.</li>
+<li>Wybierz metodę w lewym panelu.</li>
+<li>Przy modelach wskaż wymagane pliki i urządzenie; możesz najpierw użyć
+   <strong>Sprawdź model</strong>. Przy metodach podstawowych ten krok nie jest potrzebny.</li>
+<li>Kliknij <strong>Rejestruj</strong>.</li>
+<li>Poczekaj na zakończenie. Przycisk <strong>Anuluj rejestrację</strong> przerywa zadanie;
+   wcześniejszy kompletny wynik pozostaje.</li>
+<li>Po sukcesie program pokazuje <code>aligned</code>. Obejrzyj film i przejścia,
+   przy których struktury nadal skaczą.</li>
+</ol>
+<p>Rejestracja w głównym oknie dopasowuje 2→1, 3→2 itd. i sumuje przesunięcia
+względem pierwszej klatki. Aktualnie oglądana klatka nie wybiera odniesienia.
+Ponowne obliczenie korzysta z wejściowych obrazów bieżącej serii.</p>
+<p><code>original</code> to dane wczytane do tej pracy, a <code>aligned</code> to aktualny wynik.
+Aby zmieścić przesuwane obrazy, program powiększa wspólny obszar.
+Nie zmniejsza przez to oryginalnych obrazów. Dopasowanie całego obszaru
+do ekranu może jednak sprawiać wrażenie oddalenia. Przesunięcia ułamkowe
+wymagają interpolacji; przy ostrych krawędziach mogą być widoczne
+wartości pośrednie.</p>
+<p>Puste brzegi nie są nowym pomiarem. Żółty obrys pomaga odnaleźć zakres
+oryginalnej klatki. Brakujące obszary są prezentowane na jasnym tle;
+eksport AVI pozwala wybrać jego kolor.</p>
+<h3 id="ktora-metode-wybrac">Którą metodę wybrać</h3>
+<table>
+<thead>
+<tr>
+<th>Grupa</th>
+<th>Dostępne metody</th>
+<th>Zastosowanie w pracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bez modeli i wag</td>
+<td>Phase, korelacja bez normalizacji, Tile+RANSAC, ECC, Optical Flow, AKAZE</td>
+<td>Porównanie różnych sposobów estymacji; działają na CPU</td>
+</tr>
+<tr>
+<td>Z modelem</td>
+<td>Deep Matcher, EfficientLoFTR, RoMa v2, MatchAnything-ELoFTR, LightGlue + SuperPoint</td>
+<td>Dopasowania rozpoznawalnych elementów; wymagają przygotowania modelu</td>
+</tr>
+<tr>
+<td>Warianty Deep</td>
+<td>Deep Matcher + ECC, Deep Matcher + lokalne fragmenty</td>
+<td>Dodatkowe doprecyzowanie lub ocena zgodności po Deep</td>
+</tr>
+</tbody>
+</table>
+<p>Wszystkie te metody dostarczają pojedyncze przesunięcie X/Y na parę.
+Nie usuwają dowolnych deformacji wewnątrz klatki ani tearingu.
+Wcześniejsze obserwacje użytkownika na trudnych filmach wskazywały dobre wyniki
+Deep outdoor i RoMa, ale nie stanowi to gwarancji dla nowego pomiaru.</p>
+<p>Wynik oznaczony jako niepewny wymaga obejrzenia.
+Komunikat o zbyt małej liczbie zgodnych wektorów oznacza brak dostatecznego
+poparcia dla przesunięcia przy tych ustawieniach, niekoniecznie błąd instalacji.</p>
+<h2 id="5-parametry-akaze-i-lightglue">5. Parametry AKAZE i LightGlue</h2>
+<p>Otwórz <strong>Rejestracja → Parametry metod…</strong>. Małe okno może pozostać obok filmu.</p>
+<ul>
+<li>Wybór metody w tym oknie zmienia <strong>formularz do edycji</strong>. Metodę obliczeń
+  nadal wybierasz osobno w oknie głównym, parze albo grafie.</li>
+<li><strong>OK</strong> zatwierdza zmiany; <strong>Anuluj</strong> lub krzyżyk je odrzucają.</li>
+<li><strong>Przywróć domyślne</strong> dotyczy wyłącznie obecnie widocznej metody.</li>
+<li>Zatwierdzone ustawienia dotyczą następnego obliczenia. Gotowy aligned
+  i wcześniejsze wyniki nie są automatycznie przeliczane.</li>
+<li>Obie konfiguracje są zapisywane w sesji.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Ustawienie</th>
+<th>Jak rozumieć zmianę</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Próg detektora AKAZE / SuperPoint</td>
+<td>Mniejszy dopuszcza więcej punktów, również z zakłóceń</td>
+</tr>
+<tr>
+<td>Próg dopasowań LightGlue</td>
+<td>Mniejszy dopuszcza więcej korespondencji, również błędnych</td>
+</tr>
+<tr>
+<td>Maksymalna liczba punktów</td>
+<td>Większa może zwiększyć czas i zużycie pamięci</td>
+</tr>
+<tr>
+<td>Tolerancja zgodności</td>
+<td>Dopuszczalna różnica wektorów w parze, w pikselach original</td>
+</tr>
+<tr>
+<td>Percentyle</td>
+<td>Ograniczenie wpływu skrajnie jasnych i ciemnych próbek</td>
+</tr>
+<tr>
+<td>CLAHE</td>
+<td>Wzmocnienie lokalnego kontrastu; może wzmacniać też szum</td>
+</tr>
+<tr>
+<td>Pełne obliczenia LightGlue</td>
+<td>Wyłączenie wczesnego zakończenia i redukcji punktów</td>
+</tr>
+</tbody>
+</table>
+<p>Zmieniaj jedno ustawienie naraz i oceniaj tę samą parę.
+Więcej znalezionych punktów nie oznacza automatycznie dokładniejszego
+wyrównania. Przygotowanie kontrastu zmienia tylko wejście algorytmu;
+nie zastępuje obrazów pomiarowych.</p>
+<p>Obecnie edytor obejmuje te dwie metody. Rozszerzenie na pozostałe jest
+zaplanowane, ale nie jest jeszcze dostępne w tym oknie.</p>
+<h2 id="6-obejrzenie-i-reczna-poprawa-pary">6. Obejrzenie i ręczna poprawa pary</h2>
+<p>Wybierz drugą klatkę problematycznej pary, np. 30 dla 29→30,
+i kliknij <strong>Porównaj parę…</strong>. Porównuj nakładkę 50/50 albo przełączaj
+klatkę bazową i przesuwaną. Zoom i gamma pomagają ocenić tę samą strukturę.</p>
+<p>Jeżeli chcesz poprawić <strong>gotowy film</strong>:</p>
+<ol>
+<li>Najpierw musi istnieć kompletne dopasowanie całej serii.</li>
+<li>W sekcji <strong>Korekta całego filmu</strong> kliknij <strong>Popraw dopasowanie z filmu</strong>.</li>
+<li>Przesuń klatkę strzałkami o ±1 piksel w X/Y.</li>
+<li>Kliknij <strong>Zakończ korektę</strong> — to kończy edycję próby, ale jeszcze nie filmu.</li>
+<li>Kliknij <strong>Zastosuj do filmu</strong> — dopiero ten krok zmienia aligned i eksport.</li>
+<li>Sprawdź również dalsze klatki i zapisz sesję.</li>
+</ol>
+<p>Poprawienie pary 1→2 przesuwa klatkę 2 <strong>oraz wszystkie następne</strong>.
+Zachowuje to ich wzajemne ustawienie. <strong>Usuń korektę tej pary z filmu</strong>
+cofa zastosowaną poprawkę tej pary.</p>
+<p><strong>Zachowaj do porównania</strong> przechowuje wariant pary obok nowej próby.
+Nie zapisuje filmu na dysk i nie stosuje przesunięcia do całej serii.</p>
+<p>Po usunięciu klatki gotowy aligned pozostałych obrazów pozostaje dostępny,
+ale dalsza korekta filmu może wymagać nowej pełnej rejestracji.
+Udana nowa rejestracja zastępuje wcześniejsze ręczne poprawki;
+warto wcześniej zapisać sesję.</p>
+<h2 id="7-dopasowanie-wieloklatkowe">7. Dopasowanie wieloklatkowe</h2>
+<p>Ten tryb bierze pod uwagę relacje z kilkoma wcześniejszymi klatkami,
+zamiast sumować wyłącznie kolejne pary.</p>
+<ol>
+<li>Kliknij <strong>Dopasowanie wieloklatkowe…</strong>.</li>
+<li>Wybierz metodę dopasowania par i okno do 3 lub do 5 poprzednich klatek.
+   Sprawdź wybór metody w tym oknie — nie zakładaj, że jest taki sam
+   jak w głównym panelu.</li>
+<li>Kliknij <strong>Oblicz kandydata grafu</strong>.</li>
+<li>Obejrzyj wynik LS i, jeśli chcesz, oblicz wariant Hubera.</li>
+<li>W grupie <strong>Aktywny film</strong> wybierz kompletny wynik.</li>
+<li>Kliknij <strong>Zastosuj wynik do filmu</strong>, aby stał się aligned w głównym oknie.</li>
+<li>Zapisz sesję.</li>
+</ol>
+<p><strong>LS</strong> znajduje wspólne położenia klatek z pomiarów par.
+<strong>Huber</strong> ogranicza wpływ relacji, które mocno odstają od wspólnego wyniku.
+Próg Hubera nie jest tolerancją detektora: reguluje wpływ rozbieżności
+w grafie. Limit iteracji określa maksymalną liczbę kroków obliczenia.
+Większy limit nie gwarantuje lepszego dopasowania ani zbieżności.</p>
+<p>Samo obliczenie kandydata nie zmienia filmu głównego.
+Przy rozłącznym grafie lub nieukończonym Huberze <strong>Zastosuj wynik do filmu</strong>
+pozostaje nieaktywne; przeczytaj informację o kompletności i powodzie odmowy.
+Możesz wybrać inny kompletny wariant albo wykonać nowe obliczenie.</p>
+<p>Ponowne liczenie Hubera korzysta z już zmierzonych par. Po zmianie parametrów
+algorytmu wykonaj <strong>nowe obliczenie grafu</strong>, jeśli chcesz ponownie dopasować
+obrazy. Tryb wieloklatkowy nie jest ograniczony do Deep Matchera.</p>
+<p><strong>Przywróć zachowany wynik</strong> pozwala wrócić do poprzedniego zastosowanego
+filmu. Zachowywany jest jeden poprzednik, nie pełna historia wszystkich prób.</p>
+<h2 id="8-co-i-kiedy-zapisac">8. Co i kiedy zapisać</h2>
+<table>
+<thead>
+<tr>
+<th>Cel</th>
+<th>Wybierz</th>
+<th>Co zostaje zachowane</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kontynuowanie pracy jutro lub na innym komputerze</td>
+<td><strong>Zapisz sesję…</strong></td>
+<td>Samodzielny <code>.stmsession</code>: obrazy, stan pracy, wyrównanie, korekty, kandydaci i ustawienia</td>
+</tr>
+<tr>
+<td>Dane obrazowe do dalszej analizy</td>
+<td><strong>Zapisz MPP…</strong></td>
+<td>Wybrana wersja całej pozostałej serii oraz towarzyszące metadane</td>
+</tr>
+<tr>
+<td>Film do oglądania/prezentacji</td>
+<td><strong>Plik → Zapisz AVI…</strong></td>
+<td>Wyrenderowany obraz z wybranym tempem i wyglądem</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sesja">Sesja</h3>
+<p>Użyj <strong>Zapisz sesję…</strong> lub <strong>Ctrl+Shift+S</strong>.
+<strong>Otwórz sesję…</strong> / <strong>Ctrl+Shift+O</strong> wznawia pracę z tego pliku.
+Obrazy są wewnątrz sesji — nie trzeba szukać oryginalnych plików MPP/STP/S94.</p>
+<p>Sesja nie zawiera środowiska Python ani plików modeli.
+Na innym komputerze można obejrzeć gotowe wyniki bez modelu;
+do ponownego obliczenia trzeba udostępnić jego pliki i poprawić ścieżki.</p>
+<h3 id="mpp">MPP</h3>
+<p>Kliknij <strong>Zapisz MPP…</strong> lub <strong>Ctrl+S</strong>.
+W polu <strong>Typ pliku</strong> wybierz <strong>MPP original</strong> albo <strong>MPP aligned</strong>.
+Eksport obejmuje wszystkie pozostałe klatki, nie tylko aktualnie oglądaną.</p>
+<p>Przenoś razem <code>wynik.mpp</code> i <code>wynik.mpp.stmviewer.json</code>.
+Gamma oraz zoom podglądu nie zmieniają pomiarów w tym zapisie.
+Aligned zawiera już interpolowane dane; białe wypełnienie braków jest
+odtwarzane jako brak pomiaru dzięki dodatkowym metadanym.</p>
+<p>Po ponownym otwarciu aligned MPP program może nazywać ten widok <code>original</code>:
+to piksele wejściowe nowej pracy. Plik nie zawiera wcześniejszych oryginałów
+sprzed wyrównania. Do kontynuacji z oryginałami użyj <strong>sesji</strong>.
+Niektóre zapisane aligned mają brakujące próbki i nie nadają się
+do ponownej rejestracji obecnymi metodami.</p>
+<h3 id="avi">AVI</h3>
+<p>Wybierz wersję <code>original</code> lub <code>aligned</code>, całą serię albo zakres,
+tempo 1–30 kl./s, gamma i kontrast. Możesz dodać podziałkę, numer klatki
+oraz dostępny czas pomiaru, a dla braków wybrać tło czarne, szare lub białe.</p>
+<p><strong>MJPG</strong> to kompresja stratna. <strong>FFV1</strong> zachowuje piksele wyrenderowanego filmu,
+ale nie zastępuje MPP z wartościami pomiarowymi. AVI obejmuje pełny obraz;
+zoom na ekranie nie wybiera kadru eksportu. FPS filmu nie zmienia czasów
+pomiarów. Podziałka używa kalibracji danych; przy jej braku/proporcjach
+pikselowych pokazuje piksele.</p>
+<h2 id="9-gdy-wynik-nie-wyglada-dobrze">9. Gdy wynik nie wygląda dobrze</h2>
+<p>Najpierw sprawdź nakładkę trudnej pary, nie tylko płynność odtwarzania.
+Algorytm może dopasować pasy zakłóceń zamiast struktury próbki.</p>
+<p>Spróbuj innej metody, kontrolowanej zmiany jednego parametru, dopasowania
+wieloklatkowego lub ręcznej korekty. Porównuj w podobnym zoomie i przy tych
+samych klatkach. Zapamiętaj, czy numeracja jest przed czy po usunięciu klatek.</p>
+<p>Przesunięcie X/Y nie naprawi każdego rozciągnięcia, uskoku linii czy
+zmieniającego się kontrastu STM. Zapis sesji pozwala wrócić do wcześniejszego
+wariantu bez ponownego liczenia.</p>
+<h1 id="modele">Opcjonalne modele rejestracji — instalacja</h1>
+<p>Ta część jest potrzebna dopiero dla Deep Matchera, LightGlue,
+EfficientLoFTR, MatchAnything lub RoMa. Najpierw uruchom
+<a href="#instalacja">podstawowy program</a>. AKAZE nie wymaga modelu ani wag.</p>
+<p><strong>Biblioteki</strong> instaluje pip. <strong>Wagi</strong> to osobne pliki wyuczonego modelu.
+Niektóre metody potrzebują również folderu kodu autorów. Program nie pobiera
+tych elementów podczas obliczeń.</p>
+<h2 id="1-przygotuj-torch-wybierz-cpu-albo-gpu">1. Przygotuj Torch: wybierz CPU albo GPU</h2>
+<p>Zamknij STM Viewer. Otwórz terminal / Miniforge Prompt, aktywuj środowisko
+i przejdź do folderu programu zgodnie z instrukcją podstawową.</p>
+<h3 id="bez-karty-nvidia-cpu">Bez karty NVIDIA — CPU</h3>
+<pre><code class="language-text">conda activate stmviewer
+python -m pip install &quot;torch&gt;=2.9,&lt;3&quot; &quot;torchvision&gt;=0.24,&lt;1&quot; --index-url https://download.pytorch.org/whl/cpu
+</code></pre>
+<p>Obliczenia modeli będą działać na procesorze; na dużych filmach mogą trwać długo.</p>
+<h3 id="z-karta-nvidia-cuda">Z kartą NVIDIA — CUDA</h3>
+<p>Na <a href="https://pytorch.org/get-started/locally/">oficjalnej stronie PyTorch</a>
+wybierz <strong>Stable</strong>, swój system, <strong>Pip</strong>, <strong>Python</strong> i wariant <strong>CUDA</strong>
+zgodny z kartą oraz sterownikiem. Użyj wskazanego tam polecenia w aktywnym
+środowisku; początkowe <code>pip</code> / <code>pip3</code> można zastąpić <code>python -m pip</code>.
+Dobieraj Torch i torchvision razem. Viewer deklaruje Torch 2.9 lub nowszy
+z rodziny 2; dla RoMa osobny zestaw zaczyna się od 2.11.</p>
+<p>Nie kopiuj numeru CUDA tylko dlatego, że był użyty na innym komputerze.
+W razie wątpliwości dobór wariantu dla karty zleć opiekunowi stanowiska.
+Samo zainstalowanie pakietu o nazwie <code>torch</code> nie potwierdza obsługi GPU.</p>
+<p>Sprawdź instalację:</p>
+<pre><code class="language-text">python -c &quot;import torch; print('Torch:', torch.__version__); print('CUDA:', torch.version.cuda); print('GPU dostepne:', torch.cuda.is_available())&quot;
+</code></pre>
+<p>Dla wybranego GPU ostatnia wartość powinna być <code>True</code>.
+Dodatkowa krótka próba wykonania:</p>
+<pre><code class="language-text">python -c &quot;import torch; print((torch.ones(2, device='cuda') + 1).cpu())&quot;
+</code></pre>
+<p>Oczekiwany wynik zawiera dwie wartości 2. Dla instalacji CPU pomiń
+drugie polecenie; <code>GPU dostepne: False</code> jest wtedy prawidłowe.
+Dobór platformy i binariów opiera się na <a href="https://pytorch.org/get-started/locally/">instrukcji PyTorch</a>.</p>
+<h2 id="2-doinstaluj-tylko-wybrane-metody">2. Doinstaluj tylko wybrane metody</h2>
+<p>Polecenia wykonuj w środowisku <code>stmviewer</code>, z folderu repozytorium:</p>
+<table>
+<thead>
+<tr>
+<th>Metoda</th>
+<th>Polecenie</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Deep Matcher i jego warianty</td>
+<td><code>python -m pip install -r stmviewer/requirements-deep.txt</code></td>
+</tr>
+<tr>
+<td>LightGlue + SuperPoint</td>
+<td><code>python -m pip install -r stmviewer/requirements-lightglue.txt</code></td>
+</tr>
+<tr>
+<td>EfficientLoFTR</td>
+<td><code>python -m pip install -r stmviewer/requirements-efficient.txt</code></td>
+</tr>
+<tr>
+<td>MatchAnything-ELoFTR</td>
+<td><code>python -m pip install -r stmviewer/requirements-matchanything.txt</code></td>
+</tr>
+</tbody>
+</table>
+<p>Każda lista dołącza potrzebny zestaw podstawowy. Nie używaj <code>--upgrade</code>
+bez potrzeby: zgodny zainstalowany Torch może zostać zachowany.
+Na końcu wykonaj <code>python -m pip check</code> i powtórz próbę GPU, jeśli go używasz.
+Uruchom program ponownie po instalowaniu bibliotek.</p>
+<h2 id="3-skad-wziac-pliki-modeli-i-gdzie-je-wskazac">3. Skąd wziąć pliki modeli i gdzie je wskazać</h2>
+<p>Dla osoby początkującej najłatwiejsza jest paczka przygotowanych modeli
+od opiekuna projektu. Rozpakuj ją w stałym folderze, np. <code>C:\ModeleSTM</code>
+lub <code>~/ModeleSTM</code>. Nie wskazuj archiwum ZIP zamiast rozpakowanego folderu.
+Zachowaj dołączone licencje i strukturę katalogów.</p>
+<table>
+<thead>
+<tr>
+<th>Metoda</th>
+<th>Pliki do wskazania w aplikacji</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Deep Matcher / Deep + ECC / Deep + lokalne fragmenty</td>
+<td><code>loftr_outdoor.ckpt</code></td>
+</tr>
+<tr>
+<td>LightGlue + SuperPoint</td>
+<td>kod z podfolderem <code>lightglue</code>; <code>superpoint_lightglue.pth</code>; osobno <code>superpoint_v1.pth</code></td>
+</tr>
+<tr>
+<td>EfficientLoFTR</td>
+<td>kod z <code>src/loftr</code>; <code>eloftr_outdoor.ckpt</code></td>
+</tr>
+<tr>
+<td>MatchAnything-ELoFTR</td>
+<td>kod MatchAnything z <code>src/loftr</code>; <code>matchanything_eloftr.ckpt</code></td>
+</tr>
+<tr>
+<td>RoMa v2</td>
+<td>kod DINOv3 z <code>hubconf.py</code> i <code>dinov3</code>; <code>romav2.0.1.pt</code>; Python osobnego środowiska</td>
+</tr>
+</tbody>
+</table>
+<p>Po wybraniu metody w lewym panelu użyj <strong>Wybierz wagi…</strong>,
+<strong>Wybierz katalog kodu…</strong>, a w LightGlue również <strong>Wybierz wagi SuperPoint…</strong>.
+Wskaż katalog zawierający wymieniony podfolder, nie sam podfolder.
+Wybierz CPU/CUDA/Auto i kliknij <strong>Sprawdź model</strong>.</p>
+<p>Po sukcesie otwórz mały film i sprawdź <strong>Porównaj parę…</strong>.
+Dopiero potem uruchom cały film. Auto wybiera GPU, jeśli Torch widzi CUDA;
+jawne CUDA nie przełącza się po cichu na CPU przy błędzie.</p>
+<h3 id="dla-osoby-przygotowujacej-paczke-modeli">Dla osoby przygotowującej paczkę modeli</h3>
+<p>Biblioteki mają zakresy, ale adaptery nadal sprawdzają zgodny kod i wagi.
+Nie wystarczy dowolny plik o podobnej nazwie.</p>
+<table>
+<thead>
+<tr>
+<th>Zasób</th>
+<th>Źródło zgodnego wydania</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LoFTR outdoor</td>
+<td><a href="http://cmp.felk.cvut.cz/~mishkdmy/models/loftr_outdoor.ckpt">Adres wag używany przez Kornia</a></td>
+</tr>
+<tr>
+<td>LightGlue</td>
+<td><a href="https://github.com/cvg/LightGlue/tree/5a650c444718caffc2669dc0094cde908f42dd73">Kod 5a650c4</a>, <a href="https://github.com/cvg/LightGlue/releases/tag/v0.1_arxiv">wydanie z wagami v0.1_arxiv</a></td>
+</tr>
+<tr>
+<td>EfficientLoFTR</td>
+<td><a href="https://github.com/zju3dv/EfficientLoFTR/tree/07e9c1401e71e9c556b1fda9d86d060af36ba176">Kod 07e9c14</a>, <a href="https://drive.google.com/file/d/1jFy2JbMKlIp82541TakhQPaoyB5qDeic/view">plik outdoor</a></td>
+</tr>
+<tr>
+<td>MatchAnything</td>
+<td><a href="https://huggingface.co/spaces/LittleFrog/MatchAnything/tree/6a7bcb589ec8da3a9e861e799122beaa5eba2193/imcui/third_party/MatchAnything">Kod z demonstratora</a>, <a href="https://drive.google.com/file/d/12L3g9-w8rR9K2L4rYaGaDJ7NqX1D713d/view">archiwum wag</a></td>
+</tr>
+<tr>
+<td>RoMa</td>
+<td><a href="https://github.com/Parskatt/RoMaV2/releases/download/v2.0.1/romav2.0.1.pt">Wagi 2.0.1</a>, <a href="https://github.com/facebookresearch/dinov3/tree/adc254450203739c8149213a7a69d8d905b4fcfa">DINOv3 adc2544</a></td>
+</tr>
+</tbody>
+</table>
+<p>Dla kodu zachowaj oryginalne zakończenia linii; zmiana LF na CRLF
+przez Git na Windows zmienia sumę kontrolną. Pobranie archiwum właściwej
+rewizji i rozpakowanie jej bez edytowania plików tego unika.
+Nie instaluj całych zależności treningowych repozytoriów modeli;
+użyj list Viewera z poprzedniej tabeli. Te adresy identyfikują zasoby użyte
+przez adaptery, nie listę najnowszych modeli.</p>
+<h2 id="4-roma-v2-osobne-srodowisko">4. RoMa v2 — osobne środowisko</h2>
+<p>Aplikacja pozostaje w <code>stmviewer</code> (lub Twoim dotychczasowym <code>netcat</code>).
+RoMa uruchamia się jako osobny proces. Nie instaluj jej listy zależności
+do głównego środowiska.</p>
+<p>Z folderu repozytorium:</p>
+<pre><code class="language-text">conda create -n stmviewer-roma python=3.12 pip
+conda activate stmviewer-roma
+</code></pre>
+<p>Zainstaluj parę Torch/torchvision wybraną według kroku 1,
+z Torch co najmniej 2.11 i torchvision co najmniej 0.26.
+Następnie:</p>
+<pre><code class="language-text">python -m pip install -r stmviewer/requirements-roma-worker.txt
+python -m pip check
+python -c &quot;import sys; print(sys.executable)&quot;
+</code></pre>
+<p>Skopiuj ostatnią ścieżkę. W głównym programie w polu
+<strong>Python środowiska RoMa</strong> wskaż dokładnie ten plik <code>python</code> / <code>python.exe</code>.
+Wskaż też wagi i folder DINOv3 z tabeli. Zacznij od wariantu <strong>Turbo</strong>.</p>
+<p>Na Linux RoMa zależy od skompilowanego <code>fused-local-corr</code>.
+Jego wydanie musi pasować do Torch/CUDA; sam pomyślny <code>pip check</code> nie
+sprawdza wykonania rozszerzenia na GPU. Zależności tego pakietu mogą
+narzucić dokładną wersję Torch mimo luźniejszej listy Viewera.
+Nie obchodź ich przez <code>--no-deps</code>. W razie błędu kompilacji lub ładowania
+potrzebny jest dobór zgodnej pary przez opiekuna środowiska.
+Opis projektu: <a href="https://pypi.org/project/romav2/2.0.1/">RoMa v2</a>.</p>
+<p>Wymaganie <code>romav2==2.0.1</code> pozostaje celowo ścisłe, ponieważ adapter
+sprawdza wersję i sumę kodu tego konkretnego modelu.
+Ogólne biblioteki mają zakresy. Nie oznacza to przetestowania każdej
+kombinacji; zawsze wykonaj <strong>Sprawdź model</strong> w wybranym urządzeniu.</p>
+<p>Wróć do głównego środowiska przed uruchomieniem GUI:</p>
+<pre><code class="language-text">conda activate stmviewer
+python -m stmviewer.main
+</code></pre>
+<p>Dla dotychczasowej instalacji użyj <code>conda activate netcat</code>.
+Nie trzeba ręcznie aktywować środowiska RoMa przed każdym obliczeniem;
+program uruchomi wskazany interpreter.</p>
+<h2 id="5-typowe-problemy-z-modelami">5. Typowe problemy z modelami</h2>
+<table>
+<thead>
+<tr>
+<th>Objaw</th>
+<th>Znaczenie / działanie</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Niezgodna suma kodu albo wag</td>
+<td>Nie ta rewizja, zmienione pliki lub niepełne pobranie. Wskaż zgodną paczkę; zmiana progu w GUI tego nie naprawi.</td>
+</tr>
+<tr>
+<td>CUDA niedostępna</td>
+<td>Sprawdź środowisko, wariant Torch i sterownik. Dla RoMa sprawdzaj jej osobne środowisko.</td>
+</tr>
+<tr>
+<td>Za mało pamięci GPU</td>
+<td>Spróbuj CPU; w RoMa mniejszego wariantu. Zamknij inne obliczenia zajmujące GPU.</td>
+</tr>
+<tr>
+<td>Sprawdzenie modelu działa, ale para jest odrzucana</td>
+<td>To może być problem treści obrazu lub parametrów, a nie instalacji. Obejrzyj diagnostykę i porównaj inną metodę.</td>
+</tr>
+<tr>
+<td>Sesja z innego komputera się otwiera, ale model nie startuje</td>
+<td>Obrazy są w sesji, modele nie. Popraw lokalne ścieżki i sprawdź model ponownie.</td>
+</tr>
+</tbody>
+</table>
+<p>Przykładowe lokalizacje <code>/home/rlew/...</code> w historycznych raportach są
+ścieżkami stanowiska deweloperskiego. Nie wpisuj ich na innym komputerze.
+Wybieraj rzeczywiste pliki na swoim dysku.</p>
+<h1 id="sprawdzenia">Sprawdzenie instrukcji i zakresów zależności</h1>
+<p>Data: 2026-11-03. Dotyczy dokumentacji dla początkujących oraz zmiany list
+bibliotek Viewera. Nie zmieniano algorytmów ani działającego środowiska netcat.</p>
+<h2 id="co-zmieniono">Co zmieniono</h2>
+<ul>
+<li>Podstawowa instrukcja z Miniforge dla Ubuntu 24.04 i Windows 11,
+  osobna instrukcja obsługi oraz dodatków z modelami.</li>
+<li>Samodzielny guide.html do otwarcia w przeglądarce, wysłania jako jeden
+  plik i drukowania do PDF.</li>
+<li>Zakresy wersji zamiast dokładnych przypięć w listach Viewera, w tym
+  podstawowych, modeli i narzędzi deweloperskich.</li>
+<li>PyQt6 sam dobiera Qt6 i sip. Viewer ma własne wymaganie PyQt6;
+  requirements/stm-apps.txt dla wspólnego szkieletu pozostawiono bez zmian.</li>
+<li>Kornia dobiera kornia_rs. Torch/torchvision instalowane są jako zgodna
+  para dla wybranego CPU/CUDA.</li>
+<li>RoMa zachowuje romav2==2.0.1, zgodnie z walidacją kodu w adapterze.
+  Pozostałe wymagania mają zakresy. RoMa na Linux zależy od fused-local-corr;
+  jego własne wymagania mogą nadal przypinać Torch dla zgodności binarnej.
+  Lokalny fused-local-corr 0.3.211 wymaga torch==2.11.0.</li>
+<li>Historyczne wersje w raportach eksperymentów pozostawiono jako zapis
+  faktycznie użytych środowisk, a nie wymagania nowej instalacji.</li>
+</ul>
+<h2 id="nowe-srodowisko-linux">Nowe środowisko Linux</h2>
+<p>Utworzono izolowany venv z Pythonem 3.12, poza repozytorium:
+<code>/tmp/stmviewer-install-check-20261103</code>. Instalacja requirements-ecc.txt
+oraz narzędzi pytest/pytest-qt zakończona poprawnie; pip check bez konfliktów.
+Nie korzystano z pakietów głównego netcat.</p>
+<table>
+<thead>
+<tr>
+<th>Biblioteka</th>
+<th>Faktycznie zainstalowana wersja</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PyQt6 / Qt6</td>
+<td>6.12.0 / 6.12.0</td>
+</tr>
+<tr>
+<td>NumPy</td>
+<td>2.5.4</td>
+</tr>
+<tr>
+<td>SciPy</td>
+<td>1.18.1</td>
+</tr>
+<tr>
+<td>scikit-image</td>
+<td>0.26.0</td>
+</tr>
+<tr>
+<td>OpenCV</td>
+<td>4.14.0.94</td>
+</tr>
+<tr>
+<td>pytest / pytest-qt</td>
+<td>9.2.0 / 4.5.0</td>
+</tr>
+</tbody>
+</table>
+<p>To wyniki sprawdzenia, nie lista wersji do ręcznego przypięcia.</p>
+<p>Wybrano 181 przypadków: STP/S94/MPP, seria, zoom/gamma, odtwarzanie,
+Phase i pozostałe metody CPU, AKAZE/parametry, MPP, AVI i sesje.
+180 zaliczono od razu. Jeden test nieobecnej Kornia zakładał zainstalowany
+Torch; w podstawowym środowisku poprawnie zgłaszany był wcześniejszy brak
+Torch. Dodano jawne pominięcie tego wariantu przy braku Torch,
+bez zmiany zachowania aplikacji.</p>
+<p>Po poprawce cały dotknięty plik: <strong>33 passed, 1 skipped</strong>.
+W istniejącym netcat, gdzie Torch jest dostępny, wszystkie pięć wariantów
+braku bibliotek: <strong>5 passed</strong>. Tym samym 180 przypadków zakresu jest
+zaliczonych, a jeden ma jawnie niespełniony warunek środowiskowy.
+Testy GUI wykonano automatycznie przez Qt offscreen, nie ręcznie na ekranie.</p>
+<p>Lokalne logi i raporty:</p>
+<ul>
+<li>/tmp/stmviewer-install-20261103.log i .json — instalacja.</li>
+<li>/tmp/stmviewer-install-tests-20261103.log i .xml — pierwsze 181 przypadków.</li>
+<li>/tmp/stmviewer-install-cpu-final.log — 33/1 po poprawce testu.</li>
+<li>/tmp/stmviewer-install-netcat-check.log — 5 przypadków w netcat.</li>
+</ul>
+<h2 id="windows_1">Windows</h2>
+<p>Resolver pip z <code>--dry-run --ignore-installed --only-binary=:all:</code>,
+platformą <code>win_amd64</code> i Pythonem 3.12 dobrał wszystkie zależności
+requirements-ecc.txt, w tych samych głównych wersjach co tabela.
+Raport: /tmp/stmviewer-install-windows-20261103.json i .log.</p>
+<p>To sprawdza dostępność pakietów i zgodność deklarowanych zależności.
+Nie uruchomiono aplikacji na Windows, nie wykonano instalatora Miniforge
+na obu systemach ani interaktywnego odbioru tej instrukcji przez nowego użytkownika.</p>
+<h2 id="pozostae-granice-weryfikacji">Pozostałe granice weryfikacji</h2>
+<p>Istniejące pakiety netcat i netcat-romav2 spełniają nowe zakresy;
+sprawdzono to bez zmiany tych środowisk.</p>
+<p>Nie instalowano nowego pełnego stosu GPU ani RoMa w świeżym środowisku.
+Nowe zakresy bibliotek modeli nie oznaczają, że sprawdzono każdą kombinację.
+Dotychczasowe rzeczywiste próby modeli są opisane w dokumentacji rejestracji;
+nowe stanowisko wymaga Sprawdź model i własnej próby na danych.</p>
+<p>Instrukcje pobrania Miniforge, wyboru PyTorch oraz użycia pip/conda
+zweryfikowano w podlinkowanych dokumentacjach autorów. Opisy przycisków
+i zapisu porównano z aktualnym kodem Viewera.</p>
+<p>Pełnego zestawu repozytorium nie uruchamiano: zmiana dotyczy instrukcji,
+list zależności i warunku jednego testu, bez zmian kodu aplikacji ani modułów
+współdzielonych. Sprawdzono lokalne odnośniki, strukturę HTML, wymagania
+pakietów oraz git diff --check.</p>
+<h2 id="aktualizowanie-wersji-html">Aktualizowanie wersji HTML</h2>
+<p>Źródłem są installation.md, user-guide.md, installation-models.md
+i niniejszy raport. Dla opiekuna dokumentacji, z katalogu repozytorium:</p>
+<pre><code class="language-text">python -m pip install -r docs/stmviewer/requirements-docs.txt
+python docs/stmviewer/build-guide.py
+</code></pre>
+<p>Markdown jest potrzebny tylko do zbudowania dokumentu.
+Użytkownik gotowego guide.html nie potrzebuje Pythona ani serwera do czytania
+instrukcji. Dostęp do zewnętrznych stron instalatorów wymaga internetu.</p>
+</main></body></html>

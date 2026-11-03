@@ -1,11 +1,13 @@
-# Install only in the separate netcat-romav2 environment (Python 3.12).
-# Verified on Ubuntu / CUDA 13.0. Keep the main netcat environment unchanged.
+# Only in a separate environment; see ../docs/stmviewer/installation-models.md.
+# This exact model package is checked by roma_worker.py, including its source hash.
 romav2==2.0.1
-torch==2.11.0
-torchvision==0.26.0
-fused-local-corr==0.3.211; sys_platform == 'linux'
-numpy==2.2.5
-einops==0.8.2
-pillow==12.3.0
-rich==14.3.4
-tqdm==4.67.3
+torch>=2.11,<3
+torchvision>=0.26,<1
+# Linux extension must match Torch/CUDA ABI. Select its compatible release together
+# with Torch; pip dependency resolution alone cannot verify a working GPU kernel.
+# romav2 itself requires fused-local-corr on Linux; do not add it on Windows.
+numpy>=2.2,<3
+einops>=0.8,<1
+pillow>=12,<13
+rich>=14.2,<15
+tqdm>=4.67,<5

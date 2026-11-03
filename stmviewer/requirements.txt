@@ -1,4 +1,7 @@
--r ../requirements/stm-apps.txt
-numpy==2.2.5
-scipy==1.15.2
-scikit-image==0.25.2
+# STM Viewer runtime; compatible ranges, not a snapshot of one workstation.
+# PyQt6 selects matching Qt6/sip dependencies. Keep shared app requirements unchanged.
+# Tested versions and the novice guide: ../docs/stmviewer/installation.md
+PyQt6>=6.9,<7
+numpy>=2.2,<3
+scipy>=1.15,<2
+scikit-image>=0.25,<1

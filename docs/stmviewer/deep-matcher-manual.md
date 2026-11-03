@@ -124,40 +124,28 @@ utraciłoby to dopasowanie subpikselowe rzeczywistych pomiarów.
 
 ## Przygotowanie zależności poza aplikacją
 
-Python 3.12, podstawowe środowisko według [README](README.md#uruchomienie).
-W przygotowanym netcat nie trzeba nic instalować. Dla nowego środowiska
-wybierz jeden wariant Torch. [Oficjalne instrukcje PyTorch 2.9.1](https://pytorch.org/get-started/previous-versions/#v291)
-podają indeksy CPU oraz CUDA 12.8 dla Linuksa i Windows.
+Aktualna [instrukcja instalacji modeli](installation-models.md) opisuje
+wybór Torch CPU/CUDA i zakresy wersji. Nie trzeba odtwarzać dokładnych
+wersji z historycznej próby opisanej poniżej.
 
-W aktywnym środowisku Ubuntu 24.04 lub Windows 11:
+Po zainstalowaniu wybranego wariantu Torch, w aktywnym środowisku
+i z katalogu repozytorium:
 
-```bash
-# Wariant CPU
-python -m pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/cpu
+~~~text
 python -m pip install -r stmviewer/requirements-deep.txt
-```
+python -m pip check
+~~~
 
-Albo na stanowisku NVIDIA z odpowiednim sterownikiem:
+Lista dopuszcza Torch 2.9 lub nowszy z rodziny 2 oraz Kornia 0.8.2 lub nowszą
+z rodziny 0.8. Kornia dobiera własną zależność kornia_rs.
+Dobór Torch dla GPU odbywa się według
+[bieżącego selektora PyTorch](https://pytorch.org/get-started/locally/),
+z uwzględnieniem sterownika i karty; nie wymaga konkretnego numeru CUDA
+użytego na stanowisku autora.
 
-```bash
-# Wariant CUDA 12.8
-python -m pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/cu128
-python -m pip install -r stmviewer/requirements-deep.txt
-```
-
-Zestaw przypina Torch 2.9.1, Kornia 0.8.2 i kornia_rs 0.1.10. Polecenia dotyczą
-wybranego lokalnego środowiska, nie aktualizacji wspólnego stosu repozytorium.
-Do odtworzenia CUDA potrzebny jest wariant binarny Torch i działający sterownik;
-sama nazwa GPU nie wystarcza. Przed próbą aplikacji sprawdź rzeczywiste wykonanie:
-
-```bash
-python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda.is_available()); print((torch.ones(2, device='cuda') + 1).cpu())"
-```
-
-Gdy nie ma bibliotek, program nadal uruchamia się i przegląda obrazy;
-Deep Matcher podaje powód. Obecność modułu i pliku jest jedynie wstępną
-kontrolą. Uszkodzona instalacja, niezgodne wagi lub błąd CUDA zostaną zgłoszone
-przez Sprawdź model/Rejestruj. Po zmianach instalacji uruchom program ponownie.
+W przygotowanym netcat nie trzeba niczego reinstalować.
+Brak modelu nie blokuje przeglądania obrazów. Po zmianie bibliotek uruchom
+program ponownie i użyj **Sprawdź model** na wybranym urządzeniu.
 
 ## Rozdzielenie prób
 

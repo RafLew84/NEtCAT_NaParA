@@ -186,6 +186,9 @@ def test_retry_preserves_old_result_or_publishes_complete_uncertainty(
 @pytest.mark.parametrize('missing', ['cv2', 'scipy', 'skimage', 'torch', 'kornia'])
 def test_fresh_process_can_browse_without_registration_dependency(missing):
     """An empty import cache must not turn an optional dependency into a startup crash."""
+    import importlib.util
+    if missing == 'kornia' and importlib.util.find_spec('torch') is None:
+        pytest.skip('Isolating missing Kornia requires Torch; otherwise Torch is the first missing dependency.')
     import os
     from pathlib import Path
     import subprocess

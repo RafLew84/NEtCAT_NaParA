@@ -1,5 +1,11 @@
 # STM Viewer
 
+**Instrukcje dla użytkowników:** [wersja do otwarcia w przeglądarce](guide.html),
+[instalacja krok po kroku](installation.md), [obsługa programu](user-guide.md),
+[opcjonalne modele](installation-models.md). Wersję HTML można otworzyć
+bezpośrednio z dysku i wydrukować do PDF. Biblioteki mają zakresy wersji;
+[raport sprawdzenia nowej instalacji](installation-validation.md) podaje faktycznie użyte wersje.
+
 **REG-10: EfficientLoFTR — done (2026-11-02).** Nowa opcja pary,
 filmu i grafu z zapisem diagnostyki w sesji.
 [Instrukcja próby](registration/efficient-loftr-manual.md),
@@ -360,9 +366,12 @@ cel do 1000 linii i bezwzględny limit 1500 fizycznych linii pliku kodu.
 
 ## Uruchomienie
 
-Z katalogu głównego worktree, z Pythonem 3.12. Dla tej funkcji potrzebne
-są NumPy, PyQt6 oraz SciPy/scikit-image dla Phase, Tile+RANSAC i Optical Flow; wersje zapisano w `stmviewer/requirements.txt`,
-który korzysta ze wspólnego zestawu PyQt6 z `requirements/stm-apps.txt`.
+Osobom zaczynającym pracę polecamy [instrukcję instalacji](installation.md).
+Poniżej alternatywa z venv dla osób już korzystających z terminala.
+Uruchamiaj z katalogu głównego worktree; sprawdzony punkt startu to Python 3.12.
+Zakresy NumPy, PyQt6, SciPy i scikit-image zapisano w `stmviewer/requirements.txt`.
+Viewer ma własną listę PyQt6; nie dołącza już ścisłych wersji
+ze współdzielonego `requirements/stm-apps.txt`. Wspólny plik pozostaje bez zmian.
 
 Ubuntu 24.04:
 
@@ -382,8 +391,8 @@ py -3.12 -m venv .venv
 
 ECC i AVI wymagają OpenCV. Zestaw `stmviewer/requirements-avi.txt` udostępnia
 ten sam build co poniższy zestaw ECC. Opcjonalny zestaw `stmviewer/requirements-ecc.txt`
-zawiera podstawowe zależności oraz `opencv-python==4.11.0.86` (wersja użyta w próbie
-lokalnej). Instalacja w wybranym środowisku:
+zawiera podstawowe zależności oraz `opencv-python>=4.11,<5`.
+Zapewnia również AKAZE i CLAHE. Instalacja w wybranym środowisku:
 
 ```bash
 # Ubuntu
@@ -395,8 +404,8 @@ lokalnej). Instalacja w wybranym środowisku:
 .\.venv\Scripts\python.exe -m pip install -r stmviewer/requirements-ecc.txt
 ```
 
-Bez OpenCV ECC pozostaje na liście z powodem niedostępności; pozostałe metody
-są dostępne. Brak SciPy/scikit-image wyłącza rejestrację, zachowując przeglądanie.
+Bez OpenCV ECC/AKAZE i AVI są niedostępne; dostępność innych metod zależy
+od ich własnych bibliotek i zasobów. Brak SciPy/scikit-image wyłącza rejestrację, zachowując przeglądanie.
 Program niczego nie pobiera i nie zastępuje wybranej metody. Zmiana zainstalowanych
 zależności wymaga ponownego uruchomienia programu.
 
