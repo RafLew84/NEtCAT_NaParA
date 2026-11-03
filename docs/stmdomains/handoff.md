@@ -1,3 +1,60 @@
+# STM Domains — SD-V4-13: zapis i otwieranie projektu
+
+Data **2026-11-03**, baza `5b2ddc8`, implementacja `4f40c28`, poprawki
+`1c9c221`. Gałąź `domains/interactive-v04-ui`, worktree
+`/home/rlew/projekty/NEtCAT-domains`. [Ticket 13](implementation/interactive-v04/13-save-open-project.md),
+[raport i test ręczny](implementation/interactive-v04/acceptance-13.md),
+[format 1](implementation/interactive-v04/project-format-v1.md),
+[przegląd](implementation/interactive-v04/review-13.md).
+Status `done`; **odbiór ręczny użytkownika 13 oczekuje**.
+Następny rekomendowany **14 — eksport PNG/CSV**. Plan nadal 26 ticketów;
+01–03, 05, 05a, 06–13 wykonane, 14–18 i 21–25/23a gotowe po zależnościach,
+19–20 odłożone. Ręczna edycja i jej historia pozostają w 21–24.
+
+**Plik → Zapisz projekt… / Zapisz projekt jako…**, otwieranie `.stmdomains`
+przez wspólny przycisk/menu. Samowystarczalny ZIP zawiera pełne bajty MPP,
+oznaczenia, geometrię, widok, szkic oraz jeden wybrany przebieg lub brak
+analizy. Stary wyświetlany wynik i ostatnia odmowa mogą być zapisane osobno.
+Stan katalogu jest zapisany jako bezpieczne liczby/tablice JSON; otwarcie
+nie dopasowuje modeli. Zapisany katalog można jawnie wykorzystać ponownie.
+Kopia zachowuje ID analizy/katalogu; nowy przebieg otrzymuje nowe ID analizy.
+
+Zapis w tle, postęp/anulowanie, atomowe zastąpienie po `fsync`, SHA-256 części
+oraz kontrola niezmienności MPP od importu. Wadliwy projekt nie zastępuje
+otwartej pracy. Save As potwierdza nadpisanie końcowej nazwy z rozszerzeniem.
+Zamknięcie/otwarcie innej pracy chroni niezapisane zmiany: Zapisz/Odrzuć/Anuluj.
+Częściowe wyniki zachowują stany i dostępność, bez zer zamiast braków.
+Maski są wczytywane na żądanie, cache trzech wyników; walidacja nagłówków
+oraz ID działa blokami bez materializacji całej serii masek. Czytnik MPP
+nadal ładuje całą surową serię. Cache dyskowy znika wraz z ostatnim
+użytkownikiem danych. Limity: 64 MiB/JSON, 16 GiB zawartości, 50 000 części.
+
+Netcat bez instalacji. Pełny zestaw **490 testów PASS w 189,37 s**,
+14 nowych testów projektu; uruchomiony raz na końcu po poprawkach.
+Mypy **82 pliki PASS**;
+**25 plików kodu/testów, maksimum 661 linii**, poniżej 1000/1500.
+Standards **0**; Spec **2 P2 poprawione, recheck 0 otwartych**.
+
+**GUI X11 TTMAPP PASS po poprawkach**: na 259 K5 dopasowane z 259–268,
+105/312 i 5 domen, katalog `9d3b7286`. Otwarcie przy zakazie odczytu
+oryginalnych MPP/JSON i zakazie PCA/KMeans zachowało dokładne przypisania,
+maski, parametry, metadane i piksele; szkic K7, gamma 1,6, warstwy i zoom
+wróciły oddzielnie. Kontynuacja z istniejącym katalogiem bez fitu PASS.
+Save As, anulowanie zapisu, uszkodzony projekt i zakończenie pracowników PASS.
+Zapis ~4,25 s, odczyt ~1,43 s, 142 121 164 B; źródła bez zmian.
+Dowody lokalne `.scratch/stmdomains-ui-13/`, bez dużych danych w Git.
+
+Odbiór GUI wykonał agent sterujący widocznym oknem. Użytkownik nie potwierdził
+jeszcze odbioru 13. Nie oceniano jakości naukowej, pełnej analizy 268 klatek
+ani odporności na odcięcie zasilania. Format zachowuje rzeczywiście dostępne
+miary, nie deklaruje pełnego pokrycia/zwalidowanej powierzchni domen.
+Kontrola 425 lokalnych odnośników/kotwic w 9 dokumentach, 26 ticketów,
+zgodności tabeli zależności i braku cykli PASS; `git diff --check` PASS.
+Brak zmian wspólnych modułów i potrzeb integracyjnych. Commit dokumentacji
+podany w odpowiedzi końcowej. Poniżej historia wcześniejszych przekazań.
+
+---
+
 # STM Domains — potwierdzony ręczny odbiór SD-V4-12
 
 Data **2026-11-03**, baza **`3297b98`**, implementacja **`274f348`**,

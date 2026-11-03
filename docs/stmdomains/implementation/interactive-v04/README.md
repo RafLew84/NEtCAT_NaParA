@@ -1,5 +1,18 @@
 # Interaktywne STM Domains — obliczenia z danych
 
+**Wykonano SD-V4-13 — zapis projektu (`4f40c28`, poprawki `1c9c221`).**
+**Plik → Zapisz projekt… / Zapisz projekt jako…** zapisuje jeden plik
+`.stmdomains`: cały MPP, oznaczenia, geometria, widok, szkic i jeden wybrany
+przebieg lub brak analizy. Otwieranie odtwarza wynik bez źródeł i obliczeń.
+Obsługiwane są wyniki częściowe, osobny wybór ostatniej odmowy i poprzedniego
+wyniku, kontrola integralności, anulowanie oraz ochrona niezapisanej pracy.
+[Raport i test ręczny](acceptance-13.md), [format 1](project-format-v1.md).
+GUI X11 na TTMAPP: identyczne 105/312 i 5 domen po odtworzeniu, także dalsza
+analiza z zapisanym katalogiem bez dopasowania. **490 testów PASS**, mypy
+82 pliki PASS, Standards/Spec 0 otwartych uwag; maks. 661 linii. Status `done`;
+**odbiór ręczny użytkownika 13 oczekuje**. Następny rekomendowany ticket:
+**14 — eksport PNG i CSV**. Poniżej zachowano historię wcześniejszych etapów.
+
 **Wykonano SD-V4-12 — Auto (`274f348`, poprawka `88006c1`).**
 **Analiza → Analiza… → Klasy**: ręczne K albo Auto, maksimum 1–8,
 jawne uzasadnienie i ranking bieżących danych. Jedna klatka, zakres lub
@@ -109,10 +122,10 @@ zastosowanych parametrów wyświetlanego wyniku; przy jego braku bazowych.
 [Raport, gotowe przykłady i test ręczny](acceptance-10.md). **449 testów PASS**, GUI X11 PASS,
 mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 **Ręczny odbiór użytkownika 10 potwierdzony 2026-11-03** dla wersji
-`4b55727` („testy manualne ok”). Później wykonano 11 i 12; obecnie następny **13**.
+`4b55727` („testy manualne ok”). Później wykonano 11–13; obecnie następny **14**.
 
-01–03, 05, 05a i 06–12 mają status `done`.
-13–18, 21–25 oraz 23a mają zakres `ready-for-agent`
+01–03, 05, 05a i 06–13 mają status `done`.
+14–18, 21–25 oraz 23a mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -120,7 +133,7 @@ wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 **21–25 — ręczną edycję domen i klas, zapis historii oraz eksport korekt**.
 Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
 To plan przyszłych funkcji; implementacji nie rozpoczęto. Następny
-rekomendowany etap głównej ścieżki to teraz **13 — zapis projektu**; 21 można
+rekomendowany etap głównej ścieżki to teraz **14 — eksport PNG/CSV**; 21 można
 wybrać niezależnie już po wykonanym 05a.
 
 ## Tickety i kolejność

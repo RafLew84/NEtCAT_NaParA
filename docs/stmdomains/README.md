@@ -1,5 +1,18 @@
 # STM Domains
 
+**Wykonano SD-V4-13 — zapis projektu (`4f40c28`, poprawki `1c9c221`).**
+**Plik → Zapisz projekt… / Zapisz projekt jako…** zapisuje jeden plik
+`.stmdomains`: cały MPP, oznaczenia, geometria, widok, szkic i jeden wybrany
+przebieg lub brak analizy. Otwieranie odtwarza wynik bez źródeł i obliczeń.
+Obsługiwane są wyniki częściowe, osobny wybór ostatniej odmowy i poprzedniego
+wyniku, kontrola integralności, anulowanie oraz ochrona niezapisanej pracy.
+[Raport i test ręczny](implementation/interactive-v04/acceptance-13.md), [format 1](implementation/interactive-v04/project-format-v1.md).
+GUI X11 na TTMAPP: identyczne 105/312 i 5 domen po odtworzeniu, także dalsza
+analiza z zapisanym katalogiem bez dopasowania. **490 testów PASS**, mypy
+82 pliki PASS, Standards/Spec 0 otwartych uwag; maks. 661 linii. Status `done`;
+**odbiór ręczny użytkownika 13 oczekuje**. Następny rekomendowany ticket:
+**14 — eksport PNG i CSV**. Poniżej zachowano historię wcześniejszych etapów.
+
 Program do wykrywania i analizy domen pól molekularnych na obrazach STM.
 Katalog aplikacji: `stmdomains/`.
 
@@ -119,8 +132,8 @@ z bieżących danych. Działają kolory domen/klas, legenda, liczniki, przyczyny
 odmów, postęp i anulowanie. Program nie wczytuje modelu ani wyniku v0.4.
 [Uruchomienie, wykonane sprawdzenia i test ręczny 05](implementation/interactive-v04/acceptance-05.md).
 **Odbiór ręczny użytkownika 05 oczekuje.** W aktualnym planie
-01–03, 05, 05a i 06–12 mają status `done`,
-13–18, 21–25 oraz 23a — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
+01–03, 05, 05a i 06–13 mają status `done`,
+14–18, 21–25 oraz 23a — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
 To wdrożenie eksperymentalnej metody, bez potwierdzenia trafności detektora.
 
 **Wcześniejsza zmiana kierunku na polecenie użytkownika:** usunięto ticket SD-V4-04

@@ -14,6 +14,19 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Wykonano SD-V4-13 — zapis projektu (`4f40c28`, poprawki `1c9c221`).**
+**Plik → Zapisz projekt… / Zapisz projekt jako…** zapisuje jeden plik
+`.stmdomains`: cały MPP, oznaczenia, geometria, widok, szkic i jeden wybrany
+przebieg lub brak analizy. Otwieranie odtwarza wynik bez źródeł i obliczeń.
+Obsługiwane są wyniki częściowe, osobny wybór ostatniej odmowy i poprzedniego
+wyniku, kontrola integralności, anulowanie oraz ochrona niezapisanej pracy.
+[Raport i test ręczny](implementation/interactive-v04/acceptance-13.md), [format 1](implementation/interactive-v04/project-format-v1.md).
+GUI X11 na TTMAPP: identyczne 105/312 i 5 domen po odtworzeniu, także dalsza
+analiza z zapisanym katalogiem bez dopasowania. **490 testów PASS**, mypy
+82 pliki PASS, Standards/Spec 0 otwartych uwag; maks. 661 linii. Status `done`;
+**odbiór ręczny użytkownika 13 oczekuje**. Następny rekomendowany ticket:
+**14 — eksport PNG i CSV**. Poniżej zachowano historię wcześniejszych etapów.
+
 **Wykonano SD-V4-12 — Auto (`274f348`, poprawka `88006c1`).**
 **Analiza → Analiza… → Klasy**: ręczne K albo Auto, maksimum 1–8,
 jawne uzasadnienie i ranking bieżących danych. Jedna klatka, zakres lub
