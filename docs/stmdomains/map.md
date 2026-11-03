@@ -21,8 +21,9 @@ statusy klatek i częściowe anulowanie działają podczas nawigacji.
 [Ticket](implementation/interactive-v04/08-analyze-series.md),
 [raport i test ręczny](implementation/interactive-v04/acceptance-08.md).
 409 testów PASS, mypy 59 modułów PASS; 14 plików kodu/testów do 527 linii.
-Rzeczywiste GUI: 268 klatek TTMAPP bez błędów. **Odbiór ręczny użytkownika
-oczekuje.** Status `done`; następny rekomendowany **12 — Auto**.
+Rzeczywiste GUI: 268 klatek TTMAPP bez błędów. **Odbiór ręczny użytkownika 08
+potwierdzony 2026-11-03** dla wersji `a3a5316` („testy manualne ok”).
+Status `done`; następny rekomendowany **12 — Auto**.
 Plan nadal ma 19 ticketów; 01–03, 05, 05a, 06–08 wykonane. Poniżej historia.
 
 **Wykonano SD-V4-07 — 2026-11-02 (`dedd8b8`, poprawki `65e9d2a`):**

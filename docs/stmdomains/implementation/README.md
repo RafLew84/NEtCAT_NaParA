@@ -5,7 +5,8 @@ menu **Analiza → Analiza serii…**, wspólne klasy i ustawienia domen,
 wynik każdej klatki, postęp/statusy i anulowanie zachowujące ukończone
 wyniki. [Raport i test ręczny](interactive-v04/acceptance-08.md).
 409 testów PASS, mypy 59 modułów PASS; rzeczywiste GUI sprawdzone także
-na całych 268 klatkach TTMAPP. **Odbiór ręczny użytkownika 08 oczekuje.**
+na całych 268 klatkach TTMAPP. **Odbiór ręczny użytkownika 08 potwierdzony
+2026-11-03** dla wersji `a3a5316` („testy manualne ok”).
 Następny rekomendowany ticket **12 — Auto**.
 
 **Wykonano SD-V4-07 — 2026-11-02 (`dedd8b8`, poprawki `65e9d2a`):**

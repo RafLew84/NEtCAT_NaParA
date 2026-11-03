@@ -4,8 +4,11 @@ Ukończono **2026-11-03**. Baza **`e51b612`**, implementacja **`1c39ae2`**,
 poprawka **`46c274f`**, gałąź `domains/interactive-v04-ui`, worktree
 `/home/rlew/projekty/NEtCAT-domains`. [Ticket](implementation/interactive-v04/08-analyze-series.md),
 [raport i test ręczny](implementation/interactive-v04/acceptance-08.md).
-Status `done`; **odbiór ręczny użytkownika 08 oczekuje**. Commit raportu
-podano w odpowiedzi końcowej. Ręczny odbiór 07 pozostaje potwierdzony.
+Status `done`; **odbiór ręczny użytkownika 08 potwierdzony 2026-11-03**
+dla wersji **`a3a5316`** słowami „testy manualne ok”. Zapis potwierdzenia
+zmienia wyłącznie dokumentację; `git diff --check` PASS, bez ponawiania
+testów kodu. Commit zapisu podano w odpowiedzi końcowej.
+Następny rekomendowany ticket: **12 — automatyczny wybór liczby klas**.
 
 Menu **Analiza → Analiza serii…** otwiera niemodalne okno z zakładkami
 **Zakres i klasy** oraz **Tworzenie domen**. Jeden przycisk stosuje oba

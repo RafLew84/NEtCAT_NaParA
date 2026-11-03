@@ -13,7 +13,8 @@ katalogu z 07; tabela pokazuje stan każdej klatki, a anulowanie zachowuje
 ukończone wyniki. [Raport i test ręczny 08](implementation/interactive-v04/acceptance-08.md).
 **409 testów PASS**, mypy 59 modułów PASS, największy zmieniony plik 527 linii.
 GUI X11: pełne **268 klatek bez błędów**, nawigacja i częściowe anulowanie.
-**Odbiór ręczny użytkownika 08 oczekuje. Następny rekomendowany ticket: 12 — Auto.**
+**Odbiór ręczny użytkownika 08 potwierdzony 2026-11-03** dla wersji
+`a3a5316` („testy manualne ok”). **Następny rekomendowany ticket: 12 — Auto.**
 
 **Wykonano SD-V4-07 (`dedd8b8`, poprawki `65e9d2a`):** menu
 **Analiza → Klasy i zakres…** udostępnia ręczne K1–8 i dane do dopasowania:

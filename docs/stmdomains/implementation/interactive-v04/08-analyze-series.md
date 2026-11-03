@@ -12,7 +12,8 @@ gałąź `domains/interactive-v04-ui`, ukończono 2026-11-03.
 [Uruchomienie, raport i test ręczny](acceptance-08.md). 409 testów PASS,
 mypy 59 modułów PASS; 14 plików kodu/testów, maksimum 527 linii.
 GUI X11 sprawdzone przez agenta, w tym pełne 268 klatek TTMAPP.
-**Odbiór ręczny użytkownika oczekuje.** Następny rekomendowany ticket: 12.
+**Odbiór ręczny użytkownika potwierdzony 2026-11-03** dla wersji
+`a3a5316` („testy manualne ok”). Następny rekomendowany ticket: 12.
 
 Implementacja: osobne niemodalne okno „Analiza → Analiza serii…” z zakresem
 analizy, źródłem wspólnych klas i parametrami domen stosowanymi jednym

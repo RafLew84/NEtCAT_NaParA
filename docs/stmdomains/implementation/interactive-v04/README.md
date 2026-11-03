@@ -54,7 +54,8 @@ zakres, źródło wspólnych klas i parametry domen w jednym uruchomieniu.
 Każda klatka dostaje wynik/status; można nawigować i anulować z zachowaniem
 ukończonych wyników. [Raport i test ręczny](acceptance-08.md).
 409 testów PASS, mypy PASS, 268 klatek TTMAPP przeliczonych w rzeczywistym GUI.
-**Odbiór ręczny użytkownika 08 oczekuje. Następny rekomendowany ticket: 12.**
+**Odbiór ręczny użytkownika 08 potwierdzony 2026-11-03** dla wersji
+`a3a5316` („testy manualne ok”). **Następny rekomendowany ticket: 12.**
 01–03, 05, 05a, 06, 07 i 08 mają status `done`.
 09–10 oraz 12–18 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem

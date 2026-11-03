@@ -1,8 +1,12 @@
 # SD-V4-08 — analiza zakresu lub całej serii
 
 Data ukończenia **2026-11-03**. Baza **`e51b612`**, implementacja **`1c39ae2`**, poprawka **`46c274f`**,
-gałąź `domains/interactive-v04-ui`. **Odbiór ręczny użytkownika oczekuje.**
+gałąź `domains/interactive-v04-ui`. **Odbiór ręczny użytkownika potwierdzony
+2026-11-03 dla wersji `a3a5316`** słowami „testy manualne ok”.
 Wykonane sprawdzenia agenta opisano oddzielnie poniżej.
+
+Zapis potwierdzenia zmienia wyłącznie dokumentację. `git diff --check` PASS;
+testów kodu nie ponawiano. Następny rekomendowany ticket: **12 — Auto**.
 
 ## Uruchomienie i test ręczny
 
@@ -196,7 +200,8 @@ zależności zgłoszone integratorowi w 05 pozostają aktualne.
 
 Artefakty lokalne poza Git: `.scratch/stmdomains-ui-08/`, w tym `gui-smoke.json`,
 `gui-final.json`, `pytest-full.log`, małe demo i zrzuty. Sprawdzenie agenta
-nie zastępuje oczekującego odbioru ręcznego użytkownika ani walidacji detektora.
+jest odrębne od potwierdzonego powyżej odbioru ręcznego użytkownika
+i nie zastępuje walidacji detektora.
 
 ## Przegląd code-review
 
