@@ -48,6 +48,37 @@ def test_menu_exports_partial_range_and_preserves_display_and_draft(qtbot, tmp_p
     window.close()
 
 
+def test_default_export_scope_follows_single_result_after_navigation(qtbot, tmp_path):
+    window = STMDomainsMainWindow(prompts=Prompts())
+    qtbot.addWidget(window)
+    window.show()
+    controller = window.controller
+    controller.open_session(create_analysis_demo(tmp_path / 'source')['series'])
+    qtbot.waitUntil(lambda: not controller.is_busy)
+    controller.start_series_analysis(SeriesAnalysisPlan(k=4, current_frame=True))
+    qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
+    result = controller.result
+    controller.show_frame(1)
+    qtbot.waitUntil(lambda: not controller.is_busy)
+    assert controller.result is None
+    window.export_action.trigger()
+    dialog = window.export_dialog
+    assert dialog.selection.currentData() == 'latest'
+    assert dialog.scope.currentData() == 'range'
+    assert dialog.first.value() == dialog.last.value() == 1
+    dialog.folder.setText(str(tmp_path))
+    dialog.name.setText('single-result')
+    dialog.png.setChecked(False)
+    dialog.export_button.click()
+    qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
+    with (tmp_path / 'single-result' / 'frames.csv').open() as stream:
+        rows = list(csv.DictReader(stream))
+    assert len(rows) == 1 and rows[0]['working_number'] == '1'
+    assert int(rows[0]['assigned_count']) == result.assigned_count
+    assert controller.current_index == 1 and controller.result is None
+    window.close()
+
+
 def test_cancel_and_error_leave_open_work_and_shutdown_does_not_wait_for_gui(qtbot, tmp_path, monkeypatch):
     from threading import Event, Timer
     from pathlib import Path

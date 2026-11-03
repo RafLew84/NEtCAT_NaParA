@@ -122,7 +122,7 @@ class ExportDialog(QDialog):
         indices = analysis.indices if analysis else (self.controller.current_index,)
         self.first.setValue(min(indices) + 1)
         self.last.setValue(max(indices) + 1)
-        self.scope.setCurrentIndex(1 if len(indices) > 1 else 0)
+        self.scope.setCurrentIndex(0 if indices == (self.controller.current_index,) else 1)
 
     def _browse(self) -> None:
         path = QFileDialog.getExistingDirectory(self, 'Wybierz katalog na eksport', self.folder.text())
