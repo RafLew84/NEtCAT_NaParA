@@ -1,5 +1,7 @@
 # STM Viewer
 
+**Paczka programu i modeli:** [zawartość oraz konfiguracja ścieżek](distribution.md).
+
 **Instrukcje dla użytkowników:** [wersja do otwarcia w przeglądarce](guide.html),
 [instalacja krok po kroku](installation.md), [obsługa programu](user-guide.md),
 [opcjonalne modele](installation-models.md). Wersję HTML można otworzyć

@@ -1,0 +1,27 @@
+STM VIEWER — ZACZNIJ TUTAJ
+Paczka programu, kodu modeli i wag. Przygotowano 2026-11-03.
+
+1. Rozpakuj caly ZIP. Folder NEtCAT zawiera program i podfolder models.
+2. Otworz Instrukcja.html w przegladarce. Pierwszy rozdzial opisuje paczke.
+3. Utworz srodowisko wedlug instrukcji i zainstaluj biblioteki.
+   To paczka kodu i modeli, nie gotowy instalator EXE ani kopia srodowiska.
+4. Uruchamiaj z folderu NEtCAT:
+   python -m stmviewer.main
+5. Wybierz metode oraz wskaz jej pliki z folderu models.
+   Program NIE wyszukuje automatycznie modeli w folderze models.
+6. Dla RoMa utworz osobne srodowisko i wskaz jego Python w aplikacji.
+
+Paczka zawiera LoFTR outdoor, EfficientLoFTR, LightGlue + SuperPoint,
+MatchAnything-ELoFTR i RoMa v2 z DINOv3. AKAZE i metody klasyczne nie
+wymagaja wag. Warianty Deep uzywaja tego samego LoFTR outdoor.
+
+W models/romav2 jest lokalny pakiet romav2-2.0.1-py3-none-any.whl.
+Mozna go zainstalowac do osobnego srodowiska RoMa bez ponownego pobierania
+kodu tej biblioteki; pozostale zaleznosci dobiera pip.
+
+Nie ma tu danych pomiarowych, prywatnych sesji, sterownikow ani srodowisk.
+Internet jest potrzebny do instalacji bibliotek Python.
+Zachowaj dolaczone licencje poszczegolnych projektow.
+
+manifest.json zawiera liste plikow, ich sumy SHA-256 i wersje zrodel.
+Plik ZIP jest przeznaczony do rozpakowania; nie uruchamiaj z jego wnetrza.

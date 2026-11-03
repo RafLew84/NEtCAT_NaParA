@@ -7,7 +7,7 @@ dołączyć później według [osobnej instrukcji](installation-models.md).
 
 ## Co będzie potrzebne
 
-- Całe repozytorium programu, rozpakowane do zwykłego folderu.
+- Paczka STM Viewer lub całe repozytorium, rozpakowane do zwykłego folderu.
 - Internet podczas instalacji. Podstawowy program później działa lokalnie.
 - Dla dużych serii: SSD i około 16 GB **wolnego** RAM. Małe filmy można
   otworzyć na słabszym komputerze.
@@ -25,8 +25,8 @@ zamiast `stmviewer` i przejście do folderu repozytorium.
 
 ## 1. Przygotuj folder programu
 
-Najprościej otrzymać od opiekuna projektu archiwum ZIP całego repozytorium
-w wersji przeznaczonej do pracy. Jeśli pobierasz je przez GitHub, wybierz
+Najprościej otrzymać od opiekuna projektu [paczkę ZIP programu i modeli](distribution.md).
+Zawiera potrzebne części repozytorium oraz wagi; nie trzeba ich pobierać osobno. Jeśli pobierasz je przez GitHub, wybierz
 właściwą gałąź, potem **Code → Download ZIP**. Domyślna gałąź może nie
 zawierać bieżących funkcji; tę instrukcję przygotowano na
 `viewer/registration-difficult-movies`.

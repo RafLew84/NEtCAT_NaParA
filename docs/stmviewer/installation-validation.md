@@ -92,7 +92,7 @@ pakietów oraz git diff --check.
 
 ## Aktualizowanie wersji HTML
 
-Źródłem są installation.md, user-guide.md, installation-models.md
+Źródłem są distribution.md, installation.md, user-guide.md, installation-models.md
 i niniejszy raport. Dla opiekuna dokumentacji, z katalogu repozytorium:
 
 ~~~text

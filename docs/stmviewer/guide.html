@@ -22,6 +22,12 @@ button { border: 1px solid #21677a; padding: 10px 16px; background: white; color
 </style></head><body><main><p><strong>STM Viewer — podręcznik użytkownika</strong> · 3 listopada 2026</p><p>Instalacja, obsługa i opcjonalne modele. Ten plik można otworzyć bezpośrednio w przeglądarce.</p><button onclick="window.print()">Drukuj / zapisz jako PDF</button>
 <div class="toc">
 <ul>
+<li><a href="#paczka">Paczka do przekazania użytkownikom</a><ul>
+<li><a href="#co-zawiera-zip">Co zawiera ZIP</a></li>
+<li><a href="#jak-wskazac-modele-z-paczki">Jak wskazać modele z paczki</a></li>
+<li><a href="#skad-biora-sie-domyslne-sciezki">Skąd biorą się domyślne ścieżki</a></li>
+</ul>
+</li>
 <li><a href="#instalacja">Instalacja STM Viewer — krok po kroku</a><ul>
 <li><a href="#co-bedzie-potrzebne">Co będzie potrzebne</a></li>
 <li><a href="#1-przygotuj-folder-programu">1. Przygotuj folder programu</a></li>
@@ -67,6 +73,152 @@ button { border: 1px solid #21677a; padding: 10px 16px; background: white; color
 </li>
 </ul>
 </div>
+<h1 id="paczka">Paczka do przekazania użytkownikom</h1>
+<p>Paczka ZIP zawiera jeden folder <strong>NEtCAT</strong>. Rozpakuj go w wybranej
+lokalizacji, np. <code>C:\NEtCAT</code> na Windows lub <code>~/NEtCAT</code> na Ubuntu.
+Otwórz <strong>Instrukcja.html</strong>; instalację wykonuj z folderu NEtCAT.</p>
+<h2 id="co-zawiera-zip">Co zawiera ZIP</h2>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Lokalizacja w folderze NEtCAT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Program STM Viewer</td>
+<td><code>stmviewer</code></td>
+</tr>
+<tr>
+<td>Potrzebne czytniki i algorytmy wspólne</td>
+<td><code>napara</code>, <code>nanotrack</code> — nie usuwaj tych folderów</td>
+</tr>
+<tr>
+<td>Małe dane do pierwszej próby</td>
+<td><code>tests/stmviewer/fixtures</code></td>
+</tr>
+<tr>
+<td>Instrukcje i wymagania bibliotek</td>
+<td><code>Instrukcja.html</code>, <code>docs/stmviewer</code> i <code>stmviewer/requirements*.txt</code></td>
+</tr>
+<tr>
+<td>Wagi i kod modeli</td>
+<td><code>models</code></td>
+</tr>
+<tr>
+<td>Lista plików, SHA-256 i wersje źródeł</td>
+<td><code>manifest.json</code></td>
+</tr>
+</tbody>
+</table>
+<p>Są tu pliki modeli potrzebne do wszystkich obecnych metod rejestracji.
+Nie ma danych pomiarowych autora, jego sesji ani gotowych środowisk Python.
+Biblioteki i sterownik GPU należy przygotować na komputerze odbiorcy.
+Nie jest to instalator EXE ani całkowicie offline'owy instalator zależności.</p>
+<p>Zachowaj licencję programu i dołączone licencje modeli. Kod modeli i pliki
+wag pozostaw w otrzymanej postaci: ich zgodność jest sprawdzana przy ładowaniu.</p>
+<h2 id="jak-wskazac-modele-z-paczki">Jak wskazać modele z paczki</h2>
+<p><strong>Program nie wyszukuje automatycznie modeli w folderze <code>models</code>.</strong>
+Po wybraniu metody użyj przycisków wyboru wag i kodu.
+Poniższe ścieżki są względem rozpakowanego NEtCAT:</p>
+<table>
+<thead>
+<tr>
+<th>Metoda</th>
+<th>Wagi</th>
+<th>Katalog kodu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Deep Matcher, Deep + ECC, Deep + lokalne fragmenty</td>
+<td><code>models/loftr/weights/loftr_outdoor.ckpt</code></td>
+<td>Nie wybierasz folderu; kod dostarcza instalowana Kornia</td>
+</tr>
+<tr>
+<td>EfficientLoFTR</td>
+<td><code>models/efficientloftr/weights/eloftr_outdoor.ckpt</code></td>
+<td><code>models/efficientloftr/source</code></td>
+</tr>
+<tr>
+<td>LightGlue + SuperPoint</td>
+<td><code>models/lightglue/weights/superpoint_lightglue.pth</code> oraz osobno <code>superpoint_v1.pth</code> w tym samym folderze</td>
+<td><code>models/lightglue/source</code></td>
+</tr>
+<tr>
+<td>MatchAnything-ELoFTR</td>
+<td><code>models/matchanything/weights/matchanything_eloftr.ckpt</code></td>
+<td><code>models/matchanything/source</code></td>
+</tr>
+<tr>
+<td>RoMa v2</td>
+<td><code>models/romav2/weights/romav2.0.1.pt</code></td>
+<td><code>models/romav2/dinov3</code></td>
+</tr>
+</tbody>
+</table>
+<p>AKAZE, Phase, korelacja bez normalizacji, Tile+RANSAC, ECC i Optical Flow
+nie potrzebują osobnych wag. Po podstawowej instalacji można ich używać.</p>
+<p>Dla RoMa wskaż również <strong>Python środowiska RoMa</strong>. Jego ścieżkę uzyskasz
+poleceniem <code>python -c "import sys; print(sys.executable)"</code> wykonanym
+w osobnym środowisku RoMa. Instrukcja utworzenia tego środowiska jest
+w rozdziale <a href="#modele">Opcjonalne modele</a>.</p>
+<p>W paczce znajduje się kod pakietu RoMa w postaci koła instalacyjnego.
+Po aktywowaniu środowiska <strong>stmviewer-roma</strong>, z folderu NEtCAT:</p>
+<pre><code class="language-text">python -m pip install models/romav2/romav2-2.0.1-py3-none-any.whl -r stmviewer/requirements-roma-worker.txt
+</code></pre>
+<p>Najpierw dobierz wariant Torch CPU/CUDA zgodnie z instrukcją modeli.
+To polecenie może pobrać pozostałe zależności; sama paczka nie zawiera Torch.
+Nie instaluj RoMa do głównego środowiska aplikacji.</p>
+<p>Po wskazaniu plików kliknij <strong>Sprawdź model</strong>, a następnie wypróbuj jedną
+parę klatek. Zapisy sesji zachowują konfigurację pracy i ścieżki modeli;
+po przeniesieniu sesji na inny komputer może być konieczne ich poprawienie.</p>
+<h2 id="skad-biora-sie-domyslne-sciezki">Skąd biorą się domyślne ścieżki</h2>
+<p>Aplikacja wypełnia pola znanymi adresami, ale nie skanuje katalogów i dysków.</p>
+<table>
+<thead>
+<tr>
+<th>Metoda</th>
+<th>Wartości początkowe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Deep Matcher i warianty Deep</td>
+<td>Puste pole albo plik ze zmiennej środowiskowej <code>STMVIEWER_LOFTR_WEIGHTS</code></td>
+</tr>
+<tr>
+<td>EfficientLoFTR</td>
+<td><code>~/.cache/stmviewer/efficientloftr/source</code> oraz <code>weights/eloftr_outdoor.ckpt</code> w tym katalogu modelu</td>
+</tr>
+<tr>
+<td>LightGlue + SuperPoint</td>
+<td><code>~/.cache/stmviewer/lightglue/source</code> oraz oba pliki w <code>weights</code></td>
+</tr>
+<tr>
+<td>MatchAnything</td>
+<td><code>~/.cache/stmviewer/matchanything/source</code> oraz <code>weights/matchanything_eloftr.ckpt</code></td>
+</tr>
+<tr>
+<td>RoMa v2</td>
+<td><code>~/.cache/stmviewer/romav2/dinov3</code> oraz <code>weights/romav2.0.1.pt</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>~</code> oznacza katalog domowy użytkownika, np. <code>/home/anna</code> na Ubuntu
+lub <code>C:\Users\Anna</code> na Windows. Na Windows aplikacja także używa podfolderu
+<code>.cache\stmviewer</code>, nie przeszukuje AppData.</p>
+<p>Domyślny Python RoMa wskazuje <code>~/miniconda3/envs/netcat-romav2/bin/python</code>
+na Linux, a na Windows <code>~/miniconda3/envs/netcat-romav2/python.exe</code>.
+To konkretna propozycja ścieżki, nie wykrywanie środowisk conda.
+Przy użyciu Miniforge i nazwy <code>stmviewer-roma</code> z instrukcji musisz wskazać
+właściwy interpreter samodzielnie.</p>
+<p>Można ręcznie umieścić cztery katalogi modeli w <code>~/.cache/stmviewer</code>,
+zachowując układ <code>source</code>/<code>weights</code> lub <code>dinov3</code>/<code>weights</code>. Wtedy domyślne
+pola do nich trafią. Prostszą drogą dla tej paczki jest jednak pozostawienie
+wszystkiego w <code>NEtCAT/models</code> i wybranie plików w GUI.
+Przekopiowanie wag nie instaluje bibliotek i nie tworzy środowiska RoMa.</p>
 <h1 id="instalacja">Instalacja STM Viewer — krok po kroku</h1>
 <p>Instrukcja dla Ubuntu 24.04 i Windows 11, komputerów Intel/AMD 64-bit.
 Stan programu: 3 listopada 2026. Zacznij od instalacji podstawowej; pozwala
@@ -74,7 +226,7 @@ oglądać i wyrównywać filmy oraz zapisywać wyniki. Modele neuronowe można
 dołączyć później według <a href="#modele">osobnej instrukcji</a>.</p>
 <h2 id="co-bedzie-potrzebne">Co będzie potrzebne</h2>
 <ul>
-<li>Całe repozytorium programu, rozpakowane do zwykłego folderu.</li>
+<li>Paczka STM Viewer lub całe repozytorium, rozpakowane do zwykłego folderu.</li>
 <li>Internet podczas instalacji. Podstawowy program później działa lokalnie.</li>
 <li>Dla dużych serii: SSD i około 16 GB <strong>wolnego</strong> RAM. Małe filmy można
   otworzyć na słabszym komputerze.</li>
@@ -89,8 +241,8 @@ zestaw Pythona i bibliotek, przygotowany dla tej aplikacji. Utworzymy
 instalować go ponownie. Do uruchomienia wystarcza aktywowanie <code>netcat</code>
 zamiast <code>stmviewer</code> i przejście do folderu repozytorium.</p>
 <h2 id="1-przygotuj-folder-programu">1. Przygotuj folder programu</h2>
-<p>Najprościej otrzymać od opiekuna projektu archiwum ZIP całego repozytorium
-w wersji przeznaczonej do pracy. Jeśli pobierasz je przez GitHub, wybierz
+<p>Najprościej otrzymać od opiekuna projektu <a href="#paczka">paczkę ZIP programu i modeli</a>.
+Zawiera potrzebne części repozytorium oraz wagi; nie trzeba ich pobierać osobno. Jeśli pobierasz je przez GitHub, wybierz
 właściwą gałąź, potem <strong>Code → Download ZIP</strong>. Domyślna gałąź może nie
 zawierać bieżących funkcji; tę instrukcję przygotowano na
 <code>viewer/registration-difficult-movies</code>.</p>
@@ -952,7 +1104,7 @@ list zależności i warunku jednego testu, bez zmian kodu aplikacji ani modułó
 współdzielonych. Sprawdzono lokalne odnośniki, strukturę HTML, wymagania
 pakietów oraz git diff --check.</p>
 <h2 id="aktualizowanie-wersji-html">Aktualizowanie wersji HTML</h2>
-<p>Źródłem są installation.md, user-guide.md, installation-models.md
+<p>Źródłem są distribution.md, installation.md, user-guide.md, installation-models.md
 i niniejszy raport. Dla opiekuna dokumentacji, z katalogu repozytorium:</p>
 <pre><code class="language-text">python -m pip install -r docs/stmviewer/requirements-docs.txt
 python docs/stmviewer/build-guide.py

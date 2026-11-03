@@ -7,6 +7,7 @@ import markdown
 
 ROOT = Path(__file__).resolve().parent
 CHAPTERS = {
+    "distribution.md": "paczka",
     "installation.md": "instalacja",
     "user-guide.md": "obsluga",
     "installation-models.md": "modele",
