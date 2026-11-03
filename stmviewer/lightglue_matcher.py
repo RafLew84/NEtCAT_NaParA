@@ -110,9 +110,9 @@ class LightGlueBackend:
 
 
 def default_lightglue_options() -> 'DeepMatcherOptions':
-    from pathlib import Path
     from stmviewer.deep_matcher import DeepMatcherOptions
-    root = Path.home() / '.cache/stmviewer/lightglue'
+    from stmviewer.model_paths import default_model_root
+    root = default_model_root('lightglue')
     return DeepMatcherOptions(root / 'weights/superpoint_lightglue.pth', 'auto', root / 'source',
                               extractor_weights=root / 'weights/superpoint_v1.pth')
 

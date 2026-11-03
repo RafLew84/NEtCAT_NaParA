@@ -70,10 +70,11 @@ Uruchom program ponownie po instalowaniu bibliotek.
 
 ## 3. Skąd wziąć pliki modeli i gdzie je wskazać
 
-Dla osoby początkującej najłatwiejsza jest paczka przygotowanych modeli
-od opiekuna projektu. Rozpakuj ją w stałym folderze, np. `C:\ModeleSTM`
-lub `~/ModeleSTM`. Nie wskazuj archiwum ZIP zamiast rozpakowanego folderu.
-Zachowaj dołączone licencje i strukturę katalogów.
+Najłatwiejsza jest [paczka programu i modeli](distribution.md) od opiekuna.
+Rozpakuj ją np. do Dokumentów i zachowaj folder `models` obok `stmviewer`.
+Program sam uzupełni ścieżki modeli. Jeśli przechowujesz je osobno,
+wskaż je ręcznie według tabeli. Zachowaj licencje i strukturę katalogów;
+nie wskazuj archiwum ZIP zamiast rozpakowanego folderu.
 
 | Metoda | Pliki do wskazania w aplikacji |
 | --- | --- |
@@ -83,7 +84,7 @@ Zachowaj dołączone licencje i strukturę katalogów.
 | MatchAnything-ELoFTR | kod MatchAnything z `src/loftr`; `matchanything_eloftr.ckpt` |
 | RoMa v2 | kod DINOv3 z `hubconf.py` i `dinov3`; `romav2.0.1.pt`; Python osobnego środowiska |
 
-Po wybraniu metody w lewym panelu użyj **Wybierz wagi…**,
+Jeśli pola nie zostały uzupełnione automatycznie, po wybraniu metody użyj **Wybierz wagi…**,
 **Wybierz katalog kodu…**, a w LightGlue również **Wybierz wagi SuperPoint…**.
 Wskaż katalog zawierający wymieniony podfolder, nie sam podfolder.
 Wybierz CPU/CUDA/Auto i kliknij **Sprawdź model**.
@@ -135,9 +136,11 @@ python -m pip check
 python -c "import sys; print(sys.executable)"
 ~~~
 
-Skopiuj ostatnią ścieżkę. W głównym programie w polu
-**Python środowiska RoMa** wskaż dokładnie ten plik `python` / `python.exe`.
-Wskaż też wagi i folder DINOv3 z tabeli. Zacznij od wariantu **Turbo**.
+Po ponownym uruchomieniu głównego programu pole **Python środowiska RoMa**
+powinno wskazać wykryte środowisko `stmviewer-roma`. Jeśli go nie wykryło,
+skopiuj ostatnią ścieżkę i wybierz dokładnie ten plik `python` / `python.exe`.
+Wagi i folder DINOv3 są wykrywane w paczce; w innym układzie wskaż je
+według tabeli. Zacznij od wariantu **Turbo**.
 
 Na Linux RoMa zależy od skompilowanego `fused-local-corr`.
 Jego wydanie musi pasować do Torch/CUDA; sam pomyślny `pip check` nie

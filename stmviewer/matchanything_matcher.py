@@ -11,7 +11,6 @@ from stmviewer.correspondence_types import CorrespondenceDiagnostics, Correspond
 from stmviewer.efficient_matcher import prepare_image
 
 from importlib.util import find_spec
-from pathlib import Path
 
 from stmviewer.deep_matcher import DeepMatcherOptions
 
@@ -24,7 +23,8 @@ SOURCE_SHA256 = 'e7bb0235d9a7ebd38bf99fc34e9dcaaee325a0f55ecd8a2f12f1cce3671fc98
 
 
 def default_matchanything_options() -> DeepMatcherOptions:
-    root = Path.home() / '.cache/stmviewer/matchanything'
+    from stmviewer.model_paths import default_model_root
+    root = default_model_root('matchanything')
     return DeepMatcherOptions(root / 'weights/matchanything_eloftr.ckpt', 'auto', root / 'source')
 
 

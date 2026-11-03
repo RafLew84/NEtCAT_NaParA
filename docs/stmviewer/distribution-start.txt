@@ -7,9 +7,10 @@ Paczka programu, kodu modeli i wag. Przygotowano 2026-11-03.
    To paczka kodu i modeli, nie gotowy instalator EXE ani kopia srodowiska.
 4. Uruchamiaj z folderu NEtCAT:
    python -m stmviewer.main
-5. Wybierz metode oraz wskaz jej pliki z folderu models.
-   Program NIE wyszukuje automatycznie modeli w folderze models.
-6. Dla RoMa utworz osobne srodowisko i wskaz jego Python w aplikacji.
+5. Wybierz metode. Program wykryje pliki w sasiednim folderze models.
+   Dziala takze po rozpakowaniu paczki do Dokumentow lub OneDrive.
+6. Dla RoMa utworz osobne srodowisko stmviewer-roma.
+   Program szuka jego Pythona; w razie potrzeby wskaz go recznie.
 
 Paczka zawiera LoFTR outdoor, EfficientLoFTR, LightGlue + SuperPoint,
 MatchAnything-ELoFTR i RoMa v2 z DINOv3. AKAZE i metody klasyczne nie

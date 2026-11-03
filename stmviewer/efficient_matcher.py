@@ -4,7 +4,6 @@ from collections.abc import Callable
 from dataclasses import asdict, replace
 from typing import Protocol
 from importlib.util import find_spec
-from pathlib import Path
 
 import numpy as np
 from numpy.typing import NDArray
@@ -23,7 +22,8 @@ WEIGHTS_BYTES = 192797577
 
 
 def default_efficient_options() -> DeepMatcherOptions:
-    root = Path.home() / '.cache' / 'stmviewer' / 'efficientloftr'
+    from stmviewer.model_paths import default_model_root
+    root = default_model_root('efficientloftr')
     return DeepMatcherOptions(root / 'weights' / 'eloftr_outdoor.ckpt', 'auto', root / 'source')
 
 

@@ -24,6 +24,11 @@ class DeepMatcherOptions:
     extractor_weights: Path | None = None
 
 
+def default_deep_options() -> DeepMatcherOptions:
+    from stmviewer.model_paths import default_loftr_weights
+    return DeepMatcherOptions(weights=default_loftr_weights())
+
+
 @dataclass(frozen=True)
 class LoadedDeepMatcher:
     backend: 'ShiftBackend'

@@ -1,12 +1,11 @@
 """Local model paths and device inputs shared by pair, film and graph windows."""
 
-import os
 from pathlib import Path
 
 from PyQt6.QtCore import QSignalBlocker, Qt, pyqtSignal
 from PyQt6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
 
-from stmviewer.deep_matcher import DeepMatcherOptions
+from stmviewer.deep_matcher import DeepMatcherOptions, default_deep_options
 from stmviewer.efficient_matcher import EFFICIENT_METHOD, default_efficient_options
 from stmviewer.roma_matcher import ROMA_METHOD, default_roma_options
 from stmviewer.matchanything_matcher import MATCHANYTHING_METHOD, default_matchanything_options
@@ -28,7 +27,8 @@ class DeepMatcherControls(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self._weights_label = QLabel('Lokalne wagi LoFTR outdoor', self)
         layout.addWidget(self._weights_label)
-        self._weights = QLineEdit(os.environ.get('STMVIEWER_LOFTR_WEIGHTS', ''), self)
+        discovered = default_deep_options().weights
+        self._weights = QLineEdit(str(discovered) if discovered is not None else '', self)
         self._weights.setObjectName('deepWeights')
         self._weights.setPlaceholderText('Ścieżka do pliku .ckpt')
         self._weights.setAccessibleName('Lokalne wagi LoFTR outdoor')
@@ -119,7 +119,7 @@ class DeepMatcherControls(QWidget):
             with QSignalBlocker(self):
                 defaults = (default_lightglue_options() if family == LIGHTGLUE_METHOD else
                             default_roma_options() if family == ROMA_METHOD else
-                            default_matchanything_options() if family == MATCHANYTHING_METHOD else DeepMatcherOptions())
+                            default_matchanything_options() if family == MATCHANYTHING_METHOD else default_deep_options())
                 self.set_options(self._remembered.get(family, defaults))
         else:
             self._method = method

@@ -78,7 +78,8 @@ metadanych i nie wyznacza rzeczywistej kalibracji.
 
 1. Usuń niepotrzebne klatki **przed** obliczeniem.
 2. Wybierz metodę w lewym panelu.
-3. Przy modelach wskaż wymagane pliki i urządzenie; możesz najpierw użyć
+3. Przy modelach sprawdź automatycznie uzupełnione ścieżki (lub wskaż pliki)
+   i wybierz urządzenie; możesz najpierw użyć
    **Sprawdź model**. Przy metodach podstawowych ten krok nie jest potrzebny.
 4. Kliknij **Rejestruj**.
 5. Poczekaj na zakończenie. Przycisk **Anuluj rejestrację** przerywa zadanie;

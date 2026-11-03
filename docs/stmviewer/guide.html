@@ -26,6 +26,7 @@ button { border: 1px solid #21677a; padding: 10px 16px; background: white; color
 <li><a href="#co-zawiera-zip">Co zawiera ZIP</a></li>
 <li><a href="#jak-wskazac-modele-z-paczki">Jak wskazać modele z paczki</a></li>
 <li><a href="#skad-biora-sie-domyslne-sciezki">Skąd biorą się domyślne ścieżki</a></li>
+<li><a href="#krotka-proba-po-rozpakowaniu">Krótka próba po rozpakowaniu</a></li>
 </ul>
 </li>
 <li><a href="#instalacja">Instalacja STM Viewer — krok po kroku</a><ul>
@@ -119,8 +120,9 @@ Nie jest to instalator EXE ani całkowicie offline'owy instalator zależności.<
 <p>Zachowaj licencję programu i dołączone licencje modeli. Kod modeli i pliki
 wag pozostaw w otrzymanej postaci: ich zgodność jest sprawdzana przy ładowaniu.</p>
 <h2 id="jak-wskazac-modele-z-paczki">Jak wskazać modele z paczki</h2>
-<p><strong>Program nie wyszukuje automatycznie modeli w folderze <code>models</code>.</strong>
-Po wybraniu metody użyj przycisków wyboru wag i kodu.
+<p><strong>Program automatycznie wykrywa modele w folderze <code>models</code> obok programu.</strong>
+Po wybraniu metody pola wag i kodu powinny być już uzupełnione.
+Przy innym układzie folderów użyj przycisków wyboru wag i kodu.
 Poniższe ścieżki są względem rozpakowanego NEtCAT:</p>
 <table>
 <thead>
@@ -160,7 +162,9 @@ Poniższe ścieżki są względem rozpakowanego NEtCAT:</p>
 </table>
 <p>AKAZE, Phase, korelacja bez normalizacji, Tile+RANSAC, ECC i Optical Flow
 nie potrzebują osobnych wag. Po podstawowej instalacji można ich używać.</p>
-<p>Dla RoMa wskaż również <strong>Python środowiska RoMa</strong>. Jego ścieżkę uzyskasz
+<p>Dla RoMa sprawdź również pole <strong>Python środowiska RoMa</strong>. Program wykrywa
+środowiska o nazwach opisanych niżej. Jeśli pole nie wskazuje właściwego
+Pythona, wybierz go ręcznie. Jego ścieżkę uzyskasz
 poleceniem <code>python -c "import sys; print(sys.executable)"</code> wykonanym
 w osobnym środowisku RoMa. Instrukcja utworzenia tego środowiska jest
 w rozdziale <a href="#modele">Opcjonalne modele</a>.</p>
@@ -171,54 +175,68 @@ Po aktywowaniu środowiska <strong>stmviewer-roma</strong>, z folderu NEtCAT:</p
 <p>Najpierw dobierz wariant Torch CPU/CUDA zgodnie z instrukcją modeli.
 To polecenie może pobrać pozostałe zależności; sama paczka nie zawiera Torch.
 Nie instaluj RoMa do głównego środowiska aplikacji.</p>
-<p>Po wskazaniu plików kliknij <strong>Sprawdź model</strong>, a następnie wypróbuj jedną
+<p>Po wykryciu lub wskazaniu plików kliknij <strong>Sprawdź model</strong>, a następnie wypróbuj jedną
 parę klatek. Zapisy sesji zachowują konfigurację pracy i ścieżki modeli;
 po przeniesieniu sesji na inny komputer może być konieczne ich poprawienie.</p>
 <h2 id="skad-biora-sie-domyslne-sciezki">Skąd biorą się domyślne ścieżki</h2>
-<p>Aplikacja wypełnia pola znanymi adresami, ale nie skanuje katalogów i dysków.</p>
-<table>
-<thead>
-<tr>
-<th>Metoda</th>
-<th>Wartości początkowe</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Deep Matcher i warianty Deep</td>
-<td>Puste pole albo plik ze zmiennej środowiskowej <code>STMVIEWER_LOFTR_WEIGHTS</code></td>
-</tr>
-<tr>
-<td>EfficientLoFTR</td>
-<td><code>~/.cache/stmviewer/efficientloftr/source</code> oraz <code>weights/eloftr_outdoor.ckpt</code> w tym katalogu modelu</td>
-</tr>
-<tr>
-<td>LightGlue + SuperPoint</td>
-<td><code>~/.cache/stmviewer/lightglue/source</code> oraz oba pliki w <code>weights</code></td>
-</tr>
-<tr>
-<td>MatchAnything</td>
-<td><code>~/.cache/stmviewer/matchanything/source</code> oraz <code>weights/matchanything_eloftr.ckpt</code></td>
-</tr>
-<tr>
-<td>RoMa v2</td>
-<td><code>~/.cache/stmviewer/romav2/dinov3</code> oraz <code>weights/romav2.0.1.pt</code></td>
-</tr>
-</tbody>
-</table>
-<p><code>~</code> oznacza katalog domowy użytkownika, np. <code>/home/anna</code> na Ubuntu
-lub <code>C:\Users\Anna</code> na Windows. Na Windows aplikacja także używa podfolderu
-<code>.cache\stmviewer</code>, nie przeszukuje AppData.</p>
-<p>Domyślny Python RoMa wskazuje <code>~/miniconda3/envs/netcat-romav2/bin/python</code>
-na Linux, a na Windows <code>~/miniconda3/envs/netcat-romav2/python.exe</code>.
-To konkretna propozycja ścieżki, nie wykrywanie środowisk conda.
-Przy użyciu Miniforge i nazwy <code>stmviewer-roma</code> z instrukcji musisz wskazać
-właściwy interpreter samodzielnie.</p>
-<p>Można ręcznie umieścić cztery katalogi modeli w <code>~/.cache/stmviewer</code>,
-zachowując układ <code>source</code>/<code>weights</code> lub <code>dinov3</code>/<code>weights</code>. Wtedy domyślne
-pola do nich trafią. Prostszą drogą dla tej paczki jest jednak pozostawienie
-wszystkiego w <code>NEtCAT/models</code> i wybranie plików w GUI.
-Przekopiowanie wag nie instaluje bibliotek i nie tworzy środowiska RoMa.</p>
+<p>Przy pierwszym wyborze modelu program sprawdza:</p>
+<ol>
+<li>Folder <code>models</code> obok uruchomionego <code>stmviewer</code> — w tej samej paczce.</li>
+<li>Dotychczasowy cache <code>~/.cache/stmviewer</code>.</li>
+</ol>
+<p>Wybierany jest pierwszy komplet wymaganych plików danego modelu:
+kod i wagi pochodzą z jednego katalogu, bez łączenia niepełnych zestawów.
+Odnalezione ścieżki pojawiają się w polach aplikacji. To wykrycie plików,
+nie potwierdzenie zgodności modelu: służy do tego <strong>Sprawdź model</strong>.</p>
+<p>Możesz rozpakować ZIP np. do <strong>Dokumentów</strong>, również w OneDrive.
+Nazwa użytkownika, nazwa folderu paczki i bieżący katalog terminala nie
+wpływają na wykrywanie — punktem odniesienia jest uruchomiony kod programu.
+Zachowaj układ:</p>
+<pre><code class="language-text">NEtCAT/
+    stmviewer/
+    napara/
+    nanotrack/
+    models/
+        loftr/
+        efficientloftr/
+        lightglue/
+        matchanything/
+        romav2/
+</code></pre>
+<p><strong>Ręcznie wybrane ścieżki i ustawienia odczytane z sesji mają pierwszeństwo.</strong>
+Nie są zastępowane po przełączeniu metody, nawet jeśli wskazany plik zniknął.
+Dla Deep Matcher zmienna <code>STMVIEWER_LOFTR_WEIGHTS</code> także ma pierwszeństwo
+przed wykrywaniem. Jeśli wskazuje stary komputer, popraw ją albo usuń.</p>
+<p>Gdy plików nie ma, Deep pozostawia puste pole, a pozostałe modele pokazują
+dotychczasowe propozycje ścieżek w cache. Nadal można użyć <strong>Wybierz wagi…</strong>
+i <strong>Wybierz katalog kodu…</strong>. Nie ma pobierania wag ani przeszukiwania całego
+dysku. Przy dodaniu modeli do już uruchomionego programu wskaż je ręcznie
+lub uruchom program ponownie.</p>
+<h3 id="wykrywanie-srodowiska-roma">Wykrywanie środowiska RoMa</h3>
+<p>Program szuka istniejącego Pythona w środowiskach o nazwach
+<code>stmviewer-roma</code>, a następnie <code>netcat-romav2</code>. Sprawdza rodzeństwo bieżącego
+środowiska conda, foldery <code>miniforge3</code>, <code>miniconda3</code>, <code>anaconda3</code> i <code>.conda</code>
+w katalogu domowym oraz wpisy w <code>~/.conda/environments.txt</code>.
+Środowisko, w którym działa sama aplikacja, jest pomijane.</p>
+<p>Na Windows szukany jest <code>python.exe</code>, na Linux <code>bin/python</code>.
+Samo odnalezienie pliku nie uruchamia interpretera, nie instaluje bibliotek
+i nie sprawdza jego wersji RoMa. Po instalacji kliknij <strong>Sprawdź model</strong>.
+Jeśli używasz innej nazwy środowiska, wskaż Python przyciskiem <strong>Wybierz…</strong>.</p>
+<p>Przy braku środowiska pozostaje edytowalna propozycja
+<code>~/miniconda3/envs/netcat-romav2/bin/python</code> (Linux) albo
+<code>~/miniconda3/envs/netcat-romav2/python.exe</code> (Windows).</p>
+<h2 id="krotka-proba-po-rozpakowaniu">Krótka próba po rozpakowaniu</h2>
+<ol>
+<li>Rozpakuj całą paczkę do wybranego folderu w Dokumentach.</li>
+<li>Przygotuj środowiska według instrukcji i uruchom <code>python -m stmviewer.main</code>.</li>
+<li>Wybierz kolejno Deep Matcher, EfficientLoFTR, LightGlue, MatchAnything
+   i RoMa. Pola wag i kodu powinny wskazywać folder <code>models</code> tej paczki.</li>
+<li>Przy RoMa sprawdź również ścieżkę do Pythona utworzonego środowiska.</li>
+<li>Wybierz CPU albo CUDA i kliknij <strong>Sprawdź model</strong>.</li>
+<li>Zmień ręcznie jedną ścieżkę, wybierz inną metodę i wróć.
+   Ręczny wybór powinien pozostać.</li>
+<li>Otwórz <code>tests/stmviewer/fixtures/registration/cpu.mpp</code> i wypróbuj parę.</li>
+</ol>
 <h1 id="instalacja">Instalacja STM Viewer — krok po kroku</h1>
 <p>Instrukcja dla Ubuntu 24.04 i Windows 11, komputerów Intel/AMD 64-bit.
 Stan programu: 3 listopada 2026. Zacznij od instalacji podstawowej; pozwala
@@ -559,7 +577,8 @@ metadanych i nie wyznacza rzeczywistej kalibracji.</p>
 <ol>
 <li>Usuń niepotrzebne klatki <strong>przed</strong> obliczeniem.</li>
 <li>Wybierz metodę w lewym panelu.</li>
-<li>Przy modelach wskaż wymagane pliki i urządzenie; możesz najpierw użyć
+<li>Przy modelach sprawdź automatycznie uzupełnione ścieżki (lub wskaż pliki)
+   i wybierz urządzenie; możesz najpierw użyć
    <strong>Sprawdź model</strong>. Przy metodach podstawowych ten krok nie jest potrzebny.</li>
 <li>Kliknij <strong>Rejestruj</strong>.</li>
 <li>Poczekaj na zakończenie. Przycisk <strong>Anuluj rejestrację</strong> przerywa zadanie;
@@ -851,10 +870,11 @@ bez potrzeby: zgodny zainstalowany Torch może zostać zachowany.
 Na końcu wykonaj <code>python -m pip check</code> i powtórz próbę GPU, jeśli go używasz.
 Uruchom program ponownie po instalowaniu bibliotek.</p>
 <h2 id="3-skad-wziac-pliki-modeli-i-gdzie-je-wskazac">3. Skąd wziąć pliki modeli i gdzie je wskazać</h2>
-<p>Dla osoby początkującej najłatwiejsza jest paczka przygotowanych modeli
-od opiekuna projektu. Rozpakuj ją w stałym folderze, np. <code>C:\ModeleSTM</code>
-lub <code>~/ModeleSTM</code>. Nie wskazuj archiwum ZIP zamiast rozpakowanego folderu.
-Zachowaj dołączone licencje i strukturę katalogów.</p>
+<p>Najłatwiejsza jest <a href="#paczka">paczka programu i modeli</a> od opiekuna.
+Rozpakuj ją np. do Dokumentów i zachowaj folder <code>models</code> obok <code>stmviewer</code>.
+Program sam uzupełni ścieżki modeli. Jeśli przechowujesz je osobno,
+wskaż je ręcznie według tabeli. Zachowaj licencje i strukturę katalogów;
+nie wskazuj archiwum ZIP zamiast rozpakowanego folderu.</p>
 <table>
 <thead>
 <tr>
@@ -885,7 +905,7 @@ Zachowaj dołączone licencje i strukturę katalogów.</p>
 </tr>
 </tbody>
 </table>
-<p>Po wybraniu metody w lewym panelu użyj <strong>Wybierz wagi…</strong>,
+<p>Jeśli pola nie zostały uzupełnione automatycznie, po wybraniu metody użyj <strong>Wybierz wagi…</strong>,
 <strong>Wybierz katalog kodu…</strong>, a w LightGlue również <strong>Wybierz wagi SuperPoint…</strong>.
 Wskaż katalog zawierający wymieniony podfolder, nie sam podfolder.
 Wybierz CPU/CUDA/Auto i kliknij <strong>Sprawdź model</strong>.</p>
@@ -946,9 +966,11 @@ Następnie:</p>
 python -m pip check
 python -c &quot;import sys; print(sys.executable)&quot;
 </code></pre>
-<p>Skopiuj ostatnią ścieżkę. W głównym programie w polu
-<strong>Python środowiska RoMa</strong> wskaż dokładnie ten plik <code>python</code> / <code>python.exe</code>.
-Wskaż też wagi i folder DINOv3 z tabeli. Zacznij od wariantu <strong>Turbo</strong>.</p>
+<p>Po ponownym uruchomieniu głównego programu pole <strong>Python środowiska RoMa</strong>
+powinno wskazać wykryte środowisko <code>stmviewer-roma</code>. Jeśli go nie wykryło,
+skopiuj ostatnią ścieżkę i wybierz dokładnie ten plik <code>python</code> / <code>python.exe</code>.
+Wagi i folder DINOv3 są wykrywane w paczce; w innym układzie wskaż je
+według tabeli. Zacznij od wariantu <strong>Turbo</strong>.</p>
 <p>Na Linux RoMa zależy od skompilowanego <code>fused-local-corr</code>.
 Jego wydanie musi pasować do Torch/CUDA; sam pomyślny <code>pip check</code> nie
 sprawdza wykonania rozszerzenia na GPU. Zależności tego pakietu mogą

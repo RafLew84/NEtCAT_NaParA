@@ -2,8 +2,6 @@
 
 from collections.abc import Callable
 from dataclasses import asdict, replace
-import os
-from pathlib import Path
 from typing import Protocol
 
 import numpy as np
@@ -34,9 +32,9 @@ def normalized_points_to_original(points: NDArray[np.float64], preparation: Imag
 
 
 def default_roma_options() -> DeepMatcherOptions:
-    root = Path.home() / '.cache' / 'stmviewer' / 'romav2'
-    executable = Path.home() / 'miniconda3' / 'envs' / 'netcat-romav2'
-    executable = executable / ('python.exe' if os.name == 'nt' else 'bin/python')
+    from stmviewer.model_paths import default_model_root, default_roma_interpreter
+    root = default_model_root('romav2')
+    executable = default_roma_interpreter()
     return DeepMatcherOptions(root / 'weights/romav2.0.1.pt', 'auto', root / 'dinov3',
                               executable, 'turbo', 1000, 20261102)
 
