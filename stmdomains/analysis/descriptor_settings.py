@@ -28,7 +28,7 @@ class DescriptorSettings:
         bounds = self.descriptor_pair_distance_range
         if (not isinstance(bounds, (tuple, list)) or len(bounds) != 2 or
                 any(type(v) not in (int, float) or not isfinite(v) for v in bounds) or
-                not .1 <= bounds[0] < bounds[1] <= 4 or bounds[1] - bounds[0] < .1):
+                not .1 <= bounds[0] < bounds[1] <= 4 or round(bounds[1] - bounds[0], 12) < .1):
             raise ValueError('Zakres odległości par: 0,1 ≤ minimum < maksimum ≤ 4, szerokość co najmniej 0,1 rozstawu.')
         object.__setattr__(self, 'descriptor_pair_distance_range', tuple(bounds))
 

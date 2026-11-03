@@ -7,6 +7,15 @@ from stmdomains.analysis import analyze_frame
 from test_frame_analysis import analysis_input, five_lattices, memberships
 
 
+def test_decimal_pair_range_accepts_minimum_width_and_rejects_narrower_ranges():
+    from stmdomains.analysis.descriptor_settings import DescriptorSettings
+    for bounds in ((.2, .3), (.3, .4), (1.3, 1.4)):
+        settings = DescriptorSettings(descriptor_pair_distance_range=bounds)
+        assert settings.descriptor_pair_distance_range == bounds
+    with pytest.raises(ValueError, match='szerokość'):
+        DescriptorSettings(descriptor_pair_distance_range=(.2, .299999))
+
+
 def test_descriptor_settings_fit_matching_dimensions_and_a_new_catalogue():
     from stmdomains.analysis.descriptor_settings import DescriptorSettings
     data = analysis_input(five_lattices(), image=np.zeros((256, 384)))
