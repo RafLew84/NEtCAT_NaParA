@@ -1,0 +1,64 @@
+{
+  "validation_schema_version": 2,
+  "validated_at": "2026-08-16",
+  "application_version": "0.1.0",
+  "workflow": "clean-session TTMAPP variant C production MainWindow walkthrough",
+  "result": "passed",
+  "acceptance_evidence": "docs/domain_analysis_ttmapp_release_validation.json",
+  "fixture": {
+    "domain_geometry": [
+      "tests/moltrack/fixtures/ttmapp_domain_analysis_sources/movie2/34855.STP",
+      "tests/moltrack/fixtures/ttmapp_domain_analysis_sources/movie3/34172.STP"
+    ],
+    "frozen_detections": "tests/moltrack/fixtures/ttmapp_domain_analysis_v1.json"
+  },
+  "walkthrough_assertions": {
+    "both_stable_backends": true,
+    "production_main_window_and_composition": true,
+    "segmentation_preferred_geometry": true,
+    "point_and_polygon_corrections": true,
+    "independent_m6_and_orientation_review": true,
+    "save_open_session_v3": true,
+    "correction_aware_export_v10": true,
+    "m6_reference_root_and_child_v2": true,
+    "orientation_reference_root_and_child_v2": true,
+    "fixed_adaptive_geometry_comparison": true,
+    "both_backends_pair_correlation_evidence": true,
+    "one_shot_validation_campaign_report_v2": true,
+    "production_variant_c_only": true
+  },
+  "screenshot_source": "production MolTrackMainWindow composition",
+  "help": {
+    "menu": "Help",
+    "action": "Domain Analysis Guide",
+    "guide": "docs/moltrack/DOMAIN_ANALYSIS_USER_GUIDE.md",
+    "result": "passed"
+  },
+  "screenshots": [
+    {
+      "stage": "Analyze",
+      "path": "screenshots/spatial-command-center-analyze.png",
+      "sha256": "cc963e296fc47ec6bb1082cdd3bdc08441225669d0656961a45229197706e007"
+    },
+    {
+      "stage": "Correct",
+      "path": "screenshots/spatial-command-center-correct.png",
+      "sha256": "b653aeefedc3be2ed76d576c736340f664e91a8b606dd9cf490c474d48174e54"
+    },
+    {
+      "stage": "Review",
+      "path": "screenshots/spatial-command-center-review.png",
+      "sha256": "3f8a0767197ba16254019a24cb0849b78dfcc4a2153b6a492955f8022cf5f436"
+    },
+    {
+      "stage": "Calibrate",
+      "path": "screenshots/spatial-command-center-calibrate.png",
+      "sha256": "fc64054832cf97eb80130cbc27ea64ba3ae29310462dd5ecc054497bb5b52201"
+    }
+  ],
+  "reproduction": {
+    "command": "pytest tests/moltrack/test_domain_analysis_ttmapp_cutover.py",
+    "screenshot_environment": "MOLTRACK_DOMAIN_DOC_SCREENSHOT_DIR=docs/moltrack/screenshots",
+    "working_directory": "repository_root"
+  }
+}

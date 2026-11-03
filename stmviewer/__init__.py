@@ -1,0 +1,1 @@
+"""STM Viewer application."""

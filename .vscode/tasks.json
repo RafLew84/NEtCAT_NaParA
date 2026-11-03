@@ -1,0 +1,21 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "STM Viewer: uruchom",
+            "type": "process",
+            "command": "${command:python.interpreterPath}",
+            "args": ["-m", "stmviewer.main"],
+            "options": {"cwd": "${workspaceFolder}"},
+            "problemMatcher": []
+        },
+        {
+            "label": "STM Domains: uruchom",
+            "type": "process",
+            "command": "${command:python.interpreterPath}",
+            "args": ["-m", "stmdomains.main"],
+            "options": {"cwd": "${workspaceFolder}"},
+            "problemMatcher": []
+        }
+    ]
+}

@@ -1,0 +1,255 @@
+"""Image navigation and display, separate from the frame's measurement values."""
+
+from dataclasses import dataclass
+import math
+
+from PyQt6.QtCore import QPointF, QRectF, Qt
+from PyQt6.QtGui import QColor, QImage, QMouseEvent, QPaintEvent, QPainter, QPen, QWheelEvent
+from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
+
+from stmviewer.frame import ImageFrame
+from stmviewer.session_state import ViewTransform
+from stmviewer.ui.raster import draw_frame, frame_aspect, frame_image
+
+
+@dataclass(frozen=True)
+class PreviewOverlay:
+    """A display-only source-pixel rectangle and optional correction vector."""
+
+    rect: tuple[float, float, float, float]
+    color: str
+    label: str
+    vector_xy: tuple[float, float] | None = None
+
+
+class ImagePreview(QWidget):
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("imagePreview")
+        self.setMinimumSize(240, 200)
+        self.setToolTip("Kółko: zoom pod kursorem. Przeciągnij lewym przyciskiem, aby przesunąć obraz.")
+        self._frame: ImageFrame | None = None
+        self._gamma = 1.0
+        self._pixel_proportions = False
+        self._image: QImage | None = None
+        self._aspect = 1.0
+        self._zoom = 1.0
+        self._pan = QPointF()
+        self._drag_position: QPointF | None = None
+        self._view = "original"
+        self._views: dict[str, tuple[float, QPointF]] = {}
+        self._original_rect: tuple[float, float, int, int] | None = None
+        self._overlays: tuple[PreviewOverlay, ...] = ()
+        self._empty = QLabel("Brak otwartego obrazu.", self)
+        self._empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout = QVBoxLayout(self)
+        layout.addWidget(self._empty)
+
+    def set_frame(self, frame: ImageFrame, *, reset_view: bool = True,
+                  reset_settings: bool = False, view: str = "original",
+                  original_rect: tuple[float, float, int, int] | None = None,
+                  gamma: float | None = None) -> None:
+        gamma = gamma if gamma is not None else 1.0 if reset_settings else self._gamma
+        if not 0.1 <= gamma <= 4.0:
+            raise ValueError("Gamma musi mieścić się w zakresie 0,1–4.")
+        image = frame_image(frame, gamma=gamma)
+        pixels = False if reset_settings else self._pixel_proportions
+        aspect = frame_aspect(frame, pixel_proportions=pixels)
+        if reset_settings:
+            self._views.clear()
+        elif view != self._view:
+            self._views[self._view] = (self._zoom, QPointF(self._pan))
+        if view != self._view:
+            self._zoom, self._pan = self._views.get(view, (1.0, QPointF()))
+            self._drag_position = None
+        self._view = view
+        self._overlays = ()
+        self._original_rect = original_rect
+        self._gamma = gamma
+        self._pixel_proportions = pixels
+        self._frame = frame
+        self._image = image
+        self._aspect = aspect
+        self._empty.hide()
+        if reset_view:
+            self.fit_image()
+        else:
+            self.update()
+
+    def navigation_states(self) -> dict[str, ViewTransform]:
+        """Capture original/aligned zoom and pan, including the current view."""
+        states = {name: ViewTransform(zoom, (pan.x(), pan.y()))
+                  for name, (zoom, pan) in self._views.items()}
+        states[self._view] = ViewTransform(self._zoom, (self._pan.x(), self._pan.y()))
+        return states
+
+    def restore_navigation(self, states: dict[str, ViewTransform]) -> None:
+        self._views = {name: (state.zoom, QPointF(*state.pan_xy)) for name, state in states.items()}
+        self._zoom, self._pan = self._views.get(self._view, (1.0, QPointF()))
+        self._drag_position = None
+        self.update()
+
+    def set_image(self, image: QImage, *, aspect: float, reset_view: bool = False) -> None:
+        """Display an already rendered raster, retaining one shared navigation state."""
+        self._frame = None
+        self._original_rect = None
+        self._image = image
+        self._aspect = aspect
+        self._empty.hide()
+        if reset_view:
+            self.fit_image()
+        else:
+            self.update()
+
+    def set_overlays(self, overlays: tuple[PreviewOverlay, ...]) -> None:
+        """Draw evidence in image coordinates, never into the measurement raster."""
+        self._overlays = overlays
+        self.update()
+
+    def clear_frame(self) -> None:
+        """Release the last measurement and return to the empty preview."""
+        self._frame = None
+        self._image = None
+        self._overlays = ()
+        self._views.clear()
+        self._view = "original"
+        self._original_rect = None
+        self._aspect = 1.0
+        self.fit_image()
+        self.unsetCursor()
+        self._empty.show()
+
+    def set_pixel_proportions(self, enabled: bool) -> None:
+        """Ignore header scale in the view while retaining all source metadata."""
+        if self._frame is not None:
+            self._aspect = frame_aspect(self._frame, pixel_proportions=enabled)
+        self._pixel_proportions = enabled
+        self.update()
+
+    def set_gamma(self, gamma: float) -> None:
+        """Change display brightness without modifying measurement values or geometry."""
+        if not 0.1 <= gamma <= 4.0:
+            raise ValueError("Gamma musi mieścić się w zakresie 0,1–4.")
+        if self._frame is not None:
+            self._image = frame_image(self._frame, gamma=gamma)
+        self._gamma = gamma
+        self.update()
+
+    def fit_image(self) -> None:
+        """Restore the complete, centered image after navigation or a new import."""
+        self._zoom = 1.0
+        self._pan = QPointF()
+        self._drag_position = None
+        if self._image is not None:
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+        self.update()
+
+    def wheelEvent(self, event: QWheelEvent | None) -> None:
+        if event is None:
+            return
+        if self._image is None:
+            event.ignore()
+            return
+        delta = event.angleDelta().y() or event.pixelDelta().y()
+        if not delta:
+            event.ignore()
+            return
+        steps = max(-60.0, min(60.0, delta / 120))
+        self._zoom_at(1.2 ** steps, event.position())
+        event.accept()
+
+    def zoom_in(self) -> None:
+        self._zoom_at(1.2, QPointF(self.width() / 2, self.height() / 2))
+
+    def zoom_out(self) -> None:
+        self._zoom_at(1 / 1.2, QPointF(self.width() / 2, self.height() / 2))
+
+    def _zoom_at(self, factor: float, position: QPointF) -> None:
+        if self._image is None:
+            return
+        zoom = max(0.1, min(64.0, self._zoom * factor))
+        cursor = position - QPointF(self.width() / 2, self.height() / 2)
+        self._pan = cursor + (self._pan - cursor) * (zoom / self._zoom)
+        self._zoom = zoom
+        self.update()
+
+    def mousePressEvent(self, event: QMouseEvent | None) -> None:
+        if event is not None and self._image is not None and event.button() == Qt.MouseButton.LeftButton:
+            self._drag_position = event.position()
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent | None) -> None:
+        if event is not None and self._drag_position is not None:
+            if event.buttons() & Qt.MouseButton.LeftButton:
+                self._pan += event.position() - self._drag_position
+                self._drag_position = event.position()
+                self.update()
+                event.accept()
+                return
+            self._drag_position = None
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent | None) -> None:
+        if (event is not None and self._drag_position is not None
+                and event.button() == Qt.MouseButton.LeftButton):
+            # Include a final move even if the platform coalesced mouse-move events.
+            self._pan += event.position() - self._drag_position
+            self._drag_position = None
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+            self.update()
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
+
+    def paintEvent(self, event: QPaintEvent | None) -> None:
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), self.palette().window())
+        if self._image is None:
+            return
+        width = min(float(self.width()), self.height() * self._aspect) * self._zoom
+        height = width / self._aspect
+        target = QRectF((self.width() - width) / 2, (self.height() - height) / 2,
+                        width, height)
+        target.translate(self._pan)
+        draw_frame(painter, target, self._image)
+        if self._original_rect is not None:
+            x, y, w, h = self._original_rect
+            sx, sy = target.width() / self._image.width(), target.height() / self._image.height()
+            pen = QPen(QColor(255, 200, 0), 1, Qt.PenStyle.DashLine)
+            pen.setCosmetic(True)
+            painter.setPen(pen)
+            painter.drawRect(QRectF(target.x() + x * sx, target.y() + y * sy, w * sx, h * sy))
+
+        self._draw_overlays(painter, target)
+
+    def _draw_overlays(self, painter: QPainter, target: QRectF) -> None:
+        if self._image is None or not self._overlays:
+            return
+        sx, sy = target.width() / self._image.width(), target.height() / self._image.height()
+        painter.save()
+        painter.setClipRect(target)
+        for overlay in self._overlays:
+            x, y, w, h = overlay.rect
+            pen = QPen(QColor(overlay.color), 2)
+            pen.setCosmetic(True)
+            painter.setPen(pen)
+            rect = QRectF(target.x() + x * sx, target.y() + y * sy, w * sx, h * sy)
+            painter.drawRect(rect)
+            painter.drawText(rect.topLeft() + QPointF(4, 13), overlay.label)
+            if overlay.vector_xy is not None:
+                dx, dy = overlay.vector_xy
+                start = rect.center()
+                end = start + QPointF(dx * sx, dy * sy)
+                painter.drawLine(start, end)
+                length = math.hypot(end.x() - start.x(), end.y() - start.y())
+                if length > 2:
+                    angle = math.atan2(end.y() - start.y(), end.x() - start.x())
+                    tip = min(6.0, length * 0.4)
+                    for side in (-0.5, 0.5):
+                        painter.drawLine(end, end - QPointF(tip * math.cos(angle + side),
+                                                           tip * math.sin(angle + side)))
+        painter.restore()

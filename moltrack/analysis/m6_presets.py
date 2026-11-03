@@ -1,0 +1,41 @@
+from __future__ import annotations
+
+from .m6_settings import MolecularM6OrientationAnalysisSettings
+
+
+TTMAPP_M6_ORIENTATION_ANALYSIS_PRESET = MolecularM6OrientationAnalysisSettings(
+    duplicate_detection_enabled=True,
+    duplicate_max_distance_nm=10.0,
+    first_shell_r_min_nm=30.0,
+    first_shell_r_max_nm=70.0,
+    symmetry_m=6,
+    bond_weighting="uniform",
+    duplicate_policy="best_quality_representative",
+    duplicate_chain_policy="deterministic_complete_linkage",
+    geometry_collision_policy="always_deduplicate_with_tolerance",
+    geometry_absolute_tolerance_nm=1e-9,
+    geometry_relative_tolerance=1e-10,
+    min_neighbors_for_local_order=3,
+    min_neighbors_for_seed=5,
+    min_ordered_component_size=3,
+    min_seed_size=5,
+    min_domain_size=12,
+    domain_conflict_margin=0.05,
+    domain_merge_angle_tolerance_deg=8.0,
+    footprint_support_radius_nm=35.0,
+    q_seed=0.65,
+    q_grow=0.25,
+    seed_angle_tolerance_deg=8.0,
+    grow_angle_tolerance_deg=12.0,
+    delaunay_degeneracy_policy="exclude_ambiguous_edges",
+    gr_bin_width_nm=5.0,
+    gr_max_nm=250.0,
+    gr_min_expected_pair_exposure=5.0,
+    gr_min_contributing_frames=1,
+    gr_smoothing_method="gaussian_bins",
+    gr_smoothing_width=2.0,
+    gr_peak_prominence=0.1,
+    min_bonds_for_domain_length_stats=5,
+    domain_bond_length_robust_cv_qc_threshold=0.2,
+    orientation_zero_tolerance=1e-12,
+)

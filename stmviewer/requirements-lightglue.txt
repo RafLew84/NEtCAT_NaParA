@@ -1,0 +1,4 @@
+-r requirements-deep.txt
+# Local verified source/weights; see ../docs/stmviewer/installation-models.md.
+torchvision>=0.24,<1
+matplotlib>=3.10,<4

@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "test_suite": {
+    "baseline_commit": "e6ec46b9a9170e5ae155cff77f7ac7cd3099f85b",
+    "command": "$env:QT_QPA_PLATFORM='offscreen'; conda run -n netcat python -m pytest tests\\moltrack -q --tb=short",
+    "result": {
+      "passed": 1135,
+      "failed": 0,
+      "errors": 0,
+      "duration_seconds": 275.6
+    }
+  },
+  "files": {
+    "moltrack/analysis/__init__.py": {
+      "physical_lines": 967
+    },
+    "moltrack/analysis/lattice_domain_calibration_models.py": {
+      "physical_lines": 838,
+      "classes": 14
+    },
+    "moltrack/analysis/lattice_domain_models.py": {
+      "physical_lines": 1071,
+      "definitions": 33
+    },
+    "moltrack/analysis/lattice_domain_seed_growth.py": {
+      "physical_lines": 1059,
+      "definitions": 35
+    },
+    "moltrack/analysis/m6_domain_type_lifecycle.py": {
+      "physical_lines": 950,
+      "definitions": 38
+    },
+    "moltrack/analysis/m6_domain_type_range_comparison.py": {
+      "definitions": 34
+    },
+    "moltrack/analysis/molecular_order_type_classifier.py": {
+      "physical_lines": 1018,
+      "definitions": 37
+    },
+    "moltrack/analysis/molecular_order_type_models.py": {
+      "physical_lines": 1012,
+      "definitions": 37
+    },
+    "moltrack/analysis/molecular_orientation_prototype_models.py": {
+      "physical_lines": 1216
+    },
+    "moltrack/analysis/molecular_orientation_prototypes.py": {
+      "physical_lines": 1112
+    },
+    "moltrack/analysis/molecular_orientation_topography.py": {
+      "physical_lines": 888
+    },
+    "moltrack/analysis/molecular_stacking_analysis.py": {
+      "physical_lines": 827
+    },
+    "moltrack/analysis/orientation_domain_footprint.py": {
+      "physical_lines": 1073
+    },
+    "moltrack/analysis/orientation_domain_merge.py": {
+      "physical_lines": 842,
+      "definitions": 31
+    },
+    "moltrack/analysis/texture_domain_analysis.py": {
+      "physical_lines": 1090,
+      "definitions": 40
+    },
+    "moltrack/persistence/session_store.py": {
+      "physical_lines": 959,
+      "definitions": 33
+    },
+    "moltrack/sam2/adapter.py": {
+      "definitions": 32
+    },
+    "moltrack/ui/main_window.py": {
+      "physical_lines": 4744,
+      "definitions": 226,
+      "classes": 15
+    },
+    "moltrack/ui/widgets/stm_series_viewer.py": {
+      "physical_lines": 1381,
+      "definitions": 95
+    },
+    "tests/moltrack/test_main_window.py": {
+      "physical_lines": 6754,
+      "tests": 107
+    }
+  },
+  "functions": {
+    "moltrack/analysis/_deterministic_complete_linkage.py": {
+      "deterministic_complete_linkage_clusters": 97
+    },
+    "moltrack/analysis/_first_shell_deduplication.py": {
+      "_deduplicate_points": 101
+    },
+    "moltrack/analysis/_local_harmonic_bond_order.py": {
+      "compute_local_harmonic_bond_order_core": 119
+    },
+    "moltrack/analysis/_local_multisymmetry_validation.py": {
+      "validate_point_context": 144
+    },
+    "moltrack/analysis/_orientation_domain_common.py": {
+      "normalize_m6_point_state": 97
+    },
+    "moltrack/analysis/_orientation_domain_growth.py": {
+      "grow_m6_labels_to_fixed_point": 89
+    },
+    "moltrack/analysis/first_shell_builder.py": {
+      "build_first_shell_graph": 167
+    },
+    "moltrack/analysis/first_shell_graph.py": {
+      "FirstShellGraph.__post_init__": 323
+    },
+    "moltrack/analysis/first_shell_suggestion.py": {
+      "_suggest_first_shell_r_max": 132,
+      "suggest_shared_first_shell_r_max": 116
+    },
+    "moltrack/analysis/intensity.py": {
+      "build_molecular_intensity_measurements": 180
+    },
+    "moltrack/analysis/lattice_domain_analysis.py": {
+      "_measure_component": 166,
+      "build_lattice_domain_analysis": 145
+    },
+    "moltrack/analysis/lattice_domain_calibration.py": {
+      "run_lattice_domain_calibration": 176
+    },
+    "moltrack/analysis/lattice_domain_calibration_report.py": {
+      "_markdown_report": 116
+    },
+    "moltrack/analysis/lattice_domain_calibration_search.py": {
+      "build_multivariate_variants": 156
+    },
+    "moltrack/analysis/lattice_domain_edge_compatibility.py": {
+      "_classify_edge": 137,
+      "build_lattice_domain_edge_compatibility": 117
+    },
+    "moltrack/analysis/lattice_domain_edge_models.py": {
+      "LatticeDomainEdgeCompatibilityField.__post_init__": 137
+    },
+    "moltrack/analysis/lattice_domain_models.py": {
+      "LatticeDomain.__post_init__": 146,
+      "LatticeDomainAnalysis.__post_init__": 211,
+      "LatticeDomainGeometry.__post_init__": 84,
+      "_validate_component_metrics": 98
+    },
+    "moltrack/analysis/lattice_domain_seed_growth.py": {
+      "_build_core_clusters": 95,
+      "_grow_halo_to_fixed_point": 106,
+      "build_lattice_domain_seed_growth": 97
+    },
+    "moltrack/analysis/lattice_domain_seed_growth_models.py": {
+      "LatticeDomainSeedGrowthResult.__post_init__": 161
+    },
+    "moltrack/analysis/lattice_domain_validation.py": {
+      "evaluate_lattice_domain_partition": 141
+    },
+    "moltrack/analysis/lattice_row_assignment.py": {
+      "_assign_domain_rows": 92,
+      "_build_candidate": 130
+    },
+    "moltrack/analysis/lattice_row_models.py": {
+      "LatticeDomainRowAssignment.__post_init__": 120,
+      "LatticeRowAssignmentAnalysis.__post_init__": 81,
+      "LatticeRowAxisCandidate.__post_init__": 175
+    },
+    "moltrack/analysis/local_multisymmetry_bond_order.py": {
+      "LocalMultiSymmetryBondOrderField.__post_init__": 134,
+      "LocalMultiSymmetryBondOrderField._normalize_scalar_fields": 96
+    },
+    "moltrack/analysis/local_multisymmetry_bond_order_computation.py": {
+      "compute_local_multisymmetry_bond_order": 145
+    },
+    "moltrack/analysis/local_sixfold_bond_order.py": {
+      "LocalSixfoldBondOrderField.__post_init__": 228
+    },
+    "moltrack/analysis/local_symmetry_evidence_classifier.py": {
+      "_classify_point": 139,
+      "classify_local_symmetry_evidence": 111
+    },
+    "moltrack/analysis/m3_sublattice_gauge.py": {
+      "M3SublatticeGaugeAssignment.__post_init__": 94,
+      "build_m3_sublattice_gauge_assignment": 109
+    },
+    "moltrack/analysis/m6_current_frame_results.py": {
+      "build_m6_current_frame_results": 89
+    },
+    "moltrack/analysis/m6_domain_type_aggregates.py": {
+      "M6DomainTypeRangeAggregate.__post_init__": 135,
+      "M6DomainTypeRangeAggregates.__post_init__": 91,
+      "aggregate_m6_domain_types_for_range": 83
+    },
+    "moltrack/analysis/m6_domain_type_classifier.py": {
+      "classify_m6_domain_types": 88
+    },
+    "moltrack/analysis/m6_domain_type_observations.py": {
+      "M6DomainTypeObservation.__post_init__": 166,
+      "extract_m6_domain_type_observations": 110
+    },
+    "moltrack/analysis/m6_domain_type_results.py": {
+      "M6DomainTypeClassificationResult.__post_init__": 96
+    },
+    "moltrack/analysis/m6_headless_validation.py": {
+      "_run_validation_frame": 115
+    },
+    "moltrack/analysis/m6_settings.py": {
+      "MolecularM6OrientationAnalysisSettings.__post_init__": 107
+    },
+    "moltrack/analysis/m6_single_range_domain_type_summary.py": {
+      "M6SingleRangeDomainTypeSummary.__post_init__": 182,
+      "build_m6_single_range_domain_type_summary": 131
+    },
+    "moltrack/analysis/molecular_m6_analysis.py": {
+      "analyze_molecular_m6_orientation": 89
+    },
+    "moltrack/analysis/molecular_order_hierarchy.py": {
+      "MolecularOrderLatticeDomain.__post_init__": 93,
+      "build_molecular_order_hierarchy": 180
+    },
+    "moltrack/analysis/molecular_order_type_models.py": {
+      "MolecularOrderTypeClassificationResult.__post_init__": 135,
+      "MolecularOrderTypeObservation.__post_init__": 119
+    },
+    "moltrack/analysis/molecular_order_type_summary.py": {
+      "build_molecular_order_type_summary": 94
+    },
+    "moltrack/analysis/molecular_orientation_mask.py": {
+      "MolecularMaskOrientationResult.__post_init__": 122,
+      "estimate_molecular_orientation_from_mask": 132
+    },
+    "moltrack/analysis/molecular_orientation_method_validation.py": {
+      "MolecularOrientationMethodMergeAssessment.__post_init__": 81,
+      "MolecularOrientationMethodValidation.__post_init__": 126,
+      "assess_molecular_orientation_method_merge": 100,
+      "evaluate_molecular_orientation_method_against_reference": 109
+    },
+    "moltrack/analysis/molecular_orientation_models.py": {
+      "MolecularOrientationMeasurement.__post_init__": 84
+    },
+    "moltrack/analysis/molecular_orientation_prototype_models.py": {
+      "MolecularOrientationAxisEvidence.__post_init__": 97,
+      "MolecularOrientationPrototypeAnalysis.__post_init__": 274,
+      "MolecularOrientationRangeAxisEvidence.__post_init__": 104
+    },
+    "moltrack/analysis/molecular_orientation_prototypes.py": {
+      "_build_range_axis_evidence": 81,
+      "_candidate_evidence": 109,
+      "build_molecular_orientation_prototype_analysis": 246
+    },
+    "moltrack/analysis/molecular_orientation_reference.py": {
+      "MolecularOrientationReferenceDataset.__post_init__": 98
+    },
+    "moltrack/analysis/molecular_orientation_store.py": {
+      "estimate_series_molecular_orientations": 125
+    },
+    "moltrack/analysis/molecular_orientation_topography.py": {
+      "MolecularTopographyOrientationResult.__post_init__": 196,
+      "MolecularTopographyOrientationSettings.__post_init__": 98,
+      "estimate_molecular_orientation_from_topography": 274
+    },
+    "moltrack/analysis/molecular_stacking_analysis.py": {
+      "_two_state_order": 136,
+      "_uniform_order": 103,
+      "analyze_molecular_stacking": 118
+    },
+    "moltrack/analysis/molecular_stacking_models.py": {
+      "MolecularStackingAnalysis.__post_init__": 110,
+      "StackingOrder.__post_init__": 102
+    },
+    "moltrack/analysis/orientation_domain_analysis.py": {
+      "M6OrientationDomainAnalysis.__post_init__": 151,
+      "analyze_m6_orientation_domains": 114
+    },
+    "moltrack/analysis/orientation_domain_finalization.py": {
+      "finalize_m6_orientation_domains": 83
+    },
+    "moltrack/analysis/orientation_domain_footprint.py": {
+      "M6OrientationFootprintPartition.__post_init__": 145,
+      "_build_cell": 89,
+      "compute_m6_orientation_footprint_partition": 162
+    },
+    "moltrack/analysis/orientation_domain_frame_aggregates.py": {
+      "M6OrientationFrameAggregates.__post_init__": 346,
+      "aggregate_m6_orientation_frame": 144
+    },
+    "moltrack/analysis/orientation_domain_merge.py": {
+      "M6OrientationDomainMergeState.__post_init__": 122,
+      "_complete_linkage_merge_groups": 128,
+      "merge_and_grow_m6_orientation_domains": 103
+    },
+    "moltrack/analysis/orientation_domain_models.py": {
+      "M6OrientationDomainSegmentation.__post_init__": 130
+    },
+    "moltrack/analysis/orientation_domain_seed_growth.py": {
+      "M6OrientationDomainGrowthState.__post_init__": 109
+    },
+    "moltrack/analysis/orientation_domain_seeds.py": {
+      "M6OrientationDomainSeedDetection.__post_init__": 101,
+      "detect_m6_orientation_domain_seeds": 97
+    },
+    "moltrack/analysis/pair_correlation.py": {
+      "PairCorrelationResult.__post_init__": 159,
+      "compute_pair_correlation": 179
+    },
+    "moltrack/analysis/pair_correlation_aggregation.py": {
+      "AggregatedPairCorrelationResult.__post_init__": 183,
+      "aggregate_pair_correlation_results": 134
+    },
+    "moltrack/analysis/position_plot.py": {
+      "build_molecular_position_plot_data": 116
+    },
+    "moltrack/analysis/range_analysis.py": {
+      "analyze_molecular_frame_range": 148
+    },
+    "moltrack/analysis/range_comparison.py": {
+      "compare_molecular_frame_ranges": 89
+    },
+    "moltrack/analysis/sample_coordinates.py": {
+      "MolecularSampleCoordinates.__post_init__": 115,
+      "build_molecular_sample_coordinates": 144
+    },
+    "moltrack/analysis/sixfold_bond_order_aggregates.py": {
+      "SixfoldBondOrderAggregates.__post_init__": 127
+    },
+    "moltrack/analysis/structural_analysis_persistence.py": {
+      "restore_structural_analysis_cache_records": 87
+    },
+    "moltrack/analysis/texture_domain_analysis.py": {
+      "TextureDomainAnalysisSettings.__post_init__": 81
+    },
+    "moltrack/core/session.py": {
+      "MolTrackSession.__post_init__": 121
+    },
+    "moltrack/persistence/session_store.py": {
+      "_mask_from_payload": 87
+    },
+    "moltrack/sam2/adapter.py": {
+      "MolTrackSam2Segmenter._segment_frame_detections_using_backend": 109
+    },
+    "moltrack/sam2/benchmark.py": {
+      "benchmark_sam2_optimization": 83
+    },
+    "moltrack/ui/main_window.py": {
+      "MolTrackMainWindow.__init__": 123,
+      "MolTrackMainWindow._build_central_widget": 333,
+      "MolTrackMainWindow._start_molecular_orientation_estimation": 93,
+      "MolTrackMainWindow._start_sam2_segmentation": 120,
+      "MolTrackMainWindow._sync_segmentation_controls": 93,
+      "Sam2SegmentationSettingsDialog.__init__": 82,
+      "_Sam2SegmentWorker._run_persistent_range": 124
+    },
+    "moltrack/ui/widgets/molecular_orientation_panel.py": {
+      "MolecularOrientationPanel._build": 106
+    },
+    "moltrack/visualization/m6_domain_type_plot_data.py": {
+      "build_m6_domain_type_scatter_data": 91
+    }
+  }
+}

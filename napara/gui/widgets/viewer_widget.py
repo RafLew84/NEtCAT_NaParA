@@ -200,7 +200,8 @@ class ViewerWidget(QWidget):
         item = PlotDataItem(pts_nm[:, 0], pts_nm[:, 1], pen=pen, name=name)
         # zapamiętaj pióra do highlightu
         item._base_pen = pen
-        item._hl_pen = mkPen((255, 220, 0), width=max(width * 1.8, width + 1))
+        highlight_color = (255, 220, 0, color[3]) if len(color) == 4 else (255, 220, 0)
+        item._hl_pen = mkPen(highlight_color, width=max(width * 1.8, width + 1))
         self.plot_item.addItem(item)
         self._overlay_items.add(item)
         return item
@@ -213,6 +214,71 @@ class ViewerWidget(QWidget):
         self.plot_item.addItem(ti)
         self._overlay_items.add(ti)
         return ti
+
+    def add_points_nm(self, points_nm, *, color=(0, 255, 120), size: float = 7.0):
+        """Add one scatter overlay for points expressed in viewer coordinates."""
+        points = np.asarray(points_nm, dtype=np.float64)
+        if points.ndim != 2 or points.shape[1] != 2 or points.shape[0] == 0:
+            return None
+        item = pg.ScatterPlotItem(
+            x=points[:, 0],
+            y=points[:, 1],
+            size=float(size),
+            pen=pg.mkPen((20, 20, 20, 220), width=1.0),
+            brush=pg.mkBrush((*color, 230)),
+        )
+        self.plot_item.addItem(item)
+        self._overlay_items.add(item)
+        return item
+
+    def add_colored_points_nm(self, points_nm, colors_rgba, *, size: float = 7.0):
+        """Add one scatter overlay with one RGBA color per point."""
+        points = np.asarray(points_nm, dtype=np.float64)
+        colors = tuple(tuple(int(channel) for channel in color) for color in colors_rgba)
+        if points.ndim != 2 or points.shape[1] != 2 or points.shape[0] == 0:
+            return None
+        if len(colors) != points.shape[0]:
+            raise ValueError("colors_rgba must contain one color per point.")
+        if any(len(color) != 4 or any(not 0 <= channel <= 255 for channel in color) for color in colors):
+            raise ValueError("colors_rgba must contain RGBA byte values.")
+        item = pg.ScatterPlotItem(
+            x=points[:, 0],
+            y=points[:, 1],
+            size=float(size),
+            pen=pg.mkPen((20, 20, 20, 180), width=0.8),
+            brush=[pg.mkBrush(color) for color in colors],
+        )
+        self.plot_item.addItem(item)
+        self._overlay_items.add(item)
+        return item
+
+    def add_mask_overlay_px(
+        self,
+        mask,
+        *,
+        color=(0, 200, 255),
+        alpha: int = 80,
+        scale_nm_per_px: tuple[float | None, float | None] | None = None,
+    ):
+        """Dodaj półprzezroczystą maskę binarną w układzie pikselowym."""
+        mask_array = np.asarray(mask, dtype=bool)
+        if mask_array.ndim != 2 or mask_array.size == 0 or not np.any(mask_array):
+            return None
+        rgba = np.zeros((*mask_array.shape, 4), dtype=np.ubyte)
+        rgba[mask_array, 0] = int(color[0])
+        rgba[mask_array, 1] = int(color[1])
+        rgba[mask_array, 2] = int(color[2])
+        rgba[mask_array, 3] = int(alpha)
+        item = pg.ImageItem(rgba)
+        sx, sy = scale_nm_per_px if scale_nm_per_px is not None else self._nm_scale
+        sx = sx or 1.0
+        sy = sy or 1.0
+        tr = QTransform()
+        tr.scale(float(sx), float(sy))
+        item.setTransform(tr)
+        self.plot_item.addItem(item)
+        self._overlay_items.add(item)
+        return item
 
     def set_item_visible(self, item, visible: bool):
         if item is not None:

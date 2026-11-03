@@ -1,0 +1,234 @@
+"""Public pair export, independent byte expectations, and public reader round-trips."""
+
+from pathlib import Path
+import hashlib
+import json
+import struct
+
+import numpy as np
+import pytest
+
+from stmviewer.series import open_frame_series
+
+FIXTURES = Path(__file__).parent / 'fixtures'
+
+
+def test_original_export_preserves_removed_frame_gaps_provenance_and_file_orientation(tmp_path):
+    from stmviewer.mpp_export import save_original_mpp
+
+    first, _, third = open_frame_series([FIXTURES / 'mpp/known-times.mpp'])
+    destination = tmp_path / 'result.MPP'
+    save_original_mpp(destination, (first, third))
+    raw = destination.read_bytes()
+    header, payload = raw.split(b'[Header end]\r\n', 1)
+    assert b'Image Data Type: double' in header
+    assert b'Number of Frames: 2' in header
+    assert b'Frame 0000: 10.0 s' in header and b'Frame 0001: 35.0 s' in header
+    # Known file order: independently specified rotated L then the inverse marker.
+    assert struct.unpack('<24d', payload) == (
+        1, 8, 8, 8, 0, 4, 0, 8, 2, 0, 0, 8,
+        8, 0, 0, 2, 8, 0, 4, 0, 8, 8, 8, 1,
+    )
+    metadata = json.loads(destination.with_name(destination.name + '.stmviewer.json').read_text())
+    assert metadata['version'] == 1 and metadata['image_kind'] == 'original'
+    assert metadata['movie'] == dict(sha256=hashlib.sha256(raw).hexdigest(), frame_count=2, shape_yx=[3, 4])
+    restored = open_frame_series([destination])
+    assert [f.measurement_time_s for f in restored] == [10, 35]
+    assert [f.provenance.source_frame_index for f in restored] == [0, 2]
+    assert all(f.provenance.source == str(first.source) for f in restored)
+    for source, output in zip((first, third), restored):
+        np.testing.assert_array_equal(output.data, source.data)
+        assert output.raw_header == source.raw_header
+        assert output.signal_unit == 'nA' and output.size_x_nm == 8
+        assert 'wczytano' in output.metadata_note
+
+
+def test_stp_s94_and_missing_pixels_roundtrip_without_precision_loss(tmp_path):
+    from dataclasses import replace
+    from stmviewer.mpp_export import save_original_mpp
+
+    for relative in ('asymmetric.stp', 's94/frame2.s94', 'preview/missing.stp', 'mpp/timed.MPP'):
+        frames = open_frame_series([FIXTURES / relative])
+        path = tmp_path / (Path(relative).name + '.mpp')
+        save_original_mpp(path, frames)
+        for source, output in zip(frames, open_frame_series([path]), strict=True):
+            np.testing.assert_array_equal(output.data, source.data)
+            for field in ('raw_header', 'channel', 'signal_unit', 'size_x_nm', 'size_y_nm',
+                          'offset_x_nm', 'offset_y_nm', 'bias_v', 'setpoint_a', 'scan_angle_deg',
+                          'calibration_note', 'measurement_time_s', 'measurement_time_raw'):
+                assert getattr(output, field) == getattr(source, field), field
+    values = np.array([[np.nextafter(1., 2.), -0., np.finfo(float).max],
+                       [np.nextafter(0., 1.), -np.finfo(float).max, np.nan]])
+    path = tmp_path / 'precise.mpp'
+    save_original_mpp(path, (replace(frames[0], data=values),))
+    saved = open_frame_series([path])[0].data
+    np.testing.assert_array_equal(saved, values)
+    assert np.signbit(saved[0, 1])
+    payload = path.read_bytes().split(b'[Header end]\r\n', 1)[1]
+    assert payload == struct.pack('<6d', np.nan, -np.finfo(float).max,
+                                 np.nextafter(0., 1.), np.finfo(float).max, -0., np.nextafter(1., 2.))
+
+
+def test_mixed_metadata_uses_conventional_header_and_keeps_historical_provenance(tmp_path):
+    from stmviewer.mpp_export import save_original_mpp
+
+    frames = open_frame_series([FIXTURES / 'mpp-metadata/mixed.MPP'])
+    path = tmp_path / 'mixed.mpp'
+    save_original_mpp(path, frames)
+    header = path.read_bytes().split(b'[Header end]', 1)[0]
+    assert b'Acquisition channel: Unknown' in header
+    assert b'Z Amplitude: 1 a.u.' in header
+    assert b'X Amplitude: 4 a.u.' in header and b'Y Amplitude: 3 a.u.' in header
+    assert b'Gap Voltage:' not in header
+    assert b'Frame 0001:' not in header
+    restored = open_frame_series([path])
+    for source, output in zip(frames, restored, strict=True):
+        assert output.provenance == source.provenance
+        for field in ('raw_header', 'signal_unit', 'channel', 'size_x_nm', 'size_y_nm',
+                      'measurement_time_s', 'measurement_time_raw', 'bias_v', 'calibration_note'):
+            assert getattr(output, field) == getattr(source, field)
+    assert restored[1].provenance.source == r'C:\pomiary\movie.MPP'
+    assert restored[0].raw_header['General Info']['Operator'] == 'Żaneta'
+    moved = tmp_path / 'moved'
+    moved.mkdir()
+    path.rename(moved / path.name)
+    path.with_name(path.name + '.stmviewer.json').rename(moved / (path.name + '.stmviewer.json'))
+    assert open_frame_series([moved / path.name])[1].provenance == frames[1].provenance
+
+
+def test_long_utf8_header_has_exact_byte_offset_and_reopens(tmp_path):
+    from dataclasses import replace
+    from stmviewer.mpp_export import save_original_mpp
+
+    source = open_frame_series([FIXTURES / 'asymmetric.stp'])[0]
+    frames = tuple(replace(source, channel='Kanał µ', measurement_time_s=float(i)) for i in range(1100))
+    path = tmp_path / 'long.mpp'
+    save_original_mpp(path, frames)
+    raw = path.read_bytes()
+    offset = int(raw.splitlines()[2].split(b': ')[1])
+    assert raw[:offset].endswith(b'[Header end]\r\n')
+    assert len(raw[:offset].splitlines()) > 1000
+    assert raw[offset:offset+8] == struct.pack('<d', source.data[-1, -1])
+    restored = open_frame_series([path])
+    assert len(restored) == 1100
+    assert restored[-1].measurement_time_s == 1099 and restored[-1].channel == 'Kanał µ'
+
+
+def test_existing_readers_receive_values_and_common_calibration(tmp_path):
+    from stmviewer.mpp_export import save_original_mpp
+    from napara.io.mpp_reader import read_mpp_file
+    from nanotrack.io.mpp_loader import load_mpp_sequence
+    from moltrack.io.sequence_loader import load_moltrack_image_series
+
+    frames = open_frame_series([FIXTURES / 'mpp/known-times.mpp'])
+    path = tmp_path / 'readers.mpp'
+    save_original_mpp(path, frames)
+    legacy = read_mpp_file(str(path))
+    for source, output in zip(frames, legacy, strict=True):
+        np.testing.assert_array_equal(output.data, np.rot90(source.data, 2))
+        assert output.size_nm_x == source.size_x_nm
+        assert output.size_nm_y == pytest.approx(source.size_y_nm, rel=1e-14)
+        assert output.setpoint_a == pytest.approx(source.setpoint_a, rel=1e-14, abs=0)
+    sequence = load_mpp_sequence(str(path))
+    np.testing.assert_array_equal(sequence.raw_frames, np.stack([f.data for f in frames]))
+    np.testing.assert_array_equal(sequence.metadata.frame_times_s, [10, 20, 35])
+    series = load_moltrack_image_series(path)
+    np.testing.assert_array_equal(series.raw_frames, sequence.raw_frames)
+
+
+def test_long_utf8_labels_from_valid_sidecar_remain_readable_after_export(tmp_path):
+    from stmviewer.mpp_export import save_original_mpp
+
+    source = tmp_path / 'source.MPP'
+    source.write_bytes((FIXTURES / 'mpp-metadata/mixed.MPP').read_bytes())
+    metadata = json.loads((FIXTURES / 'mpp-metadata/mixed.MPP.stmviewer.json').read_text())
+    text = 'Ω' * 40000  # fewer than 65536 characters, more than 65536 UTF-8 bytes
+    for record in metadata['frames']:
+        record['channel'] = record['signal_unit'] = text
+    source.with_name(source.name + '.stmviewer.json').write_text(json.dumps(metadata), encoding='utf-8')
+    frames = open_frame_series([source])
+    assert all(frame.channel == text for frame in frames)
+    saved = tmp_path / 'saved.mpp'
+    save_original_mpp(saved, frames)
+    restored = open_frame_series([saved])
+    assert all(frame.channel == text and frame.signal_unit == text for frame in restored)
+    assert all('wczytano' in frame.metadata_note for frame in restored)
+
+
+def test_wsxm_header_declares_finite_movie_range_and_identity_conversion(tmp_path):
+    """Declare the finite movie range without transforming signed or missing samples."""
+    from dataclasses import replace
+    from stmviewer.mpp_export import save_original_mpp
+
+    source = open_frame_series([FIXTURES / 'asymmetric.stp'])[0]
+    frames = (replace(source, data=np.array([[3., 4., np.nan], [1., 2., np.inf]])),
+              replace(source, data=np.array([[-.625, .625, -np.inf], [-0., 0., .3125]])))
+    path = tmp_path / 'signed.mpp'
+    save_original_mpp(path, frames)
+    raw = path.read_bytes()
+    offset = int(raw.splitlines()[2].split(b': ')[1])
+    header = raw[:offset]
+    assert header.endswith(b'[Header end]\r\n')
+    assert b'\n' not in header.replace(b'\r\n', b'')
+    assert b'[Miscellaneous]\r\n' in header
+    assert b'Minimum: -0.625\r\n' in header
+    assert b'Maximum: 4.0\r\n' in header
+    assert b'    Z Scale Factor: 1\r\n    Z Scale Offset: 0\r\n' in header
+    assert raw[offset:] == struct.pack('<12d', np.inf, 2., 1., np.nan, 4., 3.,
+                                      .3125, 0., -0., -np.inf, .625, -.625)
+    for expected, restored in zip(frames, open_frame_series([path]), strict=True):
+        np.testing.assert_array_equal(restored.data, expected.data)
+
+
+def test_export_uses_native_wsxm_header_layout_without_empty_sections(tmp_path):
+    """WSxM seeks by its normalized header size, not the declared byte offset.
+
+    This 546-byte layout was checked through WSxM open/save of all ramp pixels;
+    the previous 490-byte layout made WSxM skip seven double samples.
+    """
+    from dataclasses import replace
+    from stmviewer.mpp_export import save_original_mpp
+
+    source = open_frame_series([FIXTURES / 'asymmetric.stp'])[0]
+    ramp = np.tile(np.arange(256, dtype=float), (256, 1))
+    frame = replace(source, data=ramp, size_x_nm=256., size_y_nm=256.)
+    path = tmp_path / 'ramp.mpp'
+    save_original_mpp(path, (frame,))
+    # Literal native layout, independently verified with WSxM 5.0 Develop 12.0.
+    expected = '''WSxM file copyright UAM
+Movie Image file
+Image header size: 546
+
+[Control]
+
+    Gap Voltage: 0.0 V
+    Setpoint: 0.25 nA
+    X Amplitude: 256.0 nm
+    X Offset: 2.0 nm
+    Y Amplitude: 256.0 nm
+    Y Offset: -1.0 nm
+
+[General Info]
+
+    Acquisition channel: Topo
+    Angle: 0.0
+    Image Data Type: double
+    Number of columns: 256
+    Number of Frames: 1
+    Number of rows: 256
+    Z Amplitude: 1 nm
+
+[Miscellaneous]
+
+    Maximum: 255.0
+    Minimum: 0.0
+    Z Scale Factor: 1
+    Z Scale Offset: 0
+
+[Header end]
+'''.replace('\n', '\r\n').encode('ascii')
+    raw = path.read_bytes()
+    assert raw[:546] == expected
+    assert b'[Frames Synchronization]' not in raw[:546]
+    assert raw[546:554] == struct.pack('<d', 255.)
+    np.testing.assert_array_equal(open_frame_series([path])[0].data, ramp)
