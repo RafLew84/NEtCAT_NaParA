@@ -1,0 +1,85 @@
+{
+  "format": "stmviewer-mpp",
+  "version": 1,
+  "image_kind": "original",
+  "movie": {
+    "sha256": "ab01a3fac9c00e590d796827cd306d1d86d9ed561bf86086ca3b72ef8e0fa33c",
+    "frame_count": 3,
+    "shape_yx": [
+      3,
+      4
+    ]
+  },
+  "frames": [
+    {
+      "provenance": {
+        "source": "/pomiary/first.stp",
+        "source_frame_index": null
+      },
+      "measurement_time_s": 10,
+      "measurement_time_raw": "10000 ms",
+      "channel": "Topo",
+      "signal_unit": "nm",
+      "size_x_nm": 8,
+      "size_y_nm": 9,
+      "offset_x_nm": 0,
+      "offset_y_nm": -1,
+      "bias_v": 0,
+      "setpoint_a": 0,
+      "scan_angle_deg": 37,
+      "calibration_note": null,
+      "raw_header": {
+        "General Info": {
+          "Operator": "Żaneta",
+          "Z Amplitude": "2 nm"
+        }
+      }
+    },
+    {
+      "provenance": {
+        "source": "C:\\pomiary\\movie.MPP",
+        "source_frame_index": 7
+      },
+      "measurement_time_s": null,
+      "measurement_time_raw": null,
+      "channel": "Current",
+      "signal_unit": "nA",
+      "size_x_nm": 16,
+      "size_y_nm": 6,
+      "offset_x_nm": 0,
+      "offset_y_nm": -1,
+      "bias_v": -0.2,
+      "setpoint_a": 0,
+      "scan_angle_deg": 37,
+      "calibration_note": null,
+      "raw_header": {
+        "Control": {
+          "Set Point": "0 pA"
+        },
+        "Comment": "frame eight"
+      }
+    },
+    {
+      "provenance": {
+        "source": "archive/third.s94",
+        "source_frame_index": null
+      },
+      "measurement_time_s": 35,
+      "measurement_time_raw": "35 s",
+      "channel": null,
+      "signal_unit": null,
+      "size_x_nm": null,
+      "size_y_nm": 12,
+      "offset_x_nm": 0,
+      "offset_y_nm": -1,
+      "bias_v": null,
+      "setpoint_a": 0,
+      "scan_angle_deg": 37,
+      "calibration_note": "Nieznana kalibracja",
+      "raw_header": {
+        "z_gain": "99",
+        "Swapped": "0"
+      }
+    }
+  ]
+}

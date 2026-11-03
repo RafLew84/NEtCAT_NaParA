@@ -1,0 +1,1 @@
+Deliberately invalid LoFTR checkpoint for the manual error-recovery trial.

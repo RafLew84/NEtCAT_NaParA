@@ -1,0 +1,2 @@
+# Only for rebuilding guide.html; not an application dependency.
+Markdown>=3.7,<4

@@ -1,0 +1,81 @@
+{
+  "validation_schema_version": 3,
+  "validated_at": "2026-08-16",
+  "workflow": "TTMAPP variant C production MainWindow acceptance",
+  "fixture": {
+    "orientation_reference": "tests/moltrack/fixtures/molecular_orientation_reference_ttmapp_v1.json",
+    "domain_geometry": [
+      "tests/moltrack/fixtures/ttmapp_domain_analysis_sources/movie2/34855.STP",
+      "tests/moltrack/fixtures/ttmapp_domain_analysis_sources/movie3/34172.STP"
+    ],
+    "frozen_detections": "tests/moltrack/fixtures/ttmapp_domain_analysis_v1.json",
+    "calibration_measurement_group": "ttmapp-calibration",
+    "validation_measurement_group": "ttmapp-validation"
+  },
+  "workflow_assertions": {
+    "production_main_window": true,
+    "production_domain_analysis_composition": true,
+    "operator_controls_only": true,
+    "public_snapshots_reports_files_and_events_only": true,
+    "both_stable_backends": true,
+    "point_and_polygon_corrections": true,
+    "independent_m6_and_orientation_review": true,
+    "save_open_session_v3": true,
+    "no_custom_export_callback": true,
+    "correction_aware_export_v10": true,
+    "legacy_v9_not_used_for_production": true,
+    "m6_reference_root_and_child_v2": true,
+    "orientation_reference_root_and_child_v2": true,
+    "explicit_operator_preset": true,
+    "fixed_adaptive_first_shell_comparison": true,
+    "both_backends_pair_correlation_evidence": true,
+    "adaptive_first_shell_preset_executed": true,
+    "same_reference_version_for_both_backends": true,
+    "automatic_snapshot_identity_preserved": true,
+    "backendless_snapshot_rejected": true,
+    "legacy_dataset_review_flags_absent": true
+  },
+  "automatic_snapshot_count": 4,
+  "export": {
+    "backend_ids": [
+      "m3_m6_lattice_network",
+      "m6_orientation_components"
+    ],
+    "correction_revision": 3,
+    "export_mode": "reference",
+    "export_schema_version": 10,
+    "package_kind": "moltrack_correction_aware_analysis"
+  },
+  "reference_packages": {
+    "m6": {
+      "child_dataset_version": 2,
+      "parent_link_verified": true,
+      "root_dataset_version": 1,
+      "schema_version": 2
+    },
+    "orientation": {
+      "child_dataset_version": 2,
+      "parent_link_verified": true,
+      "root_dataset_version": 1,
+      "schema_version": 2
+    }
+  },
+  "campaign": {
+    "backend_ids": [
+      "m3_m6_lattice_network",
+      "m6_orientation_components"
+    ],
+    "compared_geometry_modes": [
+      "fixed",
+      "adaptive"
+    ],
+    "geometry_mode": "adaptive",
+    "pair_correlation_evidence_for_both_backends": true,
+    "schema_version": "m6-campaign-report-v2",
+    "status": "validated"
+  },
+  "reproduction": {
+    "command": "pytest tests/moltrack/test_domain_analysis_ttmapp_cutover.py",
+    "working_directory": "repository_root"
+  }
+}

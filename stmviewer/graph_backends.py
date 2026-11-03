@@ -1,0 +1,137 @@
+"""Existing pair estimators prepared once for a graph calculation."""
+
+from dataclasses import asdict, replace
+from typing import Callable
+
+from stmviewer.method_parameters import MethodProfiles
+from stmviewer.akaze_matcher import AKAZE_METHOD, AkazeBackend
+from stmviewer.graph_provenance import akaze_graph_config
+from stmviewer.lightglue_matcher import LIGHTGLUE_METHOD, load_lightglue_backend
+from stmviewer.efficient_matcher import EFFICIENT_METHOD, load_efficient_backend
+from stmviewer.roma_matcher import ROMA_METHOD, load_roma_backend
+from stmviewer.matchanything_matcher import MATCHANYTHING_METHOD, load_matchanything_backend
+from stmviewer.correspondence_types import CorrespondenceRefusal
+from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
+from stmviewer.deep_ecc import HYBRID_METHOD, load_deep_ecc_backend
+from stmviewer.local_registration import LOCAL_METHOD, load_deep_local_backend
+from stmviewer.graph_methods import graph_method_label, graph_requires_deep
+from stmviewer.graph_provenance import cpu_graph_config, deep_graph_config, efficient_graph_config, roma_graph_config, matchanything_graph_config, lightglue_graph_config
+from stmviewer.graph_types import GraphConfig
+from stmviewer.registration import ShiftBackend, create_shift_backend
+
+
+def load_graph_backend(method: str, options: DeepMatcherOptions, window: int, *,
+                       method_profiles: MethodProfiles = MethodProfiles(),
+                       progress: Callable[[str], None], cancelled: Callable[[], bool] | None,
+                       ) -> tuple[ShiftBackend, GraphConfig]:
+    graph_method_label(method)
+    if method == AKAZE_METHOD:
+        akaze = AkazeBackend(parameters=method_profiles.akaze, cancelled=cancelled, progress=progress)
+        try:
+            return akaze, akaze_graph_config(window, akaze.provenance, asdict(akaze.config))
+        except BaseException:
+            akaze.close()
+            raise
+    if method == LIGHTGLUE_METHOD:
+        lightglue = load_lightglue_backend(options, parameters=method_profiles.lightglue,
+                                           progress=progress, cancelled=cancelled)
+        try:
+            return lightglue, lightglue_graph_config(window, lightglue.provenance, asdict(lightglue.config))
+        except BaseException:
+            lightglue.close()
+            raise
+    if method == MATCHANYTHING_METHOD:
+        matchanything = load_matchanything_backend(options, progress=progress, cancelled=cancelled)
+        try:
+            return matchanything, matchanything_graph_config(window, matchanything.provenance,
+                                                              asdict(matchanything.config))
+        except BaseException:
+            matchanything.close()
+            raise
+    if method == ROMA_METHOD:
+        roma = load_roma_backend(options, progress=progress, cancelled=cancelled)
+        try:
+            return roma, roma_graph_config(window, roma.provenance, asdict(roma.config))
+        except BaseException:
+            roma.close()
+            raise
+    if method == EFFICIENT_METHOD:
+        efficient = load_efficient_backend(options, progress=progress, cancelled=cancelled)
+        try:
+            config = efficient_graph_config(window, efficient.provenance, asdict(efficient.config))
+            return efficient, config
+        except BaseException:
+            efficient.close()
+            raise
+    if not graph_requires_deep(method):
+        backend = create_shift_backend(method)
+        if method == 'tile_correlation_ransac':
+            from stmviewer.graph_tile_backend import GraphTileBackend
+            backend = GraphTileBackend(getattr(backend, 'config'))
+        return backend, cpu_graph_config(method, window, asdict(getattr(backend, 'config')))
+    if method == HYBRID_METHOD:
+        composite = load_deep_ecc_backend(options, progress=progress, cancelled=cancelled)
+        backend, device = composite, composite.device
+        text = composite.settings_text
+    elif method == LOCAL_METHOD:
+        local = load_deep_local_backend(options, progress=progress, cancelled=cancelled)
+        backend, device = local, local.device
+        text = local.settings_text
+    else:
+        loaded = load_deep_backend(options, progress=progress, cancelled=cancelled)
+        backend, device = loaded.backend, loaded.device
+        text = ''
+    config = deep_graph_config(options, window, device, cancelled=cancelled, method=method)
+    settings = dict(config.backend_settings)
+    if text:
+        settings.update(settings_text=text, second_stage_device='CPU')
+    return backend, replace(config, method=method, backend_settings=tuple(sorted(settings.items())))
+
+
+def local_pair_refusal(error: Exception) -> bool:
+    """Only explicit estimator refusals may leave a missing edge; unknown faults abort."""
+    from nanotrack.registration.phase_correlation import PhaseCorrelationBackendError
+    from nanotrack.registration.ecc_translation import ECCTranslationBackendError
+    from stmviewer.local_consensus import LocalConsensusError
+
+    chain: list[BaseException] = []
+    current: BaseException | None = error
+    while current is not None and all(current is not item for item in chain):
+        chain.append(current)
+        current = current.__cause__
+    if any(isinstance(item, (MemoryError, OSError, ImportError, SystemError)) for item in chain):
+        return False
+    for item in chain:
+        if isinstance(item, ECCTranslationBackendError):
+            reason = str(item)
+            if 'too little texture' in reason or 'cannot be normalized for ECC' in reason:
+                return True
+            cause = item.__cause__
+            # OpenCV StsNoConv only. Allocation, argument and arbitrary native faults are fatal.
+            if (cause is not None and type(cause).__module__ == 'cv2'
+                    and getattr(cause, 'code', None) == -7):
+                return True
+        if isinstance(item, (LocalConsensusError, CorrespondenceRefusal)):
+            return True
+        if isinstance(item, PhaseCorrelationBackendError):
+            reason = str(item)
+            if 'too little texture' in reason or reason == 'Optical flow produced no valid vectors.':
+                return True
+            if reason.startswith('Only ') and any(fragment in reason for fragment in (
+                ' feature matches;', ' registration tiles;',
+            )):
+                return True
+    return False
+
+
+def pair_failure_reason(error: Exception) -> str:
+    reasons = []
+    seen: list[BaseException] = []
+    current: BaseException | None = error
+    while current is not None and all(current is not item for item in seen):
+        seen.append(current)
+        reason = str(current) or type(current).__name__
+        if reason not in reasons:
+            reasons.append(reason)
+        current = current.__cause__
+    return ' Przyczyna: '.join(reasons)

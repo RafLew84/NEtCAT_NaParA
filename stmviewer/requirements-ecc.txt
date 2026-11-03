@@ -1,0 +1,3 @@
+-r requirements.txt
+# CPU ECC, AKAZE, CLAHE and AVI. Install only one OpenCV distribution.
+opencv-python>=4.11,<5

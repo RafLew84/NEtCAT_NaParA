@@ -189,6 +189,8 @@ plan_nanotrack_yolo.md
 plan_nanotrack_registration.md
 plan_nanotrack_uaed_muge.md
 plan_nanotrack_registration_expanded_canvas.md
+sam2_optim_plan.md
+/domain_plan.md
 models/unet_synthetic_v1.pth
 .codex
 nanotrack/yolo_models/yolo11l_v3.0.pt
@@ -204,3 +206,18 @@ plan_nanotrack_mask_trackers.md
 nanotrack.zip
 fix_track.md
 /notes
+/.scratch/*
+!/.scratch/manual-domain-orientation-calibration-implementation/
+/.scratch/manual-domain-orientation-calibration-implementation/*
+!/.scratch/manual-domain-orientation-calibration-implementation/issues/
+!/.scratch/manual-domain-orientation-calibration-implementation/issues/*.md
+/moltrack/analysis
+/moltrack/ui/dialogs/_prototype_domain_analysis_dialog
+moltrack.7z
+moltrack/ui/dialogs/domain_analysis_editing_prototype.html
+moltrack/ui/dialogs/domain_analysis_workflow_ui_prototype.html
+moltrack/persistence/domain_correction_persistence_export_prototype.html
+
+# New application plans belong to Git, including names ignored by legacy rules.
+!/docs/stmviewer/**/*.md
+!/docs/stmdomains/**/*.md

@@ -1,0 +1,6 @@
+-r requirements-ecc.txt
+# Choose a matching Torch CPU/CUDA build first; see installation-models.md.
+# pip keeps an already installed build when it satisfies these ranges.
+torch>=2.9,<3
+kornia>=0.8.2,<0.9
+# Kornia selects its own compatible kornia_rs dependency.

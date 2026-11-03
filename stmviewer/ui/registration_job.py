@@ -1,0 +1,75 @@
+"""A registration attempt publishes one complete result after its thread finishes."""
+
+from threading import Event
+from functools import partial
+from stmviewer.method_parameters import MethodProfiles
+
+from PyQt6.QtCore import QObject, QThread, pyqtSignal
+
+from stmviewer.lightglue_matcher import LIGHTGLUE_METHOD, load_lightglue_backend
+from stmviewer.efficient_matcher import EFFICIENT_METHOD, load_efficient_backend
+from stmviewer.roma_matcher import ROMA_METHOD, load_roma_backend
+from stmviewer.matchanything_matcher import MATCHANYTHING_METHOD, load_matchanything_backend
+from stmviewer.frame import ImageFrame
+from stmviewer.deep_matcher import DeepMatcherOptions, load_deep_backend
+from stmviewer.registration import RegistrationCancelled, RegistrationResult, ShiftBackend, register_series
+
+
+class RegistrationJob(QThread):
+    progress = pyqtSignal(int, int, str)
+
+    def __init__(self, frames: tuple[ImageFrame, ...], parent: QObject,
+                 backend: ShiftBackend | None = None, *, method: str = "phase_correlation",
+                 deep_options: DeepMatcherOptions | None = None, check_only: bool = False,
+                 method_profiles: MethodProfiles = MethodProfiles()) -> None:
+        super().__init__(parent)
+        self._frames = frames
+        self._backend = backend
+        self._method = method
+        self._deep_options = deep_options
+        self._profiles = method_profiles
+        self._check_only = check_only
+        self.checked_device: str | None = None
+        self._cancelled = Event()
+        self.result: RegistrationResult | None = None
+        self.error: str | None = None
+
+    def cancel(self) -> None:
+        self._cancelled.set()
+
+    def was_cancelled(self) -> bool:
+        return self._cancelled.is_set()
+
+    def run(self) -> None:
+        try:
+            if self._check_only and self._method in (EFFICIENT_METHOD, ROMA_METHOD, MATCHANYTHING_METHOD, LIGHTGLUE_METHOD):
+                loader = (partial(load_lightglue_backend, parameters=self._profiles.lightglue)
+                          if self._method == LIGHTGLUE_METHOD else
+                          load_matchanything_backend if self._method == MATCHANYTHING_METHOD else
+                          load_roma_backend if self._method == ROMA_METHOD else load_efficient_backend)
+                model = loader(self._deep_options or DeepMatcherOptions(),
+                               progress=lambda text: self.progress.emit(0, 0, text),
+                               cancelled=self.was_cancelled)
+                try:
+                    if not self.was_cancelled():
+                        self.checked_device = model.device
+                finally:
+                    model.close()
+                return
+            if self._check_only:
+                loaded = load_deep_backend(self._deep_options or DeepMatcherOptions(),
+                                          progress=lambda text: self.progress.emit(0, 0, text),
+                                          cancelled=self.was_cancelled)
+                if not self.was_cancelled():
+                    self.checked_device = loaded.device
+                return
+            result = register_series(self._frames, method=self._method, backend=self._backend,
+                                     deep_options=self._deep_options, method_profiles=self._profiles,
+                                     progress=self.progress.emit, cancelled=self.was_cancelled)
+            if not self.was_cancelled():
+                self.result = result
+        except RegistrationCancelled:
+            pass
+        except Exception as error:
+            # Thread boundary: never let a backend/allocation error terminate Qt.
+            self.error = str(error) or type(error).__name__

@@ -1,0 +1,49 @@
+name: MolTrack quality gates
+
+on:
+  pull_request:
+    paths:
+      - "moltrack/**"
+      - "scripts/check_domain_analysis_types.py"
+      - "scripts/check_domain_analysis_cutover_manifest.py"
+      - "scripts/check_domain_analysis_issue_plan.py"
+      - "scripts/domain_analysis_mypy_baseline.json"
+      - "tests/moltrack/**"
+      - "docs/domain_analysis_cutover_manifest.json"
+      - "docs/moltrack/QUALITY_GATES.md"
+      - ".scratch/manual-domain-orientation-calibration-implementation/issues/**"
+      - ".github/workflows/moltrack-quality.yml"
+  push:
+    paths:
+      - "moltrack/**"
+      - "scripts/check_domain_analysis_types.py"
+      - "scripts/check_domain_analysis_cutover_manifest.py"
+      - "scripts/check_domain_analysis_issue_plan.py"
+      - "scripts/domain_analysis_mypy_baseline.json"
+      - "tests/moltrack/**"
+      - "docs/domain_analysis_cutover_manifest.json"
+      - "docs/moltrack/QUALITY_GATES.md"
+      - ".scratch/manual-domain-orientation-calibration-implementation/issues/**"
+      - ".github/workflows/moltrack-quality.yml"
+
+jobs:
+  domain-analysis-quality:
+    runs-on: [self-hosted, Windows]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run the Domain Analysis typecheck gate
+        shell: powershell
+        env:
+          DOMAIN_ANALYSIS_RATCHET_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: conda run -n netcat python scripts\check_domain_analysis_types.py
+      - name: Guard acceptance and release public seams
+        shell: powershell
+        run: conda run -n netcat python -m pytest tests\moltrack\test_domain_analysis_test_tiers.py -q
+      - name: Validate the Domain Analysis cutover manifest
+        shell: powershell
+        run: conda run -n netcat python scripts\check_domain_analysis_cutover_manifest.py
+      - name: Validate the Domain Analysis issue plan
+        shell: powershell
+        run: conda run -n netcat python scripts\check_domain_analysis_issue_plan.py
