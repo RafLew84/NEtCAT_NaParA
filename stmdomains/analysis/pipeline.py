@@ -7,6 +7,7 @@ from typing import Any
 import numpy as np
 
 from stmdomains.analysis.barriers import image_barriers
+from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.clustering import apply_classes, fit_model, validate_k
 from stmdomains.analysis.config import COLORS, PARAMETERS, model_parameters
 from stmdomains.analysis.domain_settings import DomainSettings
@@ -21,6 +22,7 @@ from stmdomains.core.immutable import plain_metadata
 def analyze_frame(
     data: AnalysisInput, *, settings: DomainSettings = DomainSettings(), k: int = 5,
     catalogue: ClassCatalogue | None = None,
+    acceptance: ClassAcceptanceSettings = ClassAcceptanceSettings(),
     cancelled: Callable[[], bool] = lambda: False,
     progress: Callable[[str], None] = lambda text: None,
 ) -> FrameAnalysis:
@@ -46,7 +48,7 @@ def analyze_frame(
             {"frames": [prepared.fit_record(np.flatnonzero(prepared.fit_mask))], "sampling": "all_useful_samples"},
             model_parameters(k),
         )
-    return apply_prepared(prepared, catalogue, settings, check, progress)
+    return apply_prepared(prepared, catalogue, settings, check, progress, acceptance=acceptance)
 
 
 def validate_catalogue(data: AnalysisInput, catalogue: ClassCatalogue) -> None:
@@ -65,14 +67,17 @@ def validate_catalogue(data: AnalysisInput, catalogue: ClassCatalogue) -> None:
 
 def apply_prepared(
     prepared: PreparedFrame | FrameAnalysis, catalogue: ClassCatalogue, settings: DomainSettings,
-    check: Callable[[], None], progress: Callable[[str], None],
+    check: Callable[[], None], progress: Callable[[str], None], *,
+    acceptance: ClassAcceptanceSettings = ClassAcceptanceSettings(),
 ) -> FrameAnalysis:
     classes = tuple(ResultClass(str(index + 1), color) for index, color in enumerate(COLORS[:catalogue.k]))
     if isinstance(prepared, FrameAnalysis):
         return replace(prepared, catalogue=catalogue, classes=classes,
+                       parameters={**prepared.parameters, **acceptance.parameters()},
                        metadata={**prepared.metadata, **catalogue.metadata()})
     data = prepared.data
-    labels, reliable, class_details = apply_classes(prepared.features, prepared.valid, catalogue.state, check)
+    labels, reliable, class_details = apply_classes(prepared.features, prepared.valid, catalogue.state, check,
+                                                    acceptance=acceptance)
     progress("Wyznaczanie barier obrazu i domen…")
     barrier, barrier_metadata = image_barriers(np.asarray(data.frame.image, float), prepared.spacing, check)
     order = prepared.order
@@ -86,16 +91,22 @@ def apply_prepared(
     for index, detection in enumerate(prepared.active):
         check()
         domain = int(domain_ids[index])
+        class_reason = ("" if reliable[index] else "invalid_descriptor" if not prepared.valid[index]
+                        else "class_low_margin" if not class_details["class_margin_passed"][index]
+                        else "class_outside_radius")
         reason = ("" if domain else "insufficient_local_support" if not order["sufficient"][index]
                   else "periodicity_not_confirmed" if not order["supported"][index]
-                  else "class_ambiguous" if not reliable[index] else "small_or_fragmented_component")
-        details: dict[str, Any] = {key: float(values[index]) for key, values in class_details.items()}
+                  else class_reason if not reliable[index] else "small_or_fragmented_component")
+        flags = {"class_margin_passed", "class_radius_passed", "descriptor_valid"}
+        details: dict[str, Any] = {key: bool(values[index]) if key in flags else float(values[index])
+                                   for key, values in class_details.items()}
         details.update({"order_score": float(order["score"][index]), "order_threshold": float(order["threshold"][index]),
                         "local_point_count": int(order["local_n"][index]),
                         "effective_point_count": float(order["effective_n"][index]),
                         "order_supported": bool(order["supported"][index]),
                         "order_support_sufficient": bool(order["sufficient"][index]),
                         "class_reliable": bool(reliable[index]),
+                        "class_rejection_reason": class_reason,
                         "centroid_margin_applicable": catalogue.k > 1,
                         "x_px": detection.center_xy[0], "y_px": detection.center_xy[1]})
         clazz = str(int(labels[index]) + 1)
@@ -106,4 +117,5 @@ def apply_prepared(
     check()
     return replace(prepared.base, status="complete", message=f"Obliczono klasy K{catalogue.k} i domeny.",
                    assignments=assignments, classes=classes, metadata=metadata,
-                   domain_labels=domain_labels, catalogue=catalogue)
+                   domain_labels=domain_labels, catalogue=catalogue,
+                   parameters={**prepared.base.parameters, **acceptance.parameters()})

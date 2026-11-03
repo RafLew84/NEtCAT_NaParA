@@ -14,7 +14,8 @@ from stmdomains.core.frame_presentation import FramePresenter, PresentedFrame
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.class_catalogue import ClassCatalogue
 from stmdomains.core.series import Series
-from stmdomains.analysis import analyze_frame, recalculate_domains, discover_classes
+from stmdomains.analysis import analyze_frame, recalculate_domains, discover_classes, recalculate_class_acceptance
+from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.class_settings import ClassFitSettings
 from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.analysis.series_settings import SeriesAnalysisPlan
@@ -128,6 +129,11 @@ class SessionController(QObject):
     @property
     def can_analyze(self) -> bool:
         return self.presenter is not None and self._published is not None and not self.is_busy and not self._closed
+
+    @property
+    def can_tune_acceptance(self) -> bool:
+        result = self.result
+        return self.can_analyze and result is not None and result.status == "complete" and result.catalogue is not None
 
     @property
     def can_play(self) -> bool:
@@ -263,11 +269,12 @@ class SessionController(QObject):
             return
         presenter, index = self.presenter, self.current_index
         settings = DomainSettings.from_parameters(self.result.parameters) if self.result else DomainSettings()
+        acceptance = ClassAcceptanceSettings.from_parameters(self.result.parameters) if self.result else ClassAcceptanceSettings()
         active = self.active_catalogue
         catalogue = active if active is not None and active.scope != "current_frame" else None
         k = active.k if active else 5
         self._analysis_token = self._submit(lambda cancelled, report: analyze_frame(
-            presenter.analysis_input(index), settings=settings, k=k, catalogue=catalogue,
+            presenter.analysis_input(index), settings=settings, k=k, catalogue=catalogue, acceptance=acceptance,
             cancelled=cancelled.is_set, progress=report,
         ))
         self._busy()
@@ -305,6 +312,16 @@ class SessionController(QObject):
     def _cancel_analysis(self) -> None:
         self._abandon(self._analysis_token)
         self._analysis_token = None
+
+    def recalculate_class_acceptance(self, settings: ClassAcceptanceSettings) -> None:
+        self.pause()
+        if not self.can_tune_acceptance or self.presenter is None or self.result is None:
+            return
+        presenter, index, previous = self.presenter, self.current_index, self.result
+        self._analysis_token = self._submit(lambda cancelled, report: recalculate_class_acceptance(
+            presenter.analysis_input(index), previous, settings, cancelled=cancelled.is_set, progress=report,
+        ))
+        self._busy()
 
     def set_view_mode(self, mode: str) -> None:
         if mode not in ("raw", "expanded_aligned") or self.presenter is None:

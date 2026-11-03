@@ -112,7 +112,9 @@ def test_reuse_refuses_changed_input_frame_or_upstream_parameters_and_honours_ca
                   replace(data, annotations=replace(data.annotations, detections=data.annotations.detections[:-1]))):
         with pytest.raises(ValueError, match="Analizuj klatkę"):
             recalculate_domains(other, base, DomainSettings())
-    wrong_method = replace(base, parameters={**base.parameters, "class_margin": .9})
+    # Acceptance thresholds are tunable since 09; descriptor changes still
+    # invalidate the saved class/order decisions used by domain-only tuning.
+    wrong_method = replace(base, parameters={**base.parameters, "descriptor_sigma_factor": .9})
     with pytest.raises(ValueError, match="Analizuj klatkę"):
         recalculate_domains(data, wrong_method, DomainSettings())
     with pytest.raises(AnalysisCancelled):

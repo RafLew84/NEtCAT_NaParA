@@ -9,6 +9,8 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from threadpoolctl import threadpool_limits
 
+from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
+
 
 def validate_k(k: int) -> None:
     if type(k) is not int or not 1 <= k <= 8:
@@ -62,7 +64,7 @@ def fit_model(
 
 def apply_classes(
     features: NDArray[np.float64], valid: NDArray[np.bool_], state: Mapping[str, Any],
-    check: Callable[[], None],
+    check: Callable[[], None], *, acceptance: ClassAcceptanceSettings = ClassAcceptanceSettings(),
 ) -> tuple[NDArray[Any], NDArray[np.bool_], dict[str, NDArray[Any]]]:
     check()
     with threadpool_limits(limits=1):
@@ -75,10 +77,17 @@ def apply_classes(
               if state["k"] > 1 else np.ones(len(features)))
     within = distances[np.arange(len(features)), labels]
     radii = np.asarray(state["class_radius95"])
-    reliable = valid & (margin >= .075) & (within <= 1.10 * radii[labels] + 1e-12)
+    margin_passed = (margin >= acceptance.class_margin) if state["k"] > 1 else np.ones(len(features), bool)
+    radius_limit = acceptance.class_radius_multiplier * radii[labels]
+    radius_passed = within <= radius_limit + 1e-12
+    reliable = valid & margin_passed & radius_passed
     confidence = np.clip(margin, 0, 1) * np.exp(-.5 * (within / np.maximum(radii[labels], 1e-9)) ** 2)
     check()
-    return labels, reliable, {"centroid_margin": margin, "centroid_distance": within, "class_confidence": confidence}
+    return labels, reliable, {
+        "centroid_margin": margin, "centroid_distance": within, "class_confidence": confidence,
+        "class_margin_passed": margin_passed, "class_radius_passed": radius_passed,
+        "class_radius_limit": radius_limit, "class_reference_radius": radii[labels], "descriptor_valid": valid,
+    }
 
 
 def fit_classes(

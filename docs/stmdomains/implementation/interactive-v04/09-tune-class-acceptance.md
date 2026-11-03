@@ -6,9 +6,13 @@
 
 **Blocked by:** [07: Wybierz liczbę klas i zakres ich odkrywania](07-fit-shared-classes.md).
 
-**Status:** ready-for-agent — plan zaktualizowany na polecenie użytkownika; wykonanie po zależnościach.
+**Status:** in_progress — rozpoczęto 2026-11-03 na polecenie użytkownika; baza `b34e862`, gałąź `domains/interactive-v04-ui`.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
+
+Zakres testów zgodny z kryteriami poniżej: publiczne obliczenia przy
+zachowanym katalogu oraz kontrolki UI → przeliczenie, porównanie i szczegóły
+oznaczenia. Testy i uruchomienie w netcat; odbiór użytkownika oddzielnie.
 
 ## Kryteria akceptacji
 

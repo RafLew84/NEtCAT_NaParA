@@ -16,6 +16,7 @@ from stmdomains.core.annotations import Detection, Segmentation
 from stmdomains.ui.annotation_controls import AnnotationControls
 from stmdomains.ui.domain_settings_dialog import DomainSettingsDialog
 from stmdomains.ui.class_settings_dialog import ClassSettingsDialog
+from stmdomains.ui.class_acceptance_dialog import ClassAcceptanceDialog
 from stmdomains.ui.series_analysis_dialog import SeriesAnalysisDialog, STATUS_TEXT
 from stmdomains.ui.catalogue_style import catalogue_description
 from stmdomains.ui.image_view import ImageView
@@ -24,6 +25,7 @@ from stmdomains.ui.import_prompts import ImportPrompts, QtImportPrompts
 from stmdomains.ui.playback_controls import PlaybackControls
 from stmdomains.ui.result_controls import ResultControls
 from stmdomains.ui.result_style import assignment_description
+from stmdomains.ui.assignment_details import assignment_details
 from stmdomains.ui.session_controller import PresentedFrame, SessionController
 
 
@@ -185,6 +187,7 @@ class STMDomainsMainWindow(QMainWindow):
         self.domain_settings_dialog = DomainSettingsDialog(self.controller, self)
         self.class_settings_dialog = ClassSettingsDialog(self.controller, self)
         self.series_analysis_dialog = SeriesAnalysisDialog(self.controller, self)
+        self.class_acceptance_dialog = ClassAcceptanceDialog(self.controller, self)
         analysis_menu = menu_bar.addMenu("&Analiza") if menu_bar is not None else None
         self.series_analysis_action = analysis_menu.addAction("Analiza serii…") if analysis_menu is not None else None
         if self.series_analysis_action is not None:
@@ -201,6 +204,11 @@ class STMDomainsMainWindow(QMainWindow):
             self.domain_settings_action.setObjectName("domainSettingsAction")
             self.domain_settings_action.setEnabled(False)
             self.domain_settings_action.triggered.connect(self._show_domain_settings)
+        self.class_acceptance_action = analysis_menu.addAction("Akceptacja klasy…") if analysis_menu is not None else None
+        if self.class_acceptance_action is not None:
+            self.class_acceptance_action.setObjectName("classAcceptanceAction")
+            self.class_acceptance_action.setEnabled(False)
+            self.class_acceptance_action.triggered.connect(self._show_class_acceptance)
         app = QCoreApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(self._finish_background_work)
@@ -217,6 +225,13 @@ class STMDomainsMainWindow(QMainWindow):
         self.domain_settings_dialog.show()
         self.domain_settings_dialog.raise_()
         self.domain_settings_dialog.activateWindow()
+
+    def _show_class_acceptance(self) -> None:
+        self.controller.pause()
+        self.class_acceptance_dialog.refresh()
+        self.class_acceptance_dialog.show()
+        self.class_acceptance_dialog.raise_()
+        self.class_acceptance_dialog.activateWindow()
 
     def _show_series_analysis(self) -> None:
         self.controller.pause()
@@ -304,6 +319,8 @@ class STMDomainsMainWindow(QMainWindow):
             self.class_settings_action.setEnabled(self.controller.series is not None)
         if self.domain_settings_action is not None:
             self.domain_settings_action.setEnabled(self.controller.series is not None)
+        if self.class_acceptance_action is not None:
+            self.class_acceptance_action.setEnabled(self.controller.series is not None)
         if self.series_analysis_action is not None:
             self.series_analysis_action.setEnabled(self.controller.series is not None)
         self.progress_label.setText(text)
@@ -416,8 +433,10 @@ class STMDomainsMainWindow(QMainWindow):
     def _show_metadata(self) -> None:
         if self._selected is not None:
             metadata = dict(self._selected.metadata)
+            explanation = ""
             if isinstance(self._selected, Detection) and self._presented is not None:
                 result = self._presented.result
+                explanation = assignment_details(result, self._selected.detection_id) + "\n\nDane oznaczenia:\n"
                 assignment = None if result is None else result.assignments.get(self._selected.detection_id)
                 if assignment is not None:
                     metadata["analiza_stmdomains"] = {
@@ -429,7 +448,7 @@ class STMDomainsMainWindow(QMainWindow):
                         "przyczyna": assignment.rejection_reason,
                         "pomiary": dict(assignment.metadata),
                     }
-            self._show_text("Dane zapisanego oznaczenia", json.dumps(
+            self._show_text("Dane zapisanego oznaczenia", explanation + json.dumps(
                 metadata, ensure_ascii=False, indent=2,
                 default=lambda value: dict(value) if isinstance(value, Mapping) else str(value),
             ))
