@@ -7,7 +7,8 @@ klasę, akceptację, porządek i domenę; K1 ma jawny brak marginesu.
 [Raport i test ręczny](interactive-v04/acceptance-09.md).
 427 testów PASS, mypy 63 moduły PASS, 15 plików kodu/testów do 544 linii;
 rzeczywiste GUI PASS, oba przeglądy bez uwag. **Odbiór ręczny użytkownika
-09 oczekuje.** Kolejny rekomendowany ticket pozostaje **12 — Auto**.
+09 potwierdzony 2026-11-03** dla wersji `9dd934d` („testy manualne ok”).
+Kolejny rekomendowany ticket pozostaje **12 — Auto**.
 
 **Rozszerzenie planu — 2026-11-03:** dodano
 [SD-V4-21–25 — ręczną edycję klas i domen](interactive-v04/README.md#edycja-ręczna-klas-i-domen).

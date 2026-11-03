@@ -63,7 +63,8 @@ przeliczenie przy zachowanym katalogu, porównanie i wartości bazowe.
 **Dane oznaczenia…** rozdzielają klasę wstępną, akceptację, porządek i domenę.
 K1 ma nieaktywny margines. [Raport i test ręczny](acceptance-09.md).
 427 testów PASS, mypy 63 moduły PASS, kod/testy do 544 linii;
-GUI X11 sprawdzone, Standards/Spec bez uwag. **Odbiór użytkownika oczekuje.**
+GUI X11 sprawdzone, Standards/Spec bez uwag. **Odbiór ręczny użytkownika 09
+potwierdzony 2026-11-03** dla wersji `9dd934d` („testy manualne ok”).
 01–03, 05, 05a i 06–09 mają status `done`.
 10, 12–18 oraz 21–25 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem

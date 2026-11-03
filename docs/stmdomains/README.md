@@ -12,7 +12,11 @@ porównanie poprzedni/nowy i wartości bazowe. Katalog pozostaje zamrożony;
 K1 pomija margines. [Raport i test ręczny 09](implementation/interactive-v04/acceptance-09.md).
 **427 testów PASS**, mypy 63 moduły PASS, największy zmieniony plik 544 linii.
 GUI X11 sprawdzone na TTMAPP i kontroli K1; Standards/Spec bez uwag.
-**Odbiór ręczny użytkownika 09 oczekuje.** Następny rekomendowany pozostaje **12 — Auto**.
+**Odbiór ręczny użytkownika 09 potwierdzony 2026-11-03** dla wersji
+`9dd934d` („testy manualne ok”). Zgłoszony później komunikat `inotify`
+dotyczy limitu systemowego; użytkownik potwierdził prawidłowe zamknięcie.
+[Diagnoza i zalecenie](implementation/interactive-v04/acceptance-09.md#komunikat-inotify-po-odbiorze).
+Następny rekomendowany pozostaje **12 — Auto**.
 
 **Dodano do planu SD-V4-21–25 — ręczną edycję klas i domen:**
 21 tworzenie/rozszerzanie domen i Cofnij/Ponów, 22 podział/scalanie,

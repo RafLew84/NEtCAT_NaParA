@@ -4,8 +4,23 @@ Data **2026-11-03**, baza **`b34e862`**, implementacja **`494ab9d`**.
 Gałąź `domains/interactive-v04-ui`, worktree `/home/rlew/projekty/NEtCAT-domains`.
 [Ticket](implementation/interactive-v04/09-tune-class-acceptance.md),
 [raport i test ręczny](implementation/interactive-v04/acceptance-09.md).
-Status `done`; **odbiór ręczny użytkownika oczekuje**. Commit dokumentacji
-podano w odpowiedzi końcowej. Następny rekomendowany ticket pozostaje **12 — Auto**.
+Status `done`; **odbiór ręczny użytkownika 09 potwierdzony 2026-11-03**
+dla wersji **`9dd934d`** słowami „testy manualne ok”. Commit zapisu
+potwierdzenia podano w odpowiedzi końcowej. Następny rekomendowany ticket
+pozostaje **12 — Auto**.
+
+Po odbiorze użytkownik zgłosił `inotify_add_watch(...) failed: (No space
+left on device)` i potwierdził, że program zamknął się normalnie.
+Minimalna próba systemowego `inotify_add_watch`, bez STM Domains, odtwarza
+`ENOSPC` dla IBus, `/tmp` i repozytorium. Limit użytkownika wynosi 65 536;
+trzy procesy `code` mają łącznie 64 600 wpisów obserwacji. Dysk ma około
+2,3 TB wolnego miejsca, i-węzły i pamięć są dostępne. To problem limitu
+systemowego, nie odtworzony crash aplikacji. [Szczegóły i zalecenie](implementation/interactive-v04/acceptance-09.md#komunikat-inotify-po-odbiorze).
+Nie zmieniano limitów, nie kończono procesów ani nie instalowano pakietów;
+usunięcie komunikatu po zwiększeniu limitu pozostaje do sprawdzenia.
+Ta aktualizacja obejmuje wyłącznie dokumentację: `git diff --check` PASS,
+bez ponawiania testów aplikacji. Lokalna sonda w
+`.scratch/stmdomains-inotify-diagnosis/probe.py` pozostaje poza Git.
 
 Menu **Analiza → Akceptacja klasy…** ma dwa progi: minimalny margines
 (bazowo 0,075) i mnożnik promienia (1,10). Przeliczenie bieżącej klatki

@@ -6,7 +6,7 @@
 
 **Blocked by:** [07: Wybierz liczbę klas i zakres ich odkrywania](07-fit-shared-classes.md).
 
-**Status:** done — implementacja `494ab9d`, ukończono 2026-11-03; ręczny odbiór użytkownika oczekuje.
+**Status:** done — implementacja `494ab9d`, ukończono 2026-11-03; ręczny odbiór użytkownika potwierdzony 2026-11-03 dla wersji `9dd934d` („testy manualne ok”).
 
 [Uruchomienie, wykonane sprawdzenia i test ręczny](acceptance-09.md).
 Baza `b34e862`, gałąź `domains/interactive-v04-ui`, środowisko netcat.

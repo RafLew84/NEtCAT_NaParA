@@ -22,7 +22,11 @@ K1 pomija margines. [Ticket](implementation/interactive-v04/09-tune-class-accept
 [raport i test ręczny](implementation/interactive-v04/acceptance-09.md).
 427 testów PASS, mypy 63 moduły PASS; 15 plików kodu/testów do 544 linii.
 Rzeczywiste GUI X11 PASS, Standards 0 / Spec 0. Status `done`, **ręczny
-odbiór użytkownika 09 oczekuje**. Plan ma 24 tickety; 01–03, 05, 05a i 06–09
+odbiór użytkownika 09 potwierdzony 2026-11-03** dla `9dd934d`
+(„testy manualne ok”). Późniejszy komunikat `inotify` zdiagnozowano jako
+limit obserwacji systemowych; użytkownik potwierdził normalne zamknięcie.
+[Diagnoza](implementation/interactive-v04/acceptance-09.md#komunikat-inotify-po-odbiorze).
+Plan ma 24 tickety; 01–03, 05, 05a i 06–09
 wykonane. Następny rekomendowany **12 — Auto**. Poniżej historia.
 
 **Rozszerzenie planu — 2026-11-03, decyzja użytkownika:** dodano

@@ -2,7 +2,54 @@
 
 Data: **2026-11-03**. Gałąź `domains/interactive-v04-ui`, baza **`b34e862`**,
 implementacja **`494ab9d`**. [Ticket](09-tune-class-acceptance.md).
-**Odbiór ręczny użytkownika oczekuje.** Sprawdzenia agenta opisano osobno.
+**Odbiór ręczny użytkownika potwierdzony 2026-11-03** dla wersji
+**`9dd934d`** słowami „testy manualne ok”. Sprawdzenia agenta opisano osobno.
+
+## Komunikat inotify po odbiorze
+
+Użytkownik zgłosił komunikat `inotify_add_watch(...) failed: (No space
+left on device)` dla pliku w `~/.config/ibus/bus/`. Na pytanie o zachowanie
+programu odpowiedział: **„Tak, zamknął się normalnie”**. Nie zgłosił crasha.
+
+Diagnoza 2026-11-03, niezależnie od kodu aplikacji:
+
+- Minimalna sonda `inotify_init1` → `inotify_add_watch` → zamknięcie
+  deskryptora odtwarza **errno 28 / ENOSPC**. Inicjalizacja się udaje,
+  dodanie obserwacji nie. Ten sam wynik dla pliku IBus, `/tmp` i repozytorium.
+- `fs.inotify.max_user_watches = 65536`, `max_user_instances = 128`.
+  Trzy procesy `code` mają 26 231, 25 551 i 12 818 wpisów obserwacji,
+  łącznie **64 600**. Liczniki odczytano z `/proc` hosta; nie jest to
+  pełna liczba unikalnych obserwacji użytkownika — część deskryptorów była
+  niedostępna, a deskryptory mogą być współdzielone.
+- Na dysku około **2,3 TB wolnego miejsca**, wykorzystanie i-węzłów **2%**;
+  `MemAvailable` około **115 GB**. Nie stwierdzono braku miejsca na dysku.
+
+Wniosek: wyczerpany budżet obserwacji plików użytkownika, w znacznej części
+wykorzystywany przez VS Code. `ENOSPC` tej funkcji oznacza limit obserwacji
+lub brak zasobów jądra, zgodnie z [Linux man-pages](https://man7.org/linux/man-pages/man2/inotify_add_watch.2.html).
+Minimalna próba potwierdza, że problem występuje bez uruchomienia STM Domains.
+Nie ma podstaw do zmiany obsługi zamknięcia ani dodawania testu aplikacji
+udającego kontrolę współdzielonego limitu systemowego.
+
+Zalecenie: zwolnić obserwacje, np. zamykając nieużywane okna VS Code,
+albo zwiększyć limit. Polecenie administratora, skuteczne do restartu:
+
+```bash
+sudo sysctl -w fs.inotify.max_user_watches=524288
+```
+
+**Polecenia nie wykonano**; nie zmieniono konfiguracji systemu, nie kończono
+procesów użytkownika i nie instalowano pakietów. Po zmianie należy powtórzyć
+sondę i uruchomić/zamknąć aplikację; brak komunikatu nie został jeszcze
+zweryfikowany. Lokalna sonda poza Git:
+
+```bash
+/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python .scratch/stmdomains-inotify-diagnosis/probe.py
+```
+
+Dotychczasowy wynik sondy: `init_ok: true`, `add_watch_ok: false`,
+`errno: 28`, kod wyjścia **1**. Zapis odbioru i diagnozy zmienia tylko
+dokumentację; nie ponawiano pełnych testów aplikacji.
 
 ## Uruchomienie i test ręczny użytkownika
 
@@ -128,7 +175,8 @@ Hashe rzeczywistych źródeł:
 - MPP: `8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66`.
 
 Wyniki potwierdzają działanie sterowania i odtwarzalność. Nie są pomiarem
-trafności domen ani odbiorem naukowym metody. Odbiór użytkownika pozostaje otwarty.
+trafności domen ani odbiorem naukowym metody. Odbiór funkcji przez użytkownika
+potwierdzono osobno, zgodnie z wpisem na początku raportu.
 
 ## Przegląd kodu
 
