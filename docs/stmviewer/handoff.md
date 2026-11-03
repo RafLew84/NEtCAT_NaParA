@@ -1,3 +1,59 @@
+# Automatyczne wykrywanie modeli z paczki — 2026-11-03
+
+Zlecenie użytkownika poza numerowanymi ticketami: po rozpakowaniu paczki,
+np. do Dokumentów na Windows, program ma sam znajdować kod i wagi.
+Implementacja **f9f3e563fa1e7385cabbe1a5a107774e34d7a8eb**, baza **ffa33ce**.
+
+Domyślne konfiguracje pięciu modeli sprawdzają models obok uruchomionego
+stmviewer, potem dotychczasowy ~/.cache/stmviewer. Wymagany jest komplet
+plików danego modelu z jednej lokalizacji; istniejąca walidacja kodu i wag
+pozostaje przy uruchomieniu. Nie skanujemy całego dysku ani nazwanego na
+sztywno folderu Dokumenty: położenie paczki wynika z pliku programu.
+Działa też po zmianie nazwy katalogu i niezależnie od bieżącego katalogu.
+
+Ręczne wybory, wczytane ustawienia sesji oraz STMVIEWER_LOFTR_WEIGHTS
+zachowują pierwszeństwo; brak pliku nie zastępuje ich innym modelem.
+Python RoMa jest wykrywany dla nazw stmviewer-roma/netcat-romav2:
+rodzeństwo bieżącego środowiska conda, typowe instalacje w katalogu
+domowym i rejestr ~/.conda/environments.txt. Wykrywanie nie wykonuje
+interpretera, nie pobiera wag i nie instaluje zależności.
+
+Nowa paczka do przekazania:
+**data/distribution/STMViewer-2026-11-03-auto-models.zip**
+(1 291 174 798 bajtów; 614 plików opisanych w manifeście + manifest).
+SHA-256: `d213c842f43c59ed0777265e2d1b7895e4094159b34dcfe217c9558886c3a43e`.
+Zawiera nową wersję kodu oraz uaktualnione instrukcje. Poprzedni ZIP
+pozostawiono bez zmian; do przekazania używać wersji **auto-models**.
+
+Sprawdzenia wykonane:
+- **62 passed**: wykrywanie w przeniesionej paczce i cache, brak plików,
+  pierwszeństwo jawnej konfiguracji, Windows python.exe/Linux bin/python,
+  ścieżki Unicode i spacje, okna modeli, grafu i odtwarzanie sesji.
+- Mypy: 106 modułów bez błędów; Ruff F, git diff --check, limity plików.
+  Nowy moduł 78 linii, testy 158; największy zmieniony kod aplikacji 241.
+- Kontrola wszystkich plików ZIP: CRC, rozmiary i SHA-256, osobna suma ZIP.
+- Rozpakowana kopia w /tmp/stmviewer-auto-bundle/Dokumenty z polskimi znakami ąę:
+  start Qt offscreen, odczyt MPP i Phase; wszystkie pięć modeli otrzymało
+  automatycznie ścieżki z GUI i wykonało rzeczywiste dopasowanie na CPU.
+  RoMa samodzielnie znalazła istniejący netcat-romav2. Nie podawano ręcznie
+  ścieżek, wyczyszczono PYTHONPATH/STMVIEWER_LOFTR_WEIGHTS, a po imporcie
+  zmieniono bieżący katalog. Wszystkie importy aplikacji były z ZIP.
+  Zadane (-7, 5) px odtworzone z tolerancją 1 px na oś; nie jest to
+  walidacja jakości dryfu na pomiarach STM.
+- HTML: 50 poprawnych kotwic, 1137 linii.
+
+Logi: /tmp/stmviewer-discovery-tests.log, stmviewer-discovery-mypy.log,
+stmviewer-auto-bundle-build.log, stmviewer-auto-bundle-smoke.log/.json.
+Próba odtwarzalna: /tmp/stmviewer-auto-bundle-smoke.py.
+Nie powtarzano całego repozytorium ani instalowania środowisk: zmiana
+dotyczy domyślnych ścieżek, bez zmian algorytmów i wspólnego kodu.
+
+Ręczna próba jest opisana w końcowej sekcji [instrukcji paczki](distribution.md).
+Nie wykonano interaktywnego GUI ani uruchomienia na Windows; jego wariant
+ścieżek objęto testem automatycznym na Linux. Statusy ticketów bez zmian.
+Pliki proba*.stmtrial.json i sesja.stmsession pozostawiono bez zmian.
+Nie ma wymaganych zmian integracyjnych.
+
 # Paczka programu i modeli do przekazania — 2026-11-03
 
 Przygotowano lokalny **data/distribution/STMViewer-2026-11-03.zip**:
