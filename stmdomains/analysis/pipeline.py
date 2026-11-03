@@ -40,11 +40,12 @@ def analyze_frame(
     prepared = prepare_frame(data, k, settings, check, progress, order_settings=order_settings)
     if catalogue is None:
         if isinstance(prepared, FrameAnalysis):
-            return prepared
+            return replace(prepared, parameters={**prepared.parameters, **acceptance.parameters()})
         progress(f"Dopasowanie lokalnych klas K{k}…")
         state = fit_model(prepared.features[prepared.fit_mask], k, check)
         if state is None:
-            return prepared.unavailable(f"Za mało użytecznych lub różnych otoczeń do dopasowania K{k}.")
+            result = prepared.unavailable(f"Za mało użytecznych lub różnych otoczeń do dopasowania K{k}.")
+            return replace(result, parameters={**result.parameters, **acceptance.parameters()})
         catalogue = ClassCatalogue(
             data.series_id, "current_frame", (data.frame.working_index,), state,
             {"frames": [prepared.fit_record(np.flatnonzero(prepared.fit_mask))], "sampling": "all_useful_samples"},

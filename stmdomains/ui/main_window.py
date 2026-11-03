@@ -14,11 +14,8 @@ from PyQt6.QtWidgets import (
 from stmdomains.core.series import Series
 from stmdomains.core.annotations import Detection, Segmentation
 from stmdomains.ui.annotation_controls import AnnotationControls
-from stmdomains.ui.domain_settings_dialog import DomainSettingsDialog
-from stmdomains.ui.class_settings_dialog import ClassSettingsDialog
-from stmdomains.ui.class_acceptance_dialog import ClassAcceptanceDialog
-from stmdomains.ui.order_settings_dialog import OrderSettingsDialog
-from stmdomains.ui.series_analysis_dialog import SeriesAnalysisDialog, STATUS_TEXT
+from stmdomains.ui.analysis_dialog import AnalysisDialog
+from stmdomains.ui.analysis_status import STATUS_TEXT
 from stmdomains.ui.catalogue_style import catalogue_description
 from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.filmstrip import Filmstrip
@@ -47,11 +44,11 @@ class STMDomainsMainWindow(QMainWindow):
         self.open_button.setObjectName("openButton")
         self.open_button.clicked.connect(lambda: self.controller.open_session())
         files.addWidget(self.open_button)
-        self.analyze_button = QPushButton("Analizuj klatkę · K5")
+        self.analyze_button = QPushButton("Analizuj klatkę…")
         self.analyze_button.setObjectName("analyzeButton")
         self.analyze_button.setToolTip("Oblicz klasy i domeny z bieżącego obrazu i oznaczeń molekuł")
         self.analyze_button.setEnabled(False)
-        self.analyze_button.clicked.connect(self.controller.analyze_current_frame)
+        self.analyze_button.clicked.connect(lambda: self._show_analysis(current_frame=True))
         files.addWidget(self.analyze_button)
         self.source_label = QLabel("Brak otwartej serii")
         files.addWidget(self.source_label, 1)
@@ -185,37 +182,13 @@ class STMDomainsMainWindow(QMainWindow):
         self.controller.frame_changed.connect(self._show_frame)
         self.controller.busy_changed.connect(self._show_progress)
         self.controller.playback_changed.connect(self._show_playback)
-        self.domain_settings_dialog = DomainSettingsDialog(self.controller, self)
-        self.class_settings_dialog = ClassSettingsDialog(self.controller, self)
-        self.series_analysis_dialog = SeriesAnalysisDialog(self.controller, self)
-        self.class_acceptance_dialog = ClassAcceptanceDialog(self.controller, self)
-        self.order_settings_dialog = OrderSettingsDialog(self.controller, self)
+        self.analysis_dialog = AnalysisDialog(self.controller, self)
         analysis_menu = menu_bar.addMenu("&Analiza") if menu_bar is not None else None
-        self.series_analysis_action = analysis_menu.addAction("Analiza serii…") if analysis_menu is not None else None
-        if self.series_analysis_action is not None:
-            self.series_analysis_action.setObjectName("seriesAnalysisAction")
-            self.series_analysis_action.setEnabled(False)
-            self.series_analysis_action.triggered.connect(self._show_series_analysis)
-        self.class_settings_action = analysis_menu.addAction("Klasy i zakres…") if analysis_menu is not None else None
-        if self.class_settings_action is not None:
-            self.class_settings_action.setObjectName("classSettingsAction")
-            self.class_settings_action.setEnabled(False)
-            self.class_settings_action.triggered.connect(self._show_class_settings)
-        self.domain_settings_action = analysis_menu.addAction("Tworzenie domen…") if analysis_menu is not None else None
-        if self.domain_settings_action is not None:
-            self.domain_settings_action.setObjectName("domainSettingsAction")
-            self.domain_settings_action.setEnabled(False)
-            self.domain_settings_action.triggered.connect(self._show_domain_settings)
-        self.class_acceptance_action = analysis_menu.addAction("Akceptacja klasy…") if analysis_menu is not None else None
-        if self.class_acceptance_action is not None:
-            self.class_acceptance_action.setObjectName("classAcceptanceAction")
-            self.class_acceptance_action.setEnabled(False)
-            self.class_acceptance_action.triggered.connect(self._show_class_acceptance)
-        self.order_settings_action = analysis_menu.addAction("Test porządku…") if analysis_menu is not None else None
-        if self.order_settings_action is not None:
-            self.order_settings_action.setObjectName("orderSettingsAction")
-            self.order_settings_action.setEnabled(False)
-            self.order_settings_action.triggered.connect(self._show_order_settings)
+        self.analysis_action = analysis_menu.addAction("Analiza…") if analysis_menu is not None else None
+        if self.analysis_action is not None:
+            self.analysis_action.setObjectName("analysisAction")
+            self.analysis_action.setEnabled(False)
+            self.analysis_action.triggered.connect(lambda: self._show_analysis())
         app = QCoreApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(self._finish_background_work)
@@ -226,40 +199,14 @@ class STMDomainsMainWindow(QMainWindow):
             self.frame_number.setValue(self.controller.current_index + 1)
         self.controller.show_frame(number - 1)
 
-    def _show_domain_settings(self) -> None:
+    def _show_analysis(self, *, current_frame: bool = False) -> None:
         self.controller.pause()
-        self.domain_settings_dialog.refresh()
-        self.domain_settings_dialog.show()
-        self.domain_settings_dialog.raise_()
-        self.domain_settings_dialog.activateWindow()
-
-    def _show_order_settings(self) -> None:
-        self.controller.pause()
-        self.order_settings_dialog.refresh()
-        self.order_settings_dialog.show()
-        self.order_settings_dialog.raise_()
-        self.order_settings_dialog.activateWindow()
-
-    def _show_class_acceptance(self) -> None:
-        self.controller.pause()
-        self.class_acceptance_dialog.refresh()
-        self.class_acceptance_dialog.show()
-        self.class_acceptance_dialog.raise_()
-        self.class_acceptance_dialog.activateWindow()
-
-    def _show_series_analysis(self) -> None:
-        self.controller.pause()
-        self.series_analysis_dialog.refresh()
-        self.series_analysis_dialog.show()
-        self.series_analysis_dialog.raise_()
-        self.series_analysis_dialog.activateWindow()
-
-    def _show_class_settings(self) -> None:
-        self.controller.pause()
-        self.class_settings_dialog.refresh()
-        self.class_settings_dialog.show()
-        self.class_settings_dialog.raise_()
-        self.class_settings_dialog.activateWindow()
+        if current_frame:
+            self.analysis_dialog.select_current_frame()
+        self.analysis_dialog.refresh()
+        self.analysis_dialog.show()
+        self.analysis_dialog.raise_()
+        self.analysis_dialog.activateWindow()
 
     def _show_series(self, series: Series) -> None:
         self.filmstrip.set_series(series)
@@ -329,16 +276,8 @@ class STMDomainsMainWindow(QMainWindow):
     def _show_progress(self, busy: bool, text: str) -> None:
         self.analyze_button.setEnabled(self.controller.can_analyze)
         self._show_catalogue_status()
-        if self.class_settings_action is not None:
-            self.class_settings_action.setEnabled(self.controller.series is not None)
-        if self.domain_settings_action is not None:
-            self.domain_settings_action.setEnabled(self.controller.series is not None)
-        if self.class_acceptance_action is not None:
-            self.class_acceptance_action.setEnabled(self.controller.series is not None)
-        if self.order_settings_action is not None:
-            self.order_settings_action.setEnabled(self.controller.series is not None)
-        if self.series_analysis_action is not None:
-            self.series_analysis_action.setEnabled(self.controller.series is not None)
+        if self.analysis_action is not None:
+            self.analysis_action.setEnabled(self.controller.series is not None)
         self.progress_label.setText(text)
         self.progress_bar.setVisible(busy)
         self.cancel_button.setVisible(busy)
@@ -354,12 +293,7 @@ class STMDomainsMainWindow(QMainWindow):
 
     def _show_catalogue_status(self) -> None:
         active, result = self.controller.active_catalogue, self.controller.result
-        self.analyze_button.setText(f"Analizuj klatkę · K{active.k if active else 5}")
-        self.analyze_button.setToolTip(
-            "Zastosuj wybrany wspólny katalog klas do bieżącej klatki"
-            if active is not None and active.scope != "current_frame" else
-            "Dopasuj lokalne klasy z bieżącego obrazu i oznaczeń molekuł"
-        )
+        self.analyze_button.setToolTip("Otwórz wspólne ustawienia analizy bieżącej klatki")
         if result is None:
             text = "Nieprzeliczone · " + catalogue_description(active)
         else:

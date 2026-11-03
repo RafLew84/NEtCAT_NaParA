@@ -12,27 +12,29 @@ def test_order_dialog_applies_compares_and_restores_without_moving_the_image(qtb
     window = STMDomainsMainWindow(prompts=Prompts())
     qtbot.addWidget(window)
     window.show()
-    action = window.findChild(QAction, "orderSettingsAction")
+    action = window.findChild(QAction, "analysisAction")
     assert action is not None and not action.isEnabled()
     window.controller.open_session(create_analysis_demo(tmp_path)["series"])
     qtbot.waitUntil(lambda: not window.controller.is_busy)
     action.trigger()
-    dialog = window.order_settings_dialog
-    assert dialog.isVisible() and not dialog.isModal() and not dialog.calculate.isEnabled()
-    qtbot.mouseClick(window.analyze_button, Qt.MouseButton.LeftButton)
+    dialog = window.analysis_dialog
+    assert dialog.isVisible() and not dialog.isModal() and dialog.calculate.isEnabled()
+    qtbot.mouseClick(dialog.calculate, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: not window.controller.is_busy, timeout=15000)
     base = window.controller.result
+    dialog.class_fields.mode.setCurrentIndex(1)
     before = (window.image_view.geometry(), window.image_view.transform())
-    dialog.radius.setValue(2.)
-    dialog.sigma.setValue(1.)
-    assert window.controller.result is base and "nieprzeliczone" in dialog.validation.text()
+    dialog.order_fields.radius.setValue(2.)
+    dialog.order_fields.sigma.setValue(1.)
+    assert window.controller.result is base and "Edycja nie zmienia" in dialog.validation.text()
     qtbot.mouseClick(dialog.calculate, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: not window.controller.is_busy, timeout=15000)
     tuned = window.controller.result
     assert tuned.catalogue is base.catalogue and tuned.assigned_count < base.assigned_count
-    assert "2 × d" in dialog.displayed.text() and "20261102" in dialog.displayed.text()
+    assert "2 × d" in dialog.displayed.toolTip()
+    assert tuned.metadata["order_calibration"]["seed"] == 20261102
     dialog.comparison.setCurrentIndex(1)
-    assert window.controller.result is base and dialog.radius.value() == 3.
+    assert window.controller.result is base and dialog.order_fields.radius.value() == 2.
     dialog.comparison.setCurrentIndex(0)
     qtbot.mouseClick(dialog.baseline, Qt.MouseButton.LeftButton)
     assert window.controller.result is tuned

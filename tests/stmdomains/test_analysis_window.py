@@ -1,4 +1,4 @@
-"""The analyze button computes a result from the displayed series without a model dialog."""
+"""The shared analysis dialog computes a result without loading an external model."""
 
 from PyQt6.QtCore import Qt
 
@@ -34,6 +34,8 @@ def test_analyze_button_displays_no_annotations_without_loading_a_model(qtbot, t
     assert window.analyze_button.isEnabled()
     before = window.image_view.geometry()
     qtbot.mouseClick(window.analyze_button, Qt.MouseButton.LeftButton)
+    assert window.analysis_dialog.isVisible()
+    qtbot.mouseClick(window.analysis_dialog.calculate, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: not window.controller.is_busy)
     assert window.controller.result.status == "no_annotations"
     assert "Brak oznaczeń" in window.result_controls.summary.text()
@@ -55,6 +57,8 @@ def test_computed_domains_and_completed_zero_are_visible_in_window(qtbot, tmp_pa
     window.controller.open_session(path)
     qtbot.waitUntil(lambda: not window.controller.is_busy)
     qtbot.mouseClick(window.analyze_button, Qt.MouseButton.LeftButton)
+    assert window.analysis_dialog.isVisible()
+    qtbot.mouseClick(window.analysis_dialog.calculate, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: not window.controller.is_busy, timeout=15000)
     result = window.controller.result
     assert result.status == "complete" and result.domain_count > 0
@@ -69,6 +73,8 @@ def test_computed_domains_and_completed_zero_are_visible_in_window(qtbot, tmp_pa
     qtbot.waitUntil(lambda: not window.controller.is_busy)
     assert "Brak analizy" in window.result_controls.summary.text()
     qtbot.mouseClick(window.analyze_button, Qt.MouseButton.LeftButton)
+    assert window.analysis_dialog.isVisible()
+    qtbot.mouseClick(window.analysis_dialog.calculate, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: not window.controller.is_busy, timeout=15000)
     assert window.controller.result.status == "complete"
     assert window.controller.result.assigned_count == 0

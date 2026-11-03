@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from PyQt6.QtCore import QCoreApplication, QObject, QThreadPool, pyqtSignal, pyqtSlot
 
-from stmdomains.analysis.series_analysis import FrameOutcome, analyze_series, validate_shared_catalogue
+from stmdomains.analysis.series_analysis import FrameOutcome, analyze_series, validate_plan_catalogue
 from stmdomains.analysis.series_settings import SeriesAnalysisPlan
 from stmdomains.core.class_catalogue import ClassCatalogue
 from stmdomains.core.frame_presentation import FramePresenter
@@ -79,7 +79,7 @@ class SeriesRunner(QObject):
         series = presenter.series
         indices, fit = plan.indices(series.frame_count), plan.fit_settings(series.frame_count)
         if fit is None:
-            validate_shared_catalogue(catalogue, series.identity, plan.k)
+            validate_plan_catalogue(catalogue, series.identity, plan)
         self._cancelled = Event()
         self._generation += 1
         generation = self._generation

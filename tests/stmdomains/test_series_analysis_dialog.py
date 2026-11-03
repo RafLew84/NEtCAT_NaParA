@@ -12,21 +12,21 @@ def test_series_dialog_applies_all_settings_and_exposes_frame_statuses(qtbot, tm
     window = STMDomainsMainWindow(prompts=Prompts())
     qtbot.addWidget(window)
     window.show()
-    action = window.findChild(QAction, "seriesAnalysisAction")
+    action = window.findChild(QAction, "analysisAction")
     assert action is not None and not action.isEnabled()
     controller = window.controller
     controller.open_session(create_analysis_demo(tmp_path)["series"])
     qtbot.waitUntil(lambda: not controller.is_busy)
     action.trigger()
-    dialog = window.series_analysis_dialog
+    dialog = window.analysis_dialog
     assert dialog.isVisible() and not dialog.isModal()
-    dialog.k.setValue(4)
-    dialog.start.setValue(3)
-    dialog.end.setValue(2)
+    dialog.scope_fields.scope.setCurrentIndex(1)
+    dialog.class_fields.k.setValue(4)
+    dialog.scope_fields.start.setValue(3)
+    dialog.scope_fields.end.setValue(2)
     assert not dialog.calculate.isEnabled()
-    dialog.start.setValue(1)
-    dialog.end.setValue(3)
-    assert dialog.fit_start.value() == 1 and dialog.fit_end.value() == 3
+    dialog.scope_fields.start.setValue(1)
+    dialog.scope_fields.end.setValue(3)
     dialog.domain_fields.minimum.setValue(6)
     dialog.domain_fields.link_distance.setValue(1.8)
     assert controller.result is None
@@ -42,8 +42,8 @@ def test_series_dialog_applies_all_settings_and_exposes_frame_statuses(qtbot, tm
         assert controller.result.parameters["minimum_domain_size"] == 6
         assert controller.result.parameters["edge_distance_factor"] == 1.8
         assert controller.result.catalogue is controller.active_catalogue
-    dialog.fit_source.setCurrentIndex(3)
-    assert not dialog.k.isEnabled() and dialog.calculate.isEnabled()
+    dialog.class_fields.mode.setCurrentIndex(1)
+    assert not dialog.class_fields.k.isEnabled() and dialog.calculate.isEnabled()
     window.close()
     qtbot.waitUntil(lambda: not controller.pending_task_count and not window.filmstrip.pending_task_count)
 
@@ -62,16 +62,17 @@ def test_individual_tuning_is_distinguished_from_the_original_series_run(qtbot, 
     qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
     run, saved = controller.series_run, controller.result
     assert "spoza tego przebiegu" not in window.details_label.text()
-    window.domain_settings_action.trigger()
-    domain = window.domain_settings_dialog
-    domain.minimum.setValue(6)
+    window.analysis_action.trigger()
+    domain = window.analysis_dialog
+    domain.copy_result.click()
+    domain.domain_fields.minimum.setValue(6)
     qtbot.mouseClick(domain.calculate, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
     assert controller.result.parameters["minimum_domain_size"] == 6
-    assert "spoza tego przebiegu" in window.details_label.text()
-    assert controller.series_run is run and run.plan.domain_settings.minimum_domain_size == 8
+    assert "spoza tego przebiegu" not in window.details_label.text()
+    assert controller.series_run is not run and run.plan.domain_settings.minimum_domain_size == 8
     assert controller.previous_result is saved
     domain.comparison.setCurrentIndex(1)
-    assert "spoza tego przebiegu" not in window.details_label.text()
+    assert "spoza tego przebiegu" in window.details_label.text()
     window.close()
     qtbot.waitUntil(lambda: not controller.pending_task_count and not window.filmstrip.pending_task_count)

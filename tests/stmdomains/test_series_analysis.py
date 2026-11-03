@@ -6,6 +6,8 @@ from dataclasses import replace
 
 from stmdomains.analysis import analyze_frame
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
+from stmdomains.analysis.order_settings import OrderSettings
 from test_class_discovery import input_at
 
 
@@ -20,8 +22,11 @@ def test_series_matches_individual_analysis_with_one_shared_catalogue():
         return input_at(index)
 
     settings = DomainSettings(minimum_domain_size=6, edge_distance_factor=1.8)
+    acceptance = ClassAcceptanceSettings(.06, .8)
+    order = OrderSettings(order_quantile=.925)
     plan = SeriesAnalysisPlan(start=2, end=3, k=4, fit_source="selected_range",
-                              fit_start=0, fit_end=1, domain_settings=settings)
+                              fit_start=0, fit_end=1, domain_settings=settings,
+                              acceptance=acceptance, order_settings=order)
     events = list(analyze_series(read_frame, frame_count=5, series_id="session-A", plan=plan))
     catalogue, *frames = events
     assert catalogue.frame_indices == (0, 1) and catalogue.k == 4
@@ -30,7 +35,11 @@ def test_series_matches_individual_analysis_with_one_shared_catalogue():
         result = item.result
         assert not item.error and result.catalogue is catalogue
         assert result.parameters["minimum_domain_size"] == 6
-        single = analyze_frame(input_at(item.index), catalogue=catalogue, settings=settings)
+        assert result.parameters["class_margin"] == .06
+        assert result.parameters["class_radius_multiplier"] == .8
+        assert result.parameters["order_quantile"] == .925
+        single = analyze_frame(input_at(item.index), catalogue=catalogue, settings=settings,
+                               acceptance=acceptance, order_settings=order)
         assert result.assignments == single.assignments
         np.testing.assert_array_equal(result.domain_labels, single.domain_labels)
 

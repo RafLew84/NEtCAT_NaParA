@@ -1,4 +1,4 @@
-"""Stream one shared catalogue then frame outcomes, without retaining image results."""
+"""Stream a local or shared catalogue and outcomes from one complete configuration."""
 
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, replace
@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from stmdomains.analysis.config import model_parameters
 from stmdomains.analysis.discovery import fit_shared_catalogue
-from stmdomains.analysis.pipeline import analyze_frame
+from stmdomains.analysis.pipeline import analyze_frame, validate_catalogue
 from stmdomains.analysis.series_settings import SeriesAnalysisPlan
 from stmdomains.core.analysis_result import AnalysisCancelled, AnalysisInput, FrameAnalysis
 from stmdomains.core.class_catalogue import ClassCatalogue
@@ -22,11 +22,24 @@ class FrameOutcome:
 
 def validate_shared_catalogue(catalogue: ClassCatalogue | None, series_id: str, k: int) -> None:
     if catalogue is None or catalogue.scope == "current_frame":
-        raise ValueError("Wybierz wspólny katalog z 07 albo dopasuj klasy z zakresu.")
+        raise ValueError("Wybierz wspólny katalog albo dopasuj klasy z zakresu.")
     if catalogue.series_id != series_id or catalogue.k != k:
         raise ValueError("Wybrany katalog ma inną serię lub K. Dopasuj klasy ponownie.")
     if plain_metadata(catalogue.parameters) != model_parameters(k):
         raise ValueError("Katalog używa innych parametrów metody. Dopasuj klasy ponownie.")
+
+
+def validate_plan_catalogue(
+    catalogue: ClassCatalogue | None, series_id: str, plan: SeriesAnalysisPlan,
+) -> None:
+    """Cheap scope validation; exact local input identity is checked by the worker."""
+    if catalogue is not None and catalogue.scope == "current_frame" and plan.current_frame:
+        if catalogue.series_id != series_id or catalogue.k != plan.k or catalogue.frame_indices != (plan.start,):
+            raise ValueError("Lokalny katalog należy do innej klatki. Dopasuj nowe klasy lub wybierz wspólny katalog.")
+        if plain_metadata(catalogue.parameters) != model_parameters(plan.k):
+            raise ValueError("Katalog używa innych parametrów metody. Dopasuj klasy ponownie.")
+        return
+    validate_shared_catalogue(catalogue, series_id, plan.k)
 
 
 def analyze_series(
@@ -42,12 +55,31 @@ def analyze_series(
     check()
     run_id = run_id or uuid4().hex
     indices, fit = plan.indices(frame_count), plan.fit_settings(frame_count)
+
+    def result_with_run(result: FrameAnalysis) -> FrameAnalysis:
+        return replace(result, metadata={**result.metadata, "series_analysis": {
+            "run_id": run_id, "working_indices": indices, "fit_source": plan.fit_source}})
+
+    if fit is not None and fit.scope == "current_frame":
+        data = read_frame(indices[0])
+        if data.series_id != series_id or data.frame.working_index != indices[0]:
+            raise ValueError("Dane należą do innej serii lub klatki.")
+        result = analyze_frame(data, k=plan.k, settings=plan.domain_settings, acceptance=plan.acceptance,
+                               order_settings=plan.order_settings, cancelled=cancelled, progress=progress)
+        check()
+        if result.catalogue is not None:
+            yield result.catalogue
+        check()
+        yield FrameOutcome(indices[0], result_with_run(result))
+        return
     if fit is not None:
         catalogue = fit_shared_catalogue(read_frame, frame_count=frame_count, settings=fit,
                                          order_settings=plan.order_settings,
                                          cancelled=cancelled, progress=progress)
-    validate_shared_catalogue(catalogue, series_id, plan.k)
+    validate_plan_catalogue(catalogue, series_id, plan)
     assert catalogue is not None
+    if catalogue.scope == "current_frame":
+        validate_catalogue(read_frame(indices[0]), catalogue)
     check()
     yield catalogue
     for ordinal, index in enumerate(indices, 1):
@@ -62,10 +94,10 @@ def analyze_series(
             if data.series_id != series_id or data.frame.working_index != index:
                 raise ValueError("Dane należą do innej serii lub klatki.")
             result = analyze_frame(data, catalogue=catalogue, settings=plan.domain_settings,
+                                    acceptance=plan.acceptance,
                                     order_settings=plan.order_settings,
                                     cancelled=cancelled, progress=report)
-            result = replace(result, metadata={**result.metadata, "series_analysis": {
-                "run_id": run_id, "working_indices": indices, "fit_source": plan.fit_source}})
+            result = result_with_run(result)
             check()
             outcome = FrameOutcome(index, result)
         except AnalysisCancelled:

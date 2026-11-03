@@ -105,6 +105,15 @@ class SessionController(QObject):
         return self._active_catalogue
 
     @property
+    def available_catalogues(self) -> tuple[ClassCatalogue, ...]:
+        catalogues = {result.catalogue.identifier: result.catalogue
+                      for results in (self._previous_results, self._results) for result in results.values()
+                      if result.catalogue is not None}
+        if self.active_catalogue is not None:
+            catalogues[self.active_catalogue.identifier] = self.active_catalogue
+        return tuple(catalogues.values())
+
+    @property
     def catalogue_status(self) -> str:
         if self.result is None:
             return "unanalysed"
@@ -163,12 +172,12 @@ class SessionController(QObject):
     def series_run(self) -> SeriesRun | None:
         return self._series_runner.state
 
-    def start_series_analysis(self, plan: SeriesAnalysisPlan) -> None:
+    def start_series_analysis(self, plan: SeriesAnalysisPlan, *, catalogue: ClassCatalogue | None = None) -> None:
         self.pause()
         if not self.can_analyze or self.presenter is None:
             return
         try:
-            self._series_runner.start(self.presenter, plan, self.active_catalogue)
+            self._series_runner.start(self.presenter, plan, catalogue if catalogue is not None else self.active_catalogue)
         except ValueError as error:
             self.prompts.show_error(str(error))
 

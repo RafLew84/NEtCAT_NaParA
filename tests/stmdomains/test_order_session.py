@@ -30,11 +30,14 @@ def test_other_controls_and_series_discovery_preserve_applied_order(qtbot, tmp_p
         qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
         assert OrderSettings.from_parameters(controller.result.parameters) == settings
     assert controller.result.catalogue.provenance["frames"][0]["order_settings"] == settings.parameters()
-    window.series_analysis_action.trigger()
-    dialog = window.series_analysis_dialog
-    dialog.k.setValue(1)
-    dialog.start.setValue(1)
-    dialog.end.setValue(2)
+    window.analysis_action.trigger()
+    dialog = window.analysis_dialog
+    dialog.copy_result.click()
+    dialog.class_fields.mode.setCurrentIndex(0)
+    dialog.class_fields.k.setValue(1)
+    dialog.scope_fields.scope.setCurrentIndex(1)
+    dialog.scope_fields.start.setValue(1)
+    dialog.scope_fields.end.setValue(2)
     dialog.calculate.click()
     qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
     assert controller.series_run.plan.order_settings == settings

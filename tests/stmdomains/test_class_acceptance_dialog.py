@@ -9,25 +9,26 @@ from stmdomains.ui.main_window import STMDomainsMainWindow
 from test_analysis_window import Prompts
 
 
-def test_acceptance_dialog_requires_result_applies_draft_compares_and_restores(qtbot, tmp_path):
+def test_acceptance_fields_before_first_result_applies_draft_compares_and_restores(qtbot, tmp_path):
     window = STMDomainsMainWindow(prompts=Prompts())
     qtbot.addWidget(window)
     window.show()
-    action = window.findChild(QAction, "classAcceptanceAction")
+    action = window.findChild(QAction, "analysisAction")
     assert action is not None and not action.isEnabled()
     window.controller.open_session(create_analysis_demo(tmp_path)["series"])
     qtbot.waitUntil(lambda: not window.controller.is_busy)
     action.trigger()
-    dialog = window.class_acceptance_dialog
-    assert dialog.isVisible() and not dialog.isModal() and not dialog.calculate.isEnabled()
-    qtbot.mouseClick(window.analyze_button, Qt.MouseButton.LeftButton)
+    dialog = window.analysis_dialog
+    assert dialog.isVisible() and not dialog.isModal() and dialog.calculate.isEnabled()
+    qtbot.mouseClick(dialog.calculate, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: not window.controller.is_busy, timeout=15000)
     base = window.controller.result
+    window.analysis_dialog.copy_result.click()
     assert dialog.calculate.isEnabled()
     window.image_view.zoom_by(1.3)
     before = (window.image_view.geometry(), window.image_view.transform())
-    dialog.radius.setValue(.05)
-    assert window.controller.result is base and "nieprzeliczone" in dialog.validation.text()
+    dialog.acceptance_fields.radius.setValue(.05)
+    assert window.controller.result is base and "Edycja nie zmienia" in dialog.validation.text()
     qtbot.mouseClick(dialog.calculate, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: not window.controller.is_busy, timeout=15000)
     tuned = window.controller.result
@@ -35,11 +36,11 @@ def test_acceptance_dialog_requires_result_applies_draft_compares_and_restores(q
     assert tuned.parameters["class_radius_multiplier"] == .05
     dialog.comparison.setCurrentIndex(1)
     assert window.controller.result is base and "Poprzedni" in dialog.displayed.text()
-    assert dialog.radius.value() == 1.10
+    assert dialog.acceptance_fields.radius.value() == .05
     dialog.comparison.setCurrentIndex(0)
-    assert dialog.radius.value() == .05
+    assert dialog.acceptance_fields.radius.value() == .05
     qtbot.mouseClick(dialog.baseline, Qt.MouseButton.LeftButton)
-    assert window.controller.result is tuned and dialog.radius.value() == 1.10
+    assert window.controller.result is tuned and dialog.acceptance_fields.radius.value() == 1.10
     qtbot.mouseClick(dialog.calculate, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: not window.controller.is_busy, timeout=15000)
     assert window.controller.result.assignments == base.assignments
@@ -63,11 +64,12 @@ def test_k1_disables_margin_and_molecule_dialog_explains_all_stages(qtbot, tmp_p
     window.controller.fit_current_classes(ClassFitSettings(k=1))
     qtbot.waitUntil(lambda: not window.controller.is_busy, timeout=15000)
     base = window.controller.result
-    window.class_acceptance_action.trigger()
-    dialog = window.class_acceptance_dialog
-    assert not dialog.margin.isEnabled() and dialog.radius.isEnabled()
-    assert "K1" in dialog.rule.text() and "nie dotyczy" in dialog.rule.text()
-    dialog.radius.setValue(.05)
+    window.analysis_dialog.copy_result.click()
+    window.analysis_action.trigger()
+    dialog = window.analysis_dialog
+    assert not dialog.acceptance_fields.margin.isEnabled() and dialog.acceptance_fields.radius.isEnabled()
+    assert "K1" in dialog.acceptance_fields.rule.text() and "nie dotyczy" in dialog.acceptance_fields.rule.text()
+    dialog.acceptance_fields.radius.setValue(.05)
     qtbot.mouseClick(dialog.calculate, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: not window.controller.is_busy, timeout=15000)
     assert window.controller.result.catalogue is base.catalogue
