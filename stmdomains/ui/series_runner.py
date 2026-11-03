@@ -5,12 +5,14 @@ from dataclasses import dataclass, field, replace
 from threading import Event
 from types import MappingProxyType
 from uuid import uuid4
+from typing import Any
 
 from PyQt6.QtCore import QCoreApplication, QObject, QThreadPool, pyqtSignal, pyqtSlot
 
-from stmdomains.analysis.series_analysis import FrameOutcome, analyze_series, validate_plan_catalogue
+from stmdomains.analysis.series_analysis import ClassSelectionFailure, FrameOutcome, analyze_series, validate_plan_catalogue
 from stmdomains.analysis.series_settings import SeriesAnalysisPlan
 from stmdomains.core.class_catalogue import ClassCatalogue
+from stmdomains.core.immutable import freeze_metadata
 from stmdomains.core.frame_presentation import FramePresenter
 from stmdomains.ui.tasks import Task
 
@@ -33,10 +35,13 @@ class SeriesRun:
     message: str = "Przygotowanie wspólnych klas…"
     catalogue: ClassCatalogue | None = None
     frames: Mapping[int, FrameRunStatus] = field(default_factory=dict)
+    selection: Mapping[str, Any] | None = None
     identifier: str = field(default_factory=lambda: uuid4().hex)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "frames", MappingProxyType(dict(self.frames)))
+        if self.selection is not None:
+            object.__setattr__(self, "selection", freeze_metadata(self.selection))
 
     @property
     def processed_count(self) -> int:
@@ -61,7 +66,7 @@ class SeriesRunner(QObject):
         self._counter = 0
         self._generation = 0
         self._cancelled = Event()
-        self._iterator: Iterator[ClassCatalogue | FrameOutcome] | None = None
+        self._iterator: Iterator[ClassCatalogue | FrameOutcome | ClassSelectionFailure] | None = None
         self._closed = False
         self._progress_reported.connect(self._progress)
 
@@ -119,13 +124,19 @@ class SeriesRunner(QObject):
         if token != self._token or not self.running or self.state is None:
             return
         if isinstance(event, ClassCatalogue):
-            self.state = replace(self.state, catalogue=event, phase="analysing", message="Analiza domen…")
+            self.state = replace(self.state, catalogue=event, phase="analysing", message="Analiza domen…",
+                                 selection=event.state.get("class_selection"))
             self.catalogue_ready.emit(event)
+        elif isinstance(event, ClassSelectionFailure):
+            self.state = replace(self.state, selection=event.decision)
+            self._stop("undetermined", str(event.decision["reason"]))
+            return
         elif isinstance(event, FrameOutcome):
             result = event.result
             status = FrameRunStatus("error", event.error) if result is None else FrameRunStatus(
                 result.status, result.message, result.assigned_count, result.active_count, result.domain_count)
-            self.state = replace(self.state, frames={**self.state.frames, event.index: status})
+            self.state = replace(self.state, frames={**self.state.frames, event.index: status},
+                                 selection=result.metadata.get("class_selection") if result else self.state.selection)
             self.frame_ready.emit(event)
         elif event is None:
             errors = sum(row.status == "error" for row in self.state.frames.values())

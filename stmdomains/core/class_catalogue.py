@@ -35,7 +35,8 @@ class ClassCatalogue:
         return int(self.state["k"])
 
     def metadata(self) -> dict[str, Any]:
-        return {"fit_scope": self.scope, "fit_working_indices": self.frame_indices,
+        extra = {"class_selection": self.state["class_selection"]} if "class_selection" in self.state else {}
+        return {**extra, "fit_scope": self.scope, "fit_working_indices": self.frame_indices,
                 "fit_frames": self.provenance["frames"], "fit_sampling": self.provenance["sampling"],
                 "model_state": self.state, "model_id": self.identifier,
                 "descriptor_scale_policy": "per-frame median NN spacing after duplicate suppression"}

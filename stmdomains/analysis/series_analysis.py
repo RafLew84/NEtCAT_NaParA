@@ -1,16 +1,18 @@
 """Stream a local or shared catalogue and outcomes from one complete configuration."""
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping
+from typing import Any
 from dataclasses import dataclass, replace
 from uuid import uuid4
 
+from stmdomains.analysis.automatic_classes import AutoSelectionUnavailable
 from stmdomains.analysis.config import model_parameters
 from stmdomains.analysis.discovery import fit_shared_catalogue
 from stmdomains.analysis.pipeline import analyze_frame, validate_catalogue
 from stmdomains.analysis.series_settings import SeriesAnalysisPlan
 from stmdomains.core.analysis_result import AnalysisCancelled, AnalysisInput, FrameAnalysis
 from stmdomains.core.class_catalogue import ClassCatalogue
-from stmdomains.core.immutable import plain_metadata
+from stmdomains.core.immutable import freeze_metadata, plain_metadata
 
 
 @dataclass(frozen=True)
@@ -18,6 +20,14 @@ class FrameOutcome:
     index: int
     result: FrameAnalysis | None = None
     error: str = ""
+
+
+@dataclass(frozen=True)
+class ClassSelectionFailure:
+    decision: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "decision", freeze_metadata(self.decision))
 
 
 def validate_shared_catalogue(catalogue: ClassCatalogue | None, series_id: str, k: int) -> None:
@@ -47,7 +57,7 @@ def analyze_series(
     plan: SeriesAnalysisPlan, catalogue: ClassCatalogue | None = None,
     run_id: str = "",
     cancelled: Callable[[], bool] = lambda: False, progress: Callable[[str], None] = lambda text: None,
-) -> Iterator[ClassCatalogue | FrameOutcome]:
+) -> Iterator[ClassCatalogue | FrameOutcome | ClassSelectionFailure]:
     def check() -> None:
         if cancelled():
             raise AnalysisCancelled()
@@ -65,7 +75,8 @@ def analyze_series(
         if data.series_id != series_id or data.frame.working_index != indices[0]:
             raise ValueError("Dane należą do innej serii lub klatki.")
         result = analyze_frame(data, k=plan.k, settings=plan.domain_settings, acceptance=plan.acceptance,
-                               order_settings=plan.order_settings, cancelled=cancelled, progress=progress)
+                               order_settings=plan.order_settings, cancelled=cancelled, progress=progress,
+                               class_count_mode=plan.class_count_mode, auto_max_k=plan.auto_max_k)
         check()
         if result.catalogue is not None:
             yield result.catalogue
@@ -73,10 +84,16 @@ def analyze_series(
         yield FrameOutcome(indices[0], result_with_run(result))
         return
     if fit is not None:
-        catalogue = fit_shared_catalogue(read_frame, frame_count=frame_count, settings=fit,
-                                         order_settings=plan.order_settings,
-                                         cancelled=cancelled, progress=progress)
-    validate_plan_catalogue(catalogue, series_id, plan)
+        try:
+            catalogue = fit_shared_catalogue(read_frame, frame_count=frame_count, settings=fit,
+                                             order_settings=plan.order_settings,
+                                             cancelled=cancelled, progress=progress)
+        except AutoSelectionUnavailable as error:
+            check()
+            yield ClassSelectionFailure(error.decision)
+            return
+    validation_plan = replace(plan, k=catalogue.k) if fit is not None and catalogue is not None else plan
+    validate_plan_catalogue(catalogue, series_id, validation_plan)
     assert catalogue is not None
     if catalogue.scope == "current_frame":
         validate_catalogue(read_frame(indices[0]), catalogue)

@@ -10,4 +10,5 @@ def catalogue_description(catalogue: ClassCatalogue | None) -> str:
     scope = (f"lokalny kl. {first}" if catalogue.scope == "current_frame" else
              f"wspólny, cała seria ({len(catalogue.frame_indices)} kl.)" if catalogue.scope == "whole_series" else
              f"wspólny kl. {first}–{last}")
-    return f"K{catalogue.k} · {scope} · katalog {catalogue.identifier[:8]}"
+    prefix = "Auto: " if "class_selection" in catalogue.state else ""
+    return f"{prefix}K{catalogue.k} · {scope} · katalog {catalogue.identifier[:8]}"

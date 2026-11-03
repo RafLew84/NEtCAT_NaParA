@@ -2,13 +2,15 @@
 
 from collections.abc import Callable
 from dataclasses import replace
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 
+from stmdomains.analysis.automatic_classes import AutoSelectionUnavailable, fit_auto_model
+from stmdomains.analysis.class_settings import ClassFitSettings
 from stmdomains.analysis.barriers import image_barriers
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
-from stmdomains.analysis.clustering import apply_classes, fit_model, validate_k
+from stmdomains.analysis.clustering import apply_classes, fit_model
 from stmdomains.analysis.config import COLORS, PARAMETERS, model_parameters
 from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.analysis.order_settings import OrderSettings
@@ -23,6 +25,7 @@ from stmdomains.core.immutable import plain_metadata
 def analyze_frame(
     data: AnalysisInput, *, settings: DomainSettings = DomainSettings(), k: int = 5,
     catalogue: ClassCatalogue | None = None,
+    class_count_mode: Literal["manual", "auto"] = "manual", auto_max_k: int = 8,
     acceptance: ClassAcceptanceSettings = ClassAcceptanceSettings(),
     order_settings: OrderSettings = OrderSettings(),
     cancelled: Callable[[], bool] = lambda: False,
@@ -36,20 +39,41 @@ def analyze_frame(
     if catalogue is not None:
         k = catalogue.k
         validate_catalogue(data, catalogue)
-    validate_k(k)
-    prepared = prepare_frame(data, k, settings, check, progress, order_settings=order_settings)
+    request = ClassFitSettings(k=k, class_count_mode=class_count_mode, auto_max_k=auto_max_k)
+    prepared = prepare_frame(data, k if catalogue else request.preparation_k, settings, check, progress,
+                             order_settings=order_settings)
+    state: dict[str, Any] | None
     if catalogue is None:
-        if isinstance(prepared, FrameAnalysis):
-            return replace(prepared, parameters={**prepared.parameters, **acceptance.parameters()})
-        progress(f"Dopasowanie lokalnych klas K{k}…")
-        state = fit_model(prepared.features[prepared.fit_mask], k, check)
+        base = prepared if isinstance(prepared, FrameAnalysis) else prepared.base
+        if class_count_mode == "auto":
+            samples = np.empty((0, 0)) if isinstance(prepared, FrameAnalysis) else prepared.features[prepared.fit_mask]
+            try:
+                state = fit_auto_model(samples, auto_max_k, check, active_count=base.active_count,
+                                       useful_count=len(samples), progress=progress)
+            except AutoSelectionUnavailable as error:
+                decision = {**error.decision, "fit_scope": "current_frame",
+                            "fit_working_indices": (data.frame.working_index,),
+                            "fit_frames": [{"working_index": data.frame.working_index,
+                                            "source_index": data.frame.source_index,
+                                            "input_sha256": base.metadata.get("input_sha256"),
+                                            "preparation_reason": base.message}]}
+                return replace(base, message=str(error) + (" " + base.message if base.message else ""),
+                               parameters={**base.parameters, **acceptance.parameters(), "k": None,
+                                           "class_count_mode": "auto", "auto_max_k": auto_max_k},
+                               metadata={**base.metadata, "class_selection": decision})
+        else:
+            if isinstance(prepared, FrameAnalysis):
+                return replace(prepared, parameters={**prepared.parameters, **acceptance.parameters()})
+            progress(f"Dopasowanie lokalnych klas K{k}…")
+            state = fit_model(prepared.features[prepared.fit_mask], k, check)
         if state is None:
-            result = prepared.unavailable(f"Za mało użytecznych lub różnych otoczeń do dopasowania K{k}.")
+            result = replace(base, message=f"Za mało użytecznych lub różnych otoczeń do dopasowania K{k}.")
             return replace(result, parameters={**result.parameters, **acceptance.parameters()})
+        assert isinstance(prepared, PreparedFrame)
         catalogue = ClassCatalogue(
             data.series_id, "current_frame", (data.frame.working_index,), state,
             {"frames": [prepared.fit_record(np.flatnonzero(prepared.fit_mask))], "sampling": "all_useful_samples"},
-            model_parameters(k),
+            model_parameters(state["k"]),
         )
     return apply_prepared(prepared, catalogue, settings, check, progress, acceptance=acceptance)
 
@@ -73,10 +97,13 @@ def apply_prepared(
     check: Callable[[], None], progress: Callable[[str], None], *,
     acceptance: ClassAcceptanceSettings = ClassAcceptanceSettings(),
 ) -> FrameAnalysis:
+    count_parameters: dict[str, Any] = {"k": catalogue.k, "class_count_mode": "manual"}
+    if "class_selection" in catalogue.state:
+        count_parameters.update(class_count_mode="auto", auto_max_k=catalogue.state["class_selection"]["max_k"])
     classes = tuple(ResultClass(str(index + 1), color) for index, color in enumerate(COLORS[:catalogue.k]))
     if isinstance(prepared, FrameAnalysis):
         return replace(prepared, catalogue=catalogue, classes=classes,
-                       parameters={**prepared.parameters, **acceptance.parameters()},
+                       parameters={**prepared.parameters, **acceptance.parameters(), **count_parameters},
                        metadata={**prepared.metadata, **catalogue.metadata()})
     data = prepared.data
     labels, reliable, class_details = apply_classes(prepared.features, prepared.valid, catalogue.state, check,
@@ -121,4 +148,4 @@ def apply_prepared(
     return replace(prepared.base, status="complete", message=f"Obliczono klasy K{catalogue.k} i domeny.",
                    assignments=assignments, classes=classes, metadata=metadata,
                    domain_labels=domain_labels, catalogue=catalogue,
-                   parameters={**prepared.base.parameters, **acceptance.parameters()})
+                   parameters={**prepared.base.parameters, **acceptance.parameters(), **count_parameters})

@@ -61,6 +61,13 @@ class ClassFields(QWidget):
         self.mode = QComboBox()
         self.mode.addItem("Dopasuj nowe klasy", "new")
         self.mode.addItem("Użyj istniejących klas", "existing")
+        self.count_mode = QComboBox()
+        self.count_mode.addItem("Ręczna liczba klas", "manual")
+        self.count_mode.addItem("Auto — wybierz z danych", "auto")
+        self.auto_max_k = QSpinBox()
+        self.auto_max_k.setRange(1, 8)
+        self.auto_max_k.setValue(8)
+        self.auto_max_k.setToolTip("Auto może wybrać K1, kilka klas lub pozostać nierozstrzygnięte. Maksimum ogranicza poszukiwanie.")
         self.k = QSpinBox()
         self.k.setRange(1, 8)
         self.k.setValue(5)
@@ -74,7 +81,8 @@ class ClassFields(QWidget):
         self.catalogue.setMinimumContentsLength(22)
         self.catalogue_label = QLabel("Brak katalogu. Dopasuj nowe klasy.")
         self.catalogue_label.setWordWrap(True)
-        for label, field in (("Źródło klas", self.mode), ("Liczba klas K", self.k),
+        for label, field in (("Źródło klas", self.mode), ("Wybór liczby klas", self.count_mode),
+                             ("Ręczne K", self.k), ("Maksimum dla Auto", self.auto_max_k),
                              ("Dane do odkrywania klas", self.fit_source), ("Pierwsza klatka dopasowania", self.fit_start),
                              ("Ostatnia klatka dopasowania", self.fit_end), ("Istniejący katalog", self.catalogue)):
             form.addRow(label, field)
@@ -83,9 +91,9 @@ class ClassFields(QWidget):
                       "Klasa 1 z różnych katalogów nie musi oznaczać tego samego.")
         note.setWordWrap(True)
         form.addRow(note)
-        for combo in (self.mode, self.fit_source, self.catalogue):
+        for combo in (self.mode, self.count_mode, self.fit_source, self.catalogue):
             combo.currentIndexChanged.connect(self.changed)
-        for spin in (self.k, self.fit_start, self.fit_end):
+        for spin in (self.k, self.auto_max_k, self.fit_start, self.fit_end):
             spin.valueChanged.connect(self.changed)
 
     @property
@@ -97,11 +105,27 @@ class ClassFields(QWidget):
         active = self.selected_catalogue
         return active.k if self.mode.currentData() == "existing" and active else self.k.value()
 
+    @property
+    def automatic(self) -> bool:
+        active = self.selected_catalogue
+        if self.mode.currentData() == "existing" and active is not None:
+            return "class_selection" in active.state
+        return self.count_mode.currentData() == "auto"
+
+    @property
+    def maximum_k(self) -> int:
+        active = self.selected_catalogue
+        if self.mode.currentData() == "existing" and active is not None:
+            return int(active.state.get("class_selection", {}).get("max_k", self.auto_max_k.value()))
+        return self.auto_max_k.value()
+
     def reset(self, count: int, index: int) -> None:
         self._catalogues.clear()
         self.catalogue.clear()
         self.mode.setCurrentIndex(0)
         self.k.setValue(5)
+        self.count_mode.setCurrentIndex(0)
+        self.auto_max_k.setValue(8)
         self.fit_source.setCurrentIndex(0)
         for spin in (self.fit_start, self.fit_end):
             spin.setRange(1, count)
@@ -132,9 +156,15 @@ class ClassFields(QWidget):
         existing = self.mode.currentData() == "existing"
         selected = self.selected_catalogue
         if existing and selected is not None:
-            with QSignalBlocker(self.k):
+            with QSignalBlocker(self.k), QSignalBlocker(self.count_mode), QSignalBlocker(self.auto_max_k):
                 self.k.setValue(selected.k)
-        self.k.setEnabled(not existing)
+                selection = selected.state.get("class_selection")
+                self.count_mode.setCurrentIndex(1 if selection else 0)
+                if selection:
+                    self.auto_max_k.setValue(int(selection["max_k"]))
+        self.count_mode.setEnabled(not existing)
+        self.auto_max_k.setEnabled(not existing and self.automatic)
+        self.k.setEnabled(not existing and not self.automatic)
         self.fit_source.setEnabled(not existing)
         self.catalogue.setEnabled(existing)
         for spin in (self.fit_start, self.fit_end):

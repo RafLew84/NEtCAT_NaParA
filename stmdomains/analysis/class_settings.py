@@ -1,6 +1,7 @@
-"""Explicit manual class count and discovery scope; UI frame numbers are one-based."""
+"""Explicit class count request and discovery scope; UI frame numbers are one-based."""
 
 from dataclasses import dataclass
+from typing import Literal
 
 from stmdomains.analysis.clustering import validate_k
 from stmdomains.core.class_catalogue import FitScope
@@ -13,8 +14,18 @@ class ClassFitSettings:
     start: int = 0
     end: int = 0
 
+    class_count_mode: Literal["manual", "auto"] = "manual"
+    auto_max_k: int = 8
+
+    @property
+    def preparation_k(self) -> int:
+        return 1 if self.class_count_mode == "auto" else self.k
+
     def __post_init__(self) -> None:
         validate_k(self.k)
+        validate_k(self.auto_max_k)
+        if self.class_count_mode not in ("manual", "auto"):
+            raise ValueError("Wybierz ręczne K albo Auto.")
         if self.scope not in ("current_frame", "selected_range", "whole_series"):
             raise ValueError("Nieznany zakres odkrywania klas.")
         if type(self.start) is not int or type(self.end) is not int or not 0 <= self.start <= self.end:

@@ -17,7 +17,7 @@ def validate_k(k: int) -> None:
         raise ValueError("Liczba klas K musi być liczbą całkowitą od 1 do 8.")
 
 
-def _project(features: NDArray[np.float64], state: Mapping[str, Any]) -> NDArray[np.float64]:
+def project_features(features: NDArray[np.float64], state: Mapping[str, Any]) -> NDArray[np.float64]:
     if state["projection"] == "identity":
         return features
     components = np.asarray(state["pca_components"])
@@ -44,7 +44,7 @@ def fit_model(
                      "pca_components": pca.components_.tolist(), "pca_components_count": components}
         else:
             state = {"projection": "identity", "pca_mean": [], "pca_components": [], "pca_components_count": 0}
-        reduced = _project(selected, state)
+        reduced = project_features(selected, state)
         check()
         model = KMeans(n_clusters=k, n_init=20, random_state=24).fit(reduced)
     check()
@@ -68,7 +68,7 @@ def apply_classes(
 ) -> tuple[NDArray[Any], NDArray[np.bool_], dict[str, NDArray[Any]]]:
     check()
     with threadpool_limits(limits=1):
-        reduced = _project(features, state)
+        reduced = project_features(features, state)
     distances = np.linalg.norm(reduced[:, None] - np.asarray(state["centers"])[None], axis=2)
     labels = distances.argmin(axis=1)
     ordered = np.sort(distances, axis=1)

@@ -1,5 +1,10 @@
 """One persistent parameter draft, one explicit run and independent result browsing."""
 
+from collections.abc import Mapping
+from typing import Any
+
+from stmdomains.core.class_catalogue import ClassCatalogue
+
 from PyQt6.QtCore import QSignalBlocker, Qt
 from PyQt6.QtWidgets import (
     QComboBox, QDialog, QHBoxLayout, QLabel, QPushButton, QScrollArea,
@@ -11,6 +16,7 @@ from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.analysis.series_analysis import validate_plan_catalogue
 from stmdomains.analysis.series_settings import SeriesAnalysisPlan
+from stmdomains.ui.auto_ranking_dialog import AutoRankingDialog, selection_summary
 from stmdomains.ui.acceptance_fields import AcceptanceFields
 from stmdomains.ui.analysis_scope_fields import AnalysisScopeFields, ClassFields
 from stmdomains.ui.analysis_status import AnalysisStatuses
@@ -74,6 +80,14 @@ class AnalysisDialog(QDialog):
         layout.addLayout(actions)
         self.progress = self._label(2)
         layout.addWidget(self.progress)
+        auto_row = QHBoxLayout()
+        self.auto_summary = self._label(2)
+        self.auto_details = QPushButton("Ranking Auto…")
+        self.auto_details.setAutoDefault(False)
+        self.auto_details.clicked.connect(self._show_auto)
+        auto_row.addWidget(self.auto_summary, 1)
+        auto_row.addWidget(self.auto_details)
+        layout.addLayout(auto_row)
         self.statuses = AnalysisStatuses()
         self.statuses.frame_requested.connect(controller.show_frame)
         layout.addWidget(self.statuses)
@@ -127,6 +141,7 @@ class AnalysisDialog(QDialog):
             fit_start=classes.fit_start.value() - 1, fit_end=classes.fit_end.value() - 1,
             domain_settings=self.domain_fields.settings(), order_settings=self.order_fields.settings(),
             acceptance=self.acceptance_fields.settings(),
+            class_count_mode="auto" if classes.automatic else "manual", auto_max_k=classes.maximum_k,
         )
 
     def _baseline(self) -> None:
@@ -150,7 +165,10 @@ class AnalysisDialog(QDialog):
             self.class_fields.mode.setCurrentIndex(1)
         else:
             self.class_fields.mode.setCurrentIndex(0)
-            self.class_fields.k.setValue(int(result.parameters["k"]))
+            self.class_fields.count_mode.setCurrentIndex(1 if result.parameters.get("class_count_mode") == "auto" else 0)
+            self.class_fields.auto_max_k.setValue(int(result.parameters.get("auto_max_k", 8)))
+            if result.parameters.get("k") is not None:
+                self.class_fields.k.setValue(int(result.parameters["k"]))
         self._loading = False
         self._validate()
 
@@ -159,7 +177,8 @@ class AnalysisDialog(QDialog):
             return
         self.scope_fields.refresh()
         self.class_fields.refresh()
-        self.acceptance_fields.set_k(self.class_fields.chosen_k)
+        unknown_k = self.class_fields.mode.currentData() == "new" and self.class_fields.automatic
+        self.acceptance_fields.set_k(0 if unknown_k else self.class_fields.chosen_k)
         try:
             series = self.controller.series
             if series is None:
@@ -173,7 +192,8 @@ class AnalysisDialog(QDialog):
                 source = "istniejący katalog " + catalogue.identifier[:8] if catalogue else "brak"
             else:
                 fit_indices = fit.indices(indices[0], series.frame_count)
-                source = (f"nowe K{plan.k} z kl. {fit_indices[0] + 1}–{fit_indices[-1] + 1}"
+                count = f"Auto (maks. {plan.auto_max_k})" if plan.class_count_mode == "auto" else f"K{plan.k}"
+                source = (f"nowe {count} z kl. {fit_indices[0] + 1}–{fit_indices[-1] + 1}"
                           + (" (lokalne)" if fit.scope == "current_frame" else " (wspólne)"))
             self.validation.setText(f"Szkic: domeny na kl. {target} ({len(indices)}) · {source}.\n"
                                     "Analizuj zastosuje wszystkie cztery zakładki. Edycja nie zmienia obrazu.")
@@ -225,9 +245,30 @@ class AnalysisDialog(QDialog):
         self.progress.setText(run.message if run else "Nie uruchomiono analizy. Nowa seria zaczyna od bazowych ustawień.")
         self.progress.setToolTip(self.progress.text())
         self.statuses.refresh(run)
+        selection, _, context = self._auto_context()
+        self.auto_summary.setText(context + ": " + selection_summary(selection) if selection else
+                                  "Auto: wybierz tryb w zakładce Klasy, aby porównać liczbę klas.")
+        self.auto_summary.setToolTip(self.auto_summary.text())
+        self.auto_details.setEnabled(selection is not None)
         self._display_result()
         self._loading = False
         self._validate()
+
+    def _auto_context(self) -> tuple[Mapping[str, Any] | None, ClassCatalogue | None, str]:
+        controller = self.controller
+        result, run = controller.result, controller.series_run
+        shown = result.metadata.get("class_selection") if result else None
+        if shown and (controller.result_version == "previous" or not run or not run.selection):
+            return shown, result.catalogue if result else None, "Auto wyświetlanego wyniku"
+        return (run.selection, run.catalogue, "Auto ostatniego przebiegu") if run else (None, None, "Auto")
+
+    def _show_auto(self) -> None:
+        selection, catalogue, context = self._auto_context()
+        if selection is None:
+            return
+        dialog = AutoRankingDialog(selection, catalogue, self)
+        dialog.setWindowTitle(context + " — ranking")
+        dialog.show()
 
     def _display_result(self) -> None:
         controller, result = self.controller, self.controller.result

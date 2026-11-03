@@ -1,6 +1,6 @@
 """One immutable request separates class discovery from the frames to analyse."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
@@ -23,6 +23,12 @@ class SeriesAnalysisPlan:
     acceptance: ClassAcceptanceSettings = ClassAcceptanceSettings()
     current_frame: bool = False
 
+    class_count_mode: Literal["manual", "auto"] = "manual"
+    auto_max_k: int = 8
+
+    def __post_init__(self) -> None:
+        ClassFitSettings(k=self.k, class_count_mode=self.class_count_mode, auto_max_k=self.auto_max_k)
+
     def indices(self, frame_count: int) -> tuple[int, ...]:
         if self.current_frame:
             if self.whole_series:
@@ -33,6 +39,11 @@ class SeriesAnalysisPlan:
                                 0 if self.whole_series else self.end).indices(0, frame_count)
 
     def fit_settings(self, frame_count: int) -> ClassFitSettings | None:
+        settings = self._fit_settings(frame_count)
+        return (replace(settings, class_count_mode=self.class_count_mode, auto_max_k=self.auto_max_k)
+                if settings is not None else None)
+
+    def _fit_settings(self, frame_count: int) -> ClassFitSettings | None:
         indices = self.indices(frame_count)
         if self.fit_source == "existing":
             return None
