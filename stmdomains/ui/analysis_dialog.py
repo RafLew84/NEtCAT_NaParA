@@ -16,7 +16,7 @@ from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.analysis.series_analysis import validate_plan_catalogue
 from stmdomains.analysis.series_settings import SeriesAnalysisPlan
-from stmdomains.ui.auto_ranking_dialog import AutoRankingDialog, selection_summary
+from stmdomains.ui.auto_ranking_dialog import AutoRankingDialog
 from stmdomains.ui.acceptance_fields import AcceptanceFields
 from stmdomains.ui.analysis_scope_fields import AnalysisScopeFields, ClassFields
 from stmdomains.ui.analysis_status import AnalysisStatuses
@@ -82,6 +82,7 @@ class AnalysisDialog(QDialog):
         layout.addWidget(self.progress)
         auto_row = QHBoxLayout()
         self.auto_summary = self._label(2)
+        self.auto_summary.setWordWrap(False)
         self.auto_details = QPushButton("Ranking Auto…")
         self.auto_details.setAutoDefault(False)
         self.auto_details.clicked.connect(self._show_auto)
@@ -246,9 +247,16 @@ class AnalysisDialog(QDialog):
         self.progress.setToolTip(self.progress.text())
         self.statuses.refresh(run)
         selection, _, context = self._auto_context()
-        self.auto_summary.setText(context + ": " + selection_summary(selection) if selection else
-                                  "Auto: wybierz tryb w zakładce Klasy, aby porównać liczbę klas.")
-        self.auto_summary.setToolTip(self.auto_summary.text())
+        if selection:
+            k = selection["selected_k"]
+            heading = context + (f": K{k}" if k is not None else ": nierozstrzygnięte")
+            reason = str(selection["reason"])
+            brief = self.auto_summary.fontMetrics().elidedText(reason, Qt.TextElideMode.ElideRight, self.auto_summary.width())
+            self.auto_summary.setText(heading + "\n" + brief)
+            self.auto_summary.setToolTip(heading + "\n" + reason)
+        else:
+            self.auto_summary.setText("Auto: wybierz tryb w zakładce Klasy.")
+            self.auto_summary.setToolTip("")
         self.auto_details.setEnabled(selection is not None)
         self._display_result()
         self._loading = False

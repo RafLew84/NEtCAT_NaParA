@@ -26,6 +26,12 @@ class AutoSelectionUnavailable(ValueError):
         super().__init__(str(decision["reason"]))
 
 
+def _partition(samples: NDArray[np.float64], state: Mapping[str, Any]) -> tuple[NDArray[np.float64], NDArray[Any]]:
+    reduced = project_features(samples, state)
+    labels = np.linalg.norm(reduced[:, None] - np.asarray(state["centers"])[None], axis=2).argmin(axis=1)
+    return reduced, labels
+
+
 def _geometry(samples: NDArray[np.float64], labels: NDArray[Any], k: int) -> dict[str, Any]:
     means, radii, sizes = [], [], []
     for index in range(k):
@@ -99,8 +105,7 @@ def fit_auto_model(
             if state is None:
                 row["reason"] = "Za mało różnych otoczeń dla tego K."
             else:
-                reduced = project_features(samples, state)
-                labels = np.linalg.norm(reduced[:, None] - np.asarray(state["centers"])[None], axis=2).argmin(axis=1)
+                reduced, labels = _partition(samples, state)
                 row.update(_geometry(samples, labels, k))
                 reasons = _geometry_reasons(row, k, len(samples))
                 if k > 1:
@@ -125,8 +130,7 @@ def fit_auto_model(
         if final is None:
             refuse("końcowe dopasowanie nie zachowało wybranych klas.")
         assert final is not None
-        reduced = project_features(selected, final)
-        labels = np.linalg.norm(reduced[:, None] - np.asarray(final["centers"])[None], axis=2).argmin(axis=1)
+        _, labels = _partition(selected, final)
         geometry = _geometry(selected, labels, chosen)
         reasons = _geometry_reasons(geometry, chosen, len(selected))
         decision["final_validation"] = {**geometry, "eligible": not reasons, "reason": " ".join(reasons)}
