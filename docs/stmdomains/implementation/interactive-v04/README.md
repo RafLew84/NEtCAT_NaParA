@@ -73,7 +73,8 @@ porównanie i anulowanie. Jawne odkrywanie klas i analiza serii używają
 zastosowanych parametrów wyświetlanego wyniku; przy jego braku bazowych.
 [Raport, gotowe przykłady i test ręczny](acceptance-10.md). **449 testów PASS**, GUI X11 PASS,
 mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
-**Ręczny odbiór użytkownika 10 oczekuje.** Następny rekomendowany **12 — Auto**.
+**Ręczny odbiór użytkownika 10 potwierdzony 2026-11-03** dla wersji
+`4b55727` („testy manualne ok”). Następny rekomendowany **12 — Auto**.
 
 01–03, 05, 05a i 06–10 mają status `done`.
 12–18 oraz 21–25 mają zakres `ready-for-agent`

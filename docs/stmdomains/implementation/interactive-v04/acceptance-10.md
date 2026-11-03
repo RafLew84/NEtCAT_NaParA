@@ -2,7 +2,8 @@
 
 Data **2026-11-03**, gałąź `domains/interactive-v04-ui`, baza **`3c09c0b`**,
 implementacja **`aa7e039`**. [Ticket](10-tune-order-test.md).
-**Ręczny odbiór użytkownika oczekuje.** Sprawdzenia agenta opisano osobno.
+**Ręczny odbiór użytkownika potwierdzony 2026-11-03** dla wersji
+**`4b55727`** słowami „testy manualne ok”. Sprawdzenia agenta opisano osobno.
 
 ## Uruchomienie i ręczny odbiór
 
@@ -170,7 +171,8 @@ QT_QPA_PLATFORM=offscreen OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREA
 Artefakty poza Git: `.scratch/stmdomains-ui-10/`, w tym `gui_smoke.py`,
 `gui-smoke.json`, `gui-smoke.log`, `sparse_smoke.py`, `sparse-smoke.log`,
 `pytest-full.log`, wejścia i PNG. Sprawdzenia dotyczą działania funkcji,
-nie trafności naukowej wykrywania domen. Odbiór użytkownika pozostaje otwarty.
+nie trafności naukowej wykrywania domen. Odbiór funkcji przez użytkownika
+potwierdzono osobno, zgodnie z wpisem na początku raportu.
 
 ## Przegląd kodu
 

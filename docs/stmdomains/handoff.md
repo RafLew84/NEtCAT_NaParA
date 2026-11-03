@@ -4,8 +4,11 @@ Data **2026-11-03**, baza **`3c09c0b`**, implementacja **`aa7e039`**.
 Gałąź `domains/interactive-v04-ui`, worktree `/home/rlew/projekty/NEtCAT-domains`.
 [Ticket](implementation/interactive-v04/10-tune-order-test.md),
 [raport, przykłady i test ręczny](implementation/interactive-v04/acceptance-10.md).
-Status `done`; **odbiór ręczny użytkownika 10 oczekuje**. Commit końcowego
-zapisu podano w odpowiedzi. Następny rekomendowany ticket: **12 — Auto**.
+Status `done`; **odbiór ręczny użytkownika 10 potwierdzony 2026-11-03**
+dla wersji **`4b55727`** słowami „testy manualne ok”. Zapis potwierdzenia
+zmienia wyłącznie dokumentację; `git diff --check` PASS, bez ponawiania
+testów aplikacji. Commit zapisu podano w odpowiedzi końcowej.
+Następny rekomendowany ticket: **12 — Auto**.
 
 Menu **Analiza → Test porządku…** udostępnia kwantyl kontroli, minimum
 punktów lokalnych i efektywnych, promień i sigmę w jednostkach odstępu

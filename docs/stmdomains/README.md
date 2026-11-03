@@ -12,7 +12,8 @@ Działa porównanie, odtworzenie bazowych ustawień i anulowanie. Nowe
 odkrywanie klas oraz analiza serii przejmują zastosowany test porządku.
 [Raport, gotowe kontrole i test ręczny 10](implementation/interactive-v04/acceptance-10.md).
 **449 testów PASS**, mypy 67 modułów PASS, 22 pliki kodu/testów do 566 linii; GUI TTMAPP i cztery
-kontrole PASS, Standards 0 / Spec 0. **Odbiór użytkownika 10 oczekuje.**
+kontrole PASS, Standards 0 / Spec 0. **Odbiór ręczny użytkownika 10
+potwierdzony 2026-11-03** dla wersji `4b55727` („testy manualne ok”).
 Następny rekomendowany ticket: **12 — Auto**.
 
 **Wykonano SD-V4-09 (`494ab9d`):** menu **Analiza → Akceptacja klasy…**

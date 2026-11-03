@@ -6,7 +6,7 @@
 
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md).
 
-**Status:** done — implementacja `aa7e039`, ukończono 2026-11-03; odbiór ręczny użytkownika oczekuje.
+**Status:** done — implementacja `aa7e039`, ukończono 2026-11-03; odbiór ręczny użytkownika potwierdzony 2026-11-03 dla wersji `4b55727` („testy manualne ok”).
 
 [Uruchomienie, wykonane sprawdzenia i test ręczny](acceptance-10.md).
 Baza `3c09c0b`, gałąź `domains/interactive-v04-ui`, środowisko netcat.

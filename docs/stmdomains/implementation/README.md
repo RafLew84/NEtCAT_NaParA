@@ -6,7 +6,8 @@ nowa kalibracja, zachowany katalog i porównanie poprzedni/nowy.
 Zastosowane ustawienia przechodzą do ponownego odkrywania klas i serii.
 [Raport, kontrole i ręczny test](interactive-v04/acceptance-10.md).
 **449 testów PASS**, GUI X11 PASS, mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
-**Odbiór ręczny użytkownika 10 oczekuje.** Następny rekomendowany **12 — Auto**.
+**Odbiór ręczny użytkownika 10 potwierdzony 2026-11-03** dla wersji
+`4b55727` („testy manualne ok”). Następny rekomendowany **12 — Auto**.
 
 **Wykonano SD-V4-09 — 2026-11-03 (`494ab9d`):**
 **Analiza → Akceptacja klasy…**, progi marginesu i promienia, przeliczenie

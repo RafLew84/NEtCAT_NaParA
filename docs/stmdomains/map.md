@@ -21,7 +21,8 @@ na dobór próbek przy jawnym ponownym odkrywaniu klas, także w serii.
 [Ticket](implementation/interactive-v04/10-tune-order-test.md),
 [raport i test ręczny](implementation/interactive-v04/acceptance-10.md).
 **449 testów PASS**, GUI X11 na TTMAPP i kontrolach PASS; mypy 67 modułów PASS, maks. 566 linii,
-Standards 0 / Spec 0. Status `done`; **ręczny odbiór 10 oczekuje**.
+Standards 0 / Spec 0. Status `done`; **ręczny odbiór użytkownika 10
+potwierdzony 2026-11-03** dla wersji `4b55727` („testy manualne ok”).
 Plan ma 24 tickety: 01–03, 05, 05a i 06–10 wykonane; następny **12 — Auto**.
 
 **Wykonano SD-V4-09 — 2026-11-03 (`494ab9d`):** menu
