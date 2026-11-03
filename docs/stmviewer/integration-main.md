@@ -72,3 +72,20 @@ oraz [raporcie instalacji](installation-validation.md).
 Zlecenie publikacji nie zmienia historycznych statusów ticketów ani nie
 dodaje odłożonego zakresu, m.in. REG-15a/15b. Program przyjmuje STP/S94/MPP
 i eksportuje MPP/AVI; nie deklarujemy zapisu STP/S94.
+
+## Aktualizacja: poprawka pamięci Windows — 2026-11-03
+
+Na kolejne zlecenie użytkownika dołączono implementację `8356ddd` oraz
+przekazanie `6bd949b`. Poprawka zachowuje 64-bitowy uchwyt procesu przy
+odczycie pamięci używanym przez RoMa i LightGlue. Bazą aktualizacji jest
+`origin/main` w `9138c01`, z zachowaniem opublikowanej zmiany `.gitignore`.
+
+Po scaleniu na `stm-next`: **42 testy zaliczone** (1,80 s), obejmujące
+`test_worker_memory.py` oraz testy `process`, `backend` i `gui` obu metod
+w `tests/stmviewer/`. Python 3.12/netcat, Qt offscreen,
+`PYTHONPATH=.:tests/stmviewer`. Mypy: **106 plików bez błędów**;
+`git diff --check` poprawny.
+
+Pełnego zestawu repo, modeli CPU/CUDA i Windows nie uruchamiano ponownie
+w tej integracji. Wcześniejsze odtworzenie i test poprawki w Windows CPython
+pod Wine opisuje [raport poprawki](registration/roma-windows-memory-fix.md).
