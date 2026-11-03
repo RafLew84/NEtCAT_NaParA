@@ -1,5 +1,18 @@
 # Interaktywne STM Domains — obliczenia z danych
 
+**Wykonano SD-V4-14 — eksport PNG i CSV (`a20e14b`, poprawka `361a7d0`).**
+**Plik → Eksportuj PNG/CSV…**: wybrany wynik, klatka lub zakres, pełny obraz
+albo widoczny wycinek, aktualne Klasy/Domeny, gamma i warstwy. CSV zachowuje
+ID, przypisania, powody odmów i mianowniki; brak analizy pozostaje brakiem.
+Eksport nie uruchamia obliczeń. Nowy katalog zawiera opis i metadane;
+postęp/anulowanie oraz odmowa nadpisania chronią wcześniejsze pliki.
+[Raport i test ręczny](acceptance-14.md), [format eksportu](export-format-v1.md).
+GUI X11 TTMAPP i kontrola wyniku zerowego PASS; kontrola typów 88 plików
+PASS, Standards/Spec 0 otwartych uwag; 12 plików kodu/testów do 691 linii.
+**499 testów PASS**. Status `done`; **odbiór ręczny użytkownika 14 do wykonania**.
+Następny rekomendowany ticket: **15 — opis otoczenia i bariery obrazu**.
+Poniżej historia wcześniejszych etapów.
+
 **Wykonano SD-V4-13 — zapis projektu (`4f40c28`, poprawki `1c9c221`).**
 **Plik → Zapisz projekt… / Zapisz projekt jako…** zapisuje jeden plik
 `.stmdomains`: cały MPP, oznaczenia, geometria, widok, szkic i jeden wybrany
@@ -122,10 +135,10 @@ zastosowanych parametrów wyświetlanego wyniku; przy jego braku bazowych.
 [Raport, gotowe przykłady i test ręczny](acceptance-10.md). **449 testów PASS**, GUI X11 PASS,
 mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 **Ręczny odbiór użytkownika 10 potwierdzony 2026-11-03** dla wersji
-`4b55727` („testy manualne ok”). Później wykonano 11–13; obecnie następny **14**.
+`4b55727` („testy manualne ok”). Później wykonano 11–14; obecnie następny **15**.
 
-01–03, 05, 05a i 06–13 mają status `done`.
-14–18, 21–25 oraz 23a mają zakres `ready-for-agent`
+01–03, 05, 05a i 06–14 mają status `done`.
+15–18, 21–25 oraz 23a mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -133,7 +146,7 @@ wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 **21–25 — ręczną edycję domen i klas, zapis historii oraz eksport korekt**.
 Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
 To plan przyszłych funkcji; implementacji nie rozpoczęto. Następny
-rekomendowany etap głównej ścieżki to teraz **14 — eksport PNG/CSV**; 21 można
+rekomendowany etap głównej ścieżki to teraz **15 — opis otoczenia i bariery obrazu**; 21 można
 wybrać niezależnie już po wykonanym 05a.
 
 ## Tickety i kolejność
@@ -171,9 +184,10 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [24 — Zapisz korekty i wznów ręczną edycję projektu](24-save-manual-corrections.md) | SD-V4-13, SD-V4-23a | Otwórz zapisane korekty bez źródeł i kontynuuj Cofnij/Ponów. |
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23a | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 
-Po wykonanych 05, 05a i 06–12 następny rekomendowany ticket to
-**13 — zapis i otwarcie projektu**. 12 jest zaimplementowany i odebrany ręcznie przez użytkownika 2026-11-03 dla wersji `7edd8de`.
-13, 14 i 16 są niezależnie dostępne po 05, a 15 po 07. 08 korzysta
+Po wykonanych 05, 05a i 06–14 następny rekomendowany ticket to
+**15 — opis otoczenia i bariery obrazu**. Odbiór użytkownika 13 jest potwierdzony;
+14 oczekuje na ręczny odbiór użytkownika. 13/14 wykonano po 05;
+16 jest niezależnie dostępny po 05, a 15 po 07. 08 korzysta
 z dopasowania z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności
 od usuniętego 04 ani historycznego, wchłoniętego zakresu 11.
 

@@ -1,5 +1,18 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Wykonano SD-V4-14 — eksport PNG i CSV (`a20e14b`, poprawka `361a7d0`).**
+**Plik → Eksportuj PNG/CSV…**: wybrany wynik, klatka lub zakres, pełny obraz
+albo widoczny wycinek, aktualne Klasy/Domeny, gamma i warstwy. CSV zachowuje
+ID, przypisania, powody odmów i mianowniki; brak analizy pozostaje brakiem.
+Eksport nie uruchamia obliczeń. Nowy katalog zawiera opis i metadane;
+postęp/anulowanie oraz odmowa nadpisania chronią wcześniejsze pliki.
+[Raport i test ręczny](interactive-v04/acceptance-14.md), [format eksportu](interactive-v04/export-format-v1.md).
+GUI X11 TTMAPP i kontrola wyniku zerowego PASS; kontrola typów 88 plików
+PASS, Standards/Spec 0 otwartych uwag; 12 plików kodu/testów do 691 linii.
+**499 testów PASS**. Status `done`; **odbiór ręczny użytkownika 14 do wykonania**.
+Następny rekomendowany ticket: **15 — opis otoczenia i bariery obrazu**.
+Poniżej historia wcześniejszych etapów.
+
 **Wykonano SD-V4-13 — zapis projektu (`4f40c28`, poprawki `1c9c221`).**
 **Plik → Zapisz projekt… / Zapisz projekt jako…** zapisuje jeden plik
 `.stmdomains`: cały MPP, oznaczenia, geometria, widok, szkic i jeden wybrany
@@ -110,8 +123,8 @@ oblicza lokalne klasy i końcowe domeny z bieżącego obrazu MPP i oznaczeń
 MolTrack, z kolorami, legendą, odmowami, postępem i anulowaniem.
 [Uruchomienie, sprawdzenia i test ręczny](interactive-v04/acceptance-05.md).
 Ręczny odbiór użytkownika 05 oczekuje. Aktualny plan ma 26 ticketów:
-01–03, 05, 05a i 06–12 `done`,
-13–18, 21–25 oraz 23a `ready-for-agent` po zależnościach, 19–20 `deferred`.
+01–03, 05, 05a i 06–14 `done`,
+15–18, 21–25 oraz 23a `ready-for-agent` po zależnościach, 19–20 `deferred`.
 
 **Wcześniejsza zmiana kierunku — 2026-11-02:** na polecenie użytkownika wycofano
 SD-V4-04 i import jego wyników. Stan aplikacji wrócił wtedy do odebranego 03,

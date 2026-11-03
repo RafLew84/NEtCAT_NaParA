@@ -6,20 +6,20 @@
 
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md).
 
-**Status:** ready-for-agent — plan zaktualizowany na polecenie użytkownika; wykonanie po zależnościach.
+**Status:** done — implementacja `a20e14b`, poprawka `361a7d0`; testy i natywne GUI sprawdzone przez agenta. Odbiór ręczny użytkownika do wykonania. [Raport i instrukcja](acceptance-14.md), [format eksportu](export-format-v1.md), [przegląd](review-14.md).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
 ## Kryteria akceptacji
 
-- [ ] CSV zachowuje ID molekuł, numery klatek, klasy, konkretne domeny i powody nieprzypisania; zakres i mianowniki są jawne.
-- [ ] Podsumowania dotyczą rzeczywiście dostępnych danych. Brak analizy nie staje się zerem, a suma klatek nie udaje liczby śledzonych molekuł.
-- [ ] Eksport zakresu korzysta wyłącznie z dostępnych wyników aplikacji, z jawnymi statusami pozostałych klatek. Nie uruchamia dopasowania/analizy ani nie doczytuje wyników v0.4. Można go sprawdzić na zakresie z pojedynczą obliczoną klatką, bez zależności od wykonania analizy serii w 08.
-- [ ] PNG odwzorowuje wybrany tryb Klasy/Domeny, legendę, zakres obrazu i ustawienia widoku. Eksport nie zmienia predykcji.
-- [ ] Eksportowane metadane identyfikują wynik, model i faktyczne ustawienia. Powierzchnie przybliżonych masek nie są nazywane zwalidowaną powierzchnią domeny.
-- [ ] Błąd zapisu jest czytelny; eksport nie zastępuje samowystarczalnego projektu. Testy porównują eksport z wynikiem i stanem widoku.
-- [ ] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
-- [ ] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
+- [x] CSV zachowuje ID molekuł, numery klatek, klasy, konkretne domeny i powody nieprzypisania; zakres i mianowniki są jawne.
+- [x] Podsumowania dotyczą rzeczywiście dostępnych danych. Brak analizy nie staje się zerem, a suma klatek nie udaje liczby śledzonych molekuł.
+- [x] Eksport zakresu korzysta wyłącznie z dostępnych wyników aplikacji, z jawnymi statusami pozostałych klatek. Nie uruchamia dopasowania/analizy ani nie doczytuje wyników v0.4. Można go sprawdzić na zakresie z pojedynczą obliczoną klatką, bez zależności od wykonania analizy serii w 08.
+- [x] PNG odwzorowuje wybrany tryb Klasy/Domeny, legendę, zakres obrazu i ustawienia widoku. Eksport nie zmienia predykcji.
+- [x] Eksportowane metadane identyfikują wynik, model i faktyczne ustawienia. Powierzchnie przybliżonych masek nie są nazywane zwalidowaną powierzchnią domeny.
+- [x] Błąd zapisu jest czytelny; eksport nie zastępuje samowystarczalnego projektu. Testy porównują eksport z wynikiem i stanem widoku.
+- [x] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
+- [x] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
 
 ## Test ręczny użytkownika
 

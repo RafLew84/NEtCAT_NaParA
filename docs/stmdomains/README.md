@@ -1,5 +1,18 @@
 # STM Domains
 
+**Wykonano SD-V4-14 — eksport PNG i CSV (`a20e14b`, poprawka `361a7d0`).**
+**Plik → Eksportuj PNG/CSV…**: wybrany wynik, klatka lub zakres, pełny obraz
+albo widoczny wycinek, aktualne Klasy/Domeny, gamma i warstwy. CSV zachowuje
+ID, przypisania, powody odmów i mianowniki; brak analizy pozostaje brakiem.
+Eksport nie uruchamia obliczeń. Nowy katalog zawiera opis i metadane;
+postęp/anulowanie oraz odmowa nadpisania chronią wcześniejsze pliki.
+[Raport i test ręczny](implementation/interactive-v04/acceptance-14.md), [format eksportu](implementation/interactive-v04/export-format-v1.md).
+GUI X11 TTMAPP i kontrola wyniku zerowego PASS; kontrola typów 88 plików
+PASS, Standards/Spec 0 otwartych uwag; 12 plików kodu/testów do 691 linii.
+**499 testów PASS**. Status `done`; **odbiór ręczny użytkownika 14 do wykonania**.
+Następny rekomendowany ticket: **15 — opis otoczenia i bariery obrazu**.
+Poniżej historia wcześniejszych etapów.
+
 **Wykonano SD-V4-13 — zapis projektu (`4f40c28`, poprawki `1c9c221`).**
 **Plik → Zapisz projekt… / Zapisz projekt jako…** zapisuje jeden plik
 `.stmdomains`: cały MPP, oznaczenia, geometria, widok, szkic i jeden wybrany
@@ -132,8 +145,8 @@ z bieżących danych. Działają kolory domen/klas, legenda, liczniki, przyczyny
 odmów, postęp i anulowanie. Program nie wczytuje modelu ani wyniku v0.4.
 [Uruchomienie, wykonane sprawdzenia i test ręczny 05](implementation/interactive-v04/acceptance-05.md).
 **Odbiór ręczny użytkownika 05 oczekuje.** W aktualnym planie
-01–03, 05, 05a i 06–13 mają status `done`,
-14–18, 21–25 oraz 23a — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
+01–03, 05, 05a i 06–14 mają status `done`,
+15–18, 21–25 oraz 23a — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
 To wdrożenie eksperymentalnej metody, bez potwierdzenia trafności detektora.
 
 **Wcześniejsza zmiana kierunku na polecenie użytkownika:** usunięto ticket SD-V4-04

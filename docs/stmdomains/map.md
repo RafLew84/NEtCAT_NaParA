@@ -14,6 +14,19 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Wykonano SD-V4-14 — eksport PNG i CSV (`a20e14b`, poprawka `361a7d0`).**
+**Plik → Eksportuj PNG/CSV…**: wybrany wynik, klatka lub zakres, pełny obraz
+albo widoczny wycinek, aktualne Klasy/Domeny, gamma i warstwy. CSV zachowuje
+ID, przypisania, powody odmów i mianowniki; brak analizy pozostaje brakiem.
+Eksport nie uruchamia obliczeń. Nowy katalog zawiera opis i metadane;
+postęp/anulowanie oraz odmowa nadpisania chronią wcześniejsze pliki.
+[Raport i test ręczny](implementation/interactive-v04/acceptance-14.md), [format eksportu](implementation/interactive-v04/export-format-v1.md).
+GUI X11 TTMAPP i kontrola wyniku zerowego PASS; kontrola typów 88 plików
+PASS, Standards/Spec 0 otwartych uwag; 12 plików kodu/testów do 691 linii.
+**499 testów PASS**. Status `done`; **odbiór ręczny użytkownika 14 do wykonania**.
+Następny rekomendowany ticket: **15 — opis otoczenia i bariery obrazu**.
+Poniżej historia wcześniejszych etapów.
+
 **Wykonano SD-V4-13 — zapis projektu (`4f40c28`, poprawki `1c9c221`).**
 **Plik → Zapisz projekt… / Zapisz projekt jako…** zapisuje jeden plik
 `.stmdomains`: cały MPP, oznaczenia, geometria, widok, szkic i jeden wybrany

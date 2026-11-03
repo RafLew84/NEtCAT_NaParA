@@ -1,3 +1,73 @@
+# STM Domains — wykonano SD-V4-14: eksport PNG i CSV
+
+Data **2026-11-03**, baza `0288aa7`, implementacja `a20e14b`, poprawka
+`361a7d0`. Gałąź `domains/interactive-v04-ui`, worktree
+`/home/rlew/projekty/NEtCAT-domains`. [Ticket 14](implementation/interactive-v04/14-export-csv-png.md),
+[raport i test ręczny](implementation/interactive-v04/acceptance-14.md),
+[format eksportu](implementation/interactive-v04/export-format-v1.md),
+[przegląd](implementation/interactive-v04/review-14.md).
+Status `done`; **ręczny odbiór użytkownika 14 pozostaje do wykonania**.
+Następny rekomendowany **15 — opis otoczenia i bariery obrazu**.
+Plan nadal 26 ticketów; 01–03, 05, 05a, 06–14 wykonane,
+15–18 i 21–25/23a gotowe po zależnościach, 19–20 odłożone.
+
+**Plik → Eksportuj PNG/CSV…**: wyświetlany wynik, ostatni przebieg lub
+same oznaczenia wejściowe; bieżąca klatka albo zakres; CSV/PNG niezależnie;
+pełny obraz bieżącego widoku lub widoczny wycinek, szerokość obrazu.
+Tabele klatek, molekuł, domen i klas zachowują ID, parametry wykonania,
+przypisania i odmowy. JSON/README są dołączane automatycznie, manifest
+zawiera wersję i SHA-256 części. Nie ma dopasowania ani uzupełniania braków.
+Brak wyniku jest pustą wartością z jawnym statusem; obliczone zero pozostaje
+zerem. Obszary masek są przybliżone w px², bez fałszywej kalibracji fizycznej.
+
+PNG używa istniejącej sceny/kolorów, zachowuje gammę, raw/wyrównanie,
+Klasy/Domeny/Wejściowe i warstwy. Wycięcie nie zmienia tabel ani mianowników.
+Podpis i legenda pozostają poza obszarem nakładek. Oddzielna scena eksportu
+nie zmienia bieżącego podglądu. IO pracuje w tle; ograniczona kolejka
+przekazuje po jednej klatce do renderowania na wątku GUI. Anulowanie
+kończy oczekiwanie bez potrzeby obsługi GUI podczas zamykania aplikacji.
+
+Publikacja gotowego nowego podkatalogu po zakończeniu całości, bez nadpisania
+istniejącej nazwy. Błąd/anulowanie przed publikacją usuwa tylko katalog
+tymczasowy. Pełny projekt nadal zapisuje `.stmdomains`; eksport nie zawiera
+źródłowego sygnału ani rastrów do odtworzenia analizy. Eksport przyszłych
+ręcznych korekt pozostaje w 25. Brak zmian wspólnych modułów i potrzeb
+integracyjnych; duże dane/wyniki pozostają lokalnie.
+
+Środowisko **netcat**, bez instalacji. **499 testów PASS**.
+Pierwszy pełny przebieg przerwany SIGTERM (143) po ~180 s, bez raportu
+błędu asercji; przyczyna nieustalona. Ponowiono komplet 67 plików w dwóch
+rozłącznych grupach: 230 PASS/101,44 s i 269 PASS/102,16 s.
+Dziewięć nowych testów eksportu. Mypy w przyjętym zakresie aplikacji
+**88 plików PASS**, **12 plików kodu/testów do 691 linii**, poniżej 1000/1500.
+Jedno dodatkowe, szersze wywołanie mypy objęło historyczne eksperymenty
+oraz wspólne importy i zgłosiło 125 błędów; nie jest zakresem tej implementacji.
+Standards **0**; Spec **1 P2 poprawione, recheck 0 otwartych**.
+Regresja: po analizie pojedynczej klatki i przejściu do innej domyślny eksport
+zachowuje zakres wybranego przebiegu, zamiast eksportować bieżący brak wyniku.
+
+**GUI X11 TTMAPP PASS, agent sterujący widocznym oknem:** K5 dopasowane
+z 259–268, wynik 259: 105/312, 5 domen, katalog `9d3b7286`. Zakres 259–260
+wyeksportowany w surowych Domenach, wyrównanych Klasach i jako wycinek przy
+gammie 1,6. CSV identyczne między widokami, 260 nadal bez wyniku, maski bez
+zmian; PCA/KMeans zakazane podczas eksportu. Kontrola zerowego wyniku K4
+z minimalną domeną 500, anulowanie i błąd istniejącej nazwy PASS.
+Wybrane PNG i dialog obejrzane; eksport dwóch klatek ~0,19–0,28 s,
+484 pulsy GUI, największa przerwa ~0,20 s. Źródła MPP/JSON SHA-256 bez zmian.
+Natywny recheck po poprawce: otwarty projekt z 13, po przejściu do 260
+domyślny eksport ostatniego wyniku zapisuje 259, pozostawiając podgląd 260;
+105 przypisań, kompletne metadane, bez dopasowania — PASS.
+Dowody `.scratch/stmdomains-ui-14/`, bez dużych plików w Git.
+
+441 lokalnych odnośników/kotwic w 9 dokumentach, zgodność 26 ticketów,
+tabeli zależności i brak cykli PASS; `git diff --check` PASS.
+Nie oceniano naukowej trafności domen ani eksportu pełnych 268 klatek
+czy odporności na odcięcie zasilania. Odbiór agenta nie zastępuje
+potwierdzenia użytkownika. Commit dokumentacji podany w odpowiedzi końcowej.
+Poniżej zachowano historię wcześniejszych przekazań.
+
+---
+
 # STM Domains — potwierdzony ręczny odbiór SD-V4-13
 
 Data **2026-11-03**, baza `5b2ddc8`, implementacja `4f40c28`, poprawki
