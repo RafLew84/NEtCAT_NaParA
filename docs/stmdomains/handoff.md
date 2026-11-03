@@ -1,3 +1,74 @@
+# STM Domains — wykonano SD-V4-11: wspólne okno analizy
+
+Data **2026-11-03**, baza **`c60e7fb`**, implementacja **`d18048b`**.
+Gałąź `domains/interactive-v04-ui`, worktree `/home/rlew/projekty/NEtCAT-domains`.
+[Ticket 11](implementation/interactive-v04/11-unified-analysis-window.md),
+[raport, gotowe przykłady i test ręczny](implementation/interactive-v04/acceptance-11.md).
+Status `done`; **odbiór ręczny użytkownika oczekuje**. Następny ticket
+**12 — Auto pozostaje niewykonany**. Jego zależności 07 i 11 są wdrożone.
+
+**Analiza → Analiza…** i **Analizuj klatkę…** otwierają jedno niemodalne
+okno z zakładkami Zakres, Klasy, Porządek i Domeny. Przycisk przy obrazie
+wybiera bieżącą klatkę, a **Analizuj** w dialogu uruchamia obliczenia.
+Usunięto pięć wcześniejszych formularzy. Jeden szkic przechowuje wszystkie
+parametry, także akceptację klas stosowaną teraz do całej serii. Klasy
+można dopasować z odrębnego zakresu albo jawnie wybrać istniejący katalog.
+Lokalny katalog wymaga zgodnych danych jednej klatki; zakres/seria wymaga
+wspólnego. Zmiana testu porządku przebudowuje kalibrację, a przy nowym
+odkrywaniu wpływa też na wybór próbek. Samo strojenie istniejących klas
+nie wykonuje fitu ani nie zmienia ich ID.
+
+Szkic zostaje podczas nawigacji, zamknięcia dialogu i porównania wyników.
+**Z wyświetlanego wyniku** kopiuje progi i wybiera jego katalog, zachowując
+zakres analizy. **Przywróć bazowe parametry** zmienia tylko progi; klasy
+i zakresy pozostają. Start utrwala niezmienny plan, nawigacja w trakcie
+pracy nie przekierowuje obliczeń. Nowa seria resetuje szkic i katalog.
+Tabela pokazuje stany klatek, dwuklik nawiguje, anulowanie zachowuje wyniki
+ukończone i wcześniejsze; wyniki spoza przebiegu są jawnie opisane.
+
+**Netcat:** `python -m stmdomains.main`. TTMAPP 259, K5 dopasowane na
+259–268, margines 0,060, mnożnik 0,80, kwantyl 0,925, promień/sigma 3/(4/3),
+minimum domeny 6, łączenie 1,80 × d: **111/312, 8 domen**, akceptacja
+219/312, porządek 179/312. Katalog `cfc23500`. Zastosowanie do zakresu
+259–268 odtwarza 259 identycznie, również maskę piksel w piksel.
+Zmiana okna porządku na 2/1 daje 48/312, 3 domeny; bazowe progi przy
+zachowanym katalogu dają 101/312, 5 domen. Liczniki nie są oceną trafności.
+
+**Sprawdzenia agenta:** GUI X11 na rzeczywistych danych i kontrolach PASS;
+przegląd `c60e7fb...d18048b`: **Standards 0, Spec 0**. Kontrole regularna,
+losowa, rzędy i cztery centra: odpowiednio 117/121 (1 domena), 0/98,
+0/94, 0/4. K1, brak oznaczeń, porównanie, raw/wyrównany, gamma, nawigacja,
+anulowanie podczas dopasowania/serii i zamknięcie podczas pracy sprawdzone.
+Końcowy układ: okno główne 900×650 oraz 1250×850; dialog 660×650 i 620×574,
+z przewijaniem pól. Obejrzano zrzuty. Wszystkie trzy pule po zamknięciu puste.
+Dopasowanie + klatka około 7,06 s, zakres 10 klatek około 6,80 s,
+RSS około 698 MiB, największa przerwa timera 0,231 s. 0 odczytów starych
+zasobów v0.4; hashe wejściowych MPP/JSON bez zmian. Pierwsza próba X11
+w piaskownicy nie miała dostępu do ekranu; próba z dostępem do X11 PASS.
+
+**456 testów PASS**, bez pominięć, 153,60 s; mypy 67 modułów PASS.
+22 nowe/zmienione pliki kodu/testów, maksimum **575 linii**. Pierwszy pełny
+przebieg: 455 PASS i 1 nieaktualny test warstw domen, oczekujący obliczeń
+bezpośrednio po przycisku przy obrazie. Zaktualizowano go do nowej obsługi
+okna; celowany test PASS, potem pełny zestaw PASS. Kod aplikacji nie
+wymagał poprawki. Zachowano oba logi, recenzent potwierdził zmianę testu.
+**393 lokalne odnośniki z kotwicami w 8 dokumentach PASS**, 25 ticketów,
+zgodne zależności i brak cykli; `git diff --check` PASS. Jawne kopiowanie
+ustawień z wyniku sprawdzono kontrolkami Qt offscreen; nie było osobnej
+próby tej operacji w X11.
+
+Artefakty poza Git: `.scratch/stmdomains-ui-11/` — logi, zrzuty, sondy GUI,
+`demo/order-controls.moltrack.json` i `class-demo/pair_b.moltrack.json` z MPP.
+Raport opisuje dokładne kroki i oczekiwane wyniki. Wyniki i szkic tylko
+w pamięci; zapis 13, eksport 14 i ręczna edycja 21–25 pozostają do wykonania.
+Plan ma 25 ticketów: 01–03, 05, 05a i 06–11 `done`, 12–18 i 21–25
+`ready-for-agent`, 19–20 `deferred`. Odbiory naukowe pozostają odrębne.
+Nie instalowano zależności, nie zmieniano danych ani modułów wspólnych;
+dawne potrzeby integracyjne pozostają aktualne. Commit dokumentacji
+odbioru podano w odpowiedzi końcowej.
+
+---
+
 # STM Domains — zaplanowano SD-V4-11: wspólne okno analizy
 
 Data **2026-11-03**, baza **`3267207`**, gałąź `domains/interactive-v04-ui`,

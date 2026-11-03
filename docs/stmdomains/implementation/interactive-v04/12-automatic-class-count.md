@@ -7,7 +7,8 @@
 **Blocked by:** [07: Wybierz liczbę klas i zakres ich odkrywania](07-fit-shared-classes.md),
 [11: Ustaw i uruchom pełną analizę w jednym oknie](11-unified-analysis-window.md).
 
-**Status:** ready-for-agent — niewykonany; po 11 zgodnie z decyzją użytkownika 2026-11-03.
+**Status:** ready-for-agent — niewykonany; następny po zaimplementowanym 11
+(`d18048b`, odbiór ręczny użytkownika 11 oczekuje).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
@@ -36,3 +37,10 @@ Nowy klasteryzator bez K nie jest wymagany do realizacji tego ticketu.
 W aktualnym planie 12 rozszerza wspólne okno z nowego 11, obejmujące już
 analizę klatki i serii z 08. Historyczny zakres 11 wchłonięty przez 05/07
 nie wraca; zależność dotyczy zadania o nowym zakresie z 2026-11-03.
+
+Punkt integracji po 11: **Analiza → Analiza… → Klasy**.
+Wspólny szkic jest w `stmdomains/ui/analysis_dialog.py`, pola klas
+w `analysis_scope_fields.py`, a niemutowalne żądanie obliczeń to
+`SeriesAnalysisPlan` w `stmdomains/analysis/series_settings.py`.
+Rozszerzenie powinno zachować publiczne testy klatka/seria i pełny komplet
+akceptacji, porządku oraz domen. [Odbiór obecnego przebiegu](acceptance-11.md).

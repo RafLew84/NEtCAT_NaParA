@@ -1,11 +1,14 @@
 # Budowa i odbiór szkieletu STM Domains
 
-**Aktualny plan — 2026-11-03:** dodano
-[11 — wspólne okno analizy](interactive-v04/11-unified-analysis-window.md),
-z zakładkami Zakres, Klasy, Porządek i Domeny. Jeden zestaw ustawień oraz
-przycisk uruchamiają analizę klatki, zakresu lub serii. Status `ready-for-agent`,
-test ręczny opisany; implementacji nie rozpoczęto. Kolejność **11 → 12**;
-**12 — Auto jest nadal niewykonany**. Plan ma **25 ticketów**.
+**Wykonano SD-V4-11 — 2026-11-03 (`d18048b`):**
+**Analiza → Analiza…** łączy zakres, klasy i akceptację, porządek oraz domeny.
+Szkic pozostaje podczas nawigacji/porównania; **Analizuj** uruchamia jeden
+kompletny przebieg dla klatki, zakresu lub serii. Pięć wcześniejszych
+formularzy zastąpiono tym oknem. [Raport i test ręczny](interactive-v04/acceptance-11.md).
+**456 testów PASS**, GUI X11/mypy PASS, Standards 0 / Spec 0;
+status `done`, **odbiór ręczny użytkownika oczekuje**.
+Następny **12 — Auto**, nadal niewykonany. Plan ma **25 ticketów**.
+Opisy menu starszych etapów poniżej zachowują historię interfejsu.
 
 **Wykonano SD-V4-10 — 2026-11-03 (`aa7e039`):**
 **Analiza → Test porządku…** — kwantyl, minima punktów, promień i sigma,
@@ -71,8 +74,8 @@ oblicza lokalne klasy i końcowe domeny z bieżącego obrazu MPP i oznaczeń
 MolTrack, z kolorami, legendą, odmowami, postępem i anulowaniem.
 [Uruchomienie, sprawdzenia i test ręczny](interactive-v04/acceptance-05.md).
 Ręczny odbiór użytkownika 05 oczekuje. Aktualny plan ma 25 ticketów:
-01–03, 05, 05a i 06–10 `done`,
-11–18 oraz 21–25 `ready-for-agent` po zależnościach, 19–20 `deferred`.
+01–03, 05, 05a i 06–11 `done`,
+12–18 oraz 21–25 `ready-for-agent` po zależnościach, 19–20 `deferred`.
 
 **Wcześniejsza zmiana kierunku — 2026-11-02:** na polecenie użytkownika wycofano
 SD-V4-04 i import jego wyników. Stan aplikacji wrócił wtedy do odebranego 03,

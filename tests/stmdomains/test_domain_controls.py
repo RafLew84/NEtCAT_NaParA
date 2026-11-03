@@ -23,6 +23,8 @@ def test_window_exposes_independent_region_controls_and_keeps_layout(qtbot, tmp_
     assert not window.annotation_controls.masks.isEnabled()
     before = window.image_view.geometry()
     qtbot.mouseClick(window.analyze_button, Qt.MouseButton.LeftButton)
+    assert window.analysis_dialog.isVisible()
+    qtbot.mouseClick(window.analysis_dialog.calculate, Qt.MouseButton.LeftButton)
     qtbot.waitUntil(lambda: not window.controller.is_busy, timeout=15000)
     result = window.controller.result
     assert regions.isEnabled()

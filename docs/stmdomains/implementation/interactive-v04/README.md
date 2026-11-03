@@ -10,12 +10,17 @@ implementujemy w aplikacji i następnie rozszerzamy. Użytkownik otwiera
 obrazy z oznaczeniami, wybiera zakres i ustawienia, klika **Analizuj**.
 Parametry klas powstają wewnętrznie z wybranych danych, bez pliku modelu.
 
-**Aktualizacja — 2026-11-03:** dodano
-[11 — wspólne okno analizy](11-unified-analysis-window.md), zgodnie z decyzją
-użytkownika. Kolejność: **11 → 12**; **12 — Auto pozostaje niewykonany**.
-11 łączy zakres, klasy i akceptację, porządek oraz domeny w jednym oknie,
-z pełnym przekazaniem parametrów do analizy klatki i serii. Wymaga wykonanych
-06, 08, 09 i 10. 12 rozszerzy zakładkę Klasy o Auto.
+**Wykonano SD-V4-11 — 2026-11-03 (`d18048b`):**
+[Wspólne okno analizy](11-unified-analysis-window.md) zastępuje pięć osobnych
+formularzy. **Analiza → Analiza…** ma zakładki **Zakres, Klasy, Porządek,
+Domeny**. Przycisk przy obrazie otwiera to samo okno dla bieżącej klatki;
+**Analizuj** stosuje cały szkic do klatki, zakresu lub serii, także akceptację.
+Porównanie i nawigacja zachowują szkic. Jest jawne kopiowanie z wyniku,
+bazowe parametry, stany klatek i anulowanie. [Raport i test ręczny](acceptance-11.md).
+**456 testów PASS**, GUI X11/mypy PASS, Standards 0 / Spec 0.
+Status `done`, **odbiór ręczny użytkownika oczekuje**. Następny **12 — Auto**,
+który pozostaje niewykonany i rozszerzy zakładkę Klasy.
+Wpisy o menu w starszych etapach poniżej opisują ich historyczny interfejs.
 
 Stan: **25 ticketów w aktualnym planie**. **01–03 są wykonane i odebrane
 ręcznie**: [obrazy i suwak](acceptance-01.md), [oznaczenia i geometria](acceptance-02.md),
@@ -82,10 +87,10 @@ zastosowanych parametrów wyświetlanego wyniku; przy jego braku bazowych.
 [Raport, gotowe przykłady i test ręczny](acceptance-10.md). **449 testów PASS**, GUI X11 PASS,
 mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 **Ręczny odbiór użytkownika 10 potwierdzony 2026-11-03** dla wersji
-`4b55727` („testy manualne ok”). Następny rekomendowany **11 → 12**.
+`4b55727` („testy manualne ok”). Obecnie wykonano również 11; następny **12**.
 
-01–03, 05, 05a i 06–10 mają status `done`.
-11–18 oraz 21–25 mają zakres `ready-for-agent`
+01–03, 05, 05a i 06–11 mają status `done`.
+12–18 oraz 21–25 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -93,7 +98,7 @@ wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 **21–25 — ręczną edycję domen i klas, zapis historii oraz eksport korekt**.
 Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
 To plan przyszłych funkcji; implementacji nie rozpoczęto. Następny
-rekomendowany etap głównej ścieżki to teraz **11 → 12**; 21 można
+rekomendowany etap głównej ścieżki to teraz **12 — Auto**; 21 można
 wybrać niezależnie już po wykonanym 05a.
 
 ## Tickety i kolejność
@@ -130,9 +135,9 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [24 — Zapisz korekty i wznów ręczną edycję projektu](24-save-manual-corrections.md) | SD-V4-13, SD-V4-23 | Otwórz zapisane korekty bez źródeł i kontynuuj Cofnij/Ponów. |
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23 | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 
-Po wykonanych 05, 05a i 06–10 następny rekomendowany ticket to
-**11 — wspólne okno analizy**, potem **12 — Auto**. Zależności 11
-(06, 08, 09, 10) są ukończone; 12 wymaga 07 i nowego 11.
+Po wykonanych 05, 05a i 06–11 następny rekomendowany ticket to
+**12 — Auto**. 07 i nowy 11 są zaimplementowane; odbiór ręczny użytkownika
+11 oczekuje. **12 nie jest wykonany.**
 13, 14 i 16 są niezależnie dostępne po 05, a 15 po 07. 08 korzysta
 z dopasowania z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności
 od usuniętego 04 ani historycznego, wchłoniętego zakresu 11.

@@ -12,7 +12,8 @@ statusy klatek i może porównać poprzedni oraz nowy wynik.
 [09: Reguluj akceptację klasy](09-tune-class-acceptance.md),
 [10: Reguluj test porządku](10-tune-order-test.md).
 
-**Status:** ready-for-agent — zależności ukończone; następny przed 12.
+**Status:** done — implementacja `d18048b`; odbiór ręczny użytkownika oczekuje.
+[Raport, sprawdzenia i instrukcja ręcznego odbioru](acceptance-11.md).
 
 Decyzja użytkownika **2026-11-03**: osobny ticket o numerze 11.
 Poprzedni zakres 11, usunięty jako duplikat dopasowania klas w 05/07,
@@ -53,17 +54,17 @@ akceptacji, porządku i domen, zachowując wybór zakresów i klas.
 
 ## Kryteria akceptacji
 
-- [ ] Jedno okno i wspólny przycisk obejmują pełną drogę od wybranych danych do widocznych domen dla klatki, zakresu i serii. Nie pozostają niezależne formularze z rozbieżnymi kopiami ustawień ani przycisk uruchamiający niejawny wariant K5.
-- [ ] Zakres analizy i zakres odkrywania klas są rozdzielone. Można odkryć klasy z 259–268 i obliczyć tylko 259 albo wszystkie wybrane klatki. K oznacza liczbę klas, a numery domen są lokalne.
-- [ ] Wszystkie parametry czterech zakładek trafiają do obliczeń i metadanych każdego wyniku, również akceptacja klas w analizie serii. Nie ma cichego powrotu do wartości bazowych ani pobierania części ustawień z innej oglądanej klatki.
-- [ ] „Dopasuj nowe” używa wybranego testu porządku do doboru próbek. „Użyj istniejących” zachowuje katalog bez fitu; lokalny katalog można stosować tylko do jego niezmienionych danych, a analiza wielu klatek wymaga zgodnego katalogu wspólnego. Brak zgodności ma czytelny komunikat bez ukrytego dopasowania.
-- [ ] Zmiana promienia/sigmy/kwantyla przelicza właściwą kalibrację. Samo strojenie parametrów przy istniejącym katalogu nie zmienia jego ID. Wynik jednej klatki jest zgodny z wynikiem tej klatki w serii dla tego samego katalogu, danych i parametrów.
-- [ ] Szkic, parametry wyświetlanego wyniku i konfiguracja trwającego przebiegu są rozróżnione. Start utrwala kompletny zestaw i zakres; nawigacja podczas pracy ich nie podmienia. Edycja pól nie zmienia obliczonego obrazu, licznika ani historycznego wyniku.
-- [ ] Działają kopiowanie ustawień z wyniku, przywrócenie bazowych parametrów, porównanie i zachowanie szkicu opisane powyżej. Podsumowanie przed startem mówi, które klatki otrzymają domeny i skąd pochodzą klasy.
-- [ ] Obliczenia działają w tle. Anulowanie dopasowania zachowuje wcześniejszy katalog i wynik; anulowanie serii zachowuje ukończone klatki, a pozostałe jawnie oznacza jako niewykonane. Wcześniejsze wyniki takich klatek nie udają wyników bieżącego przebiegu. Błąd, otwarcie innego zapisu i zamknięcie aplikacji nie publikują spóźnionych rezultatów.
-- [ ] Zachowano widok molekuł i obszarów, zoom, gamma, raw/wyrównany, wyjaśnienia odmów, rozróżnienie braku danych od obliczonego zera oraz funkcje odebrane w 05–10. Odbiór obejmuje rzeczywiste GUI także przy rozmiarze okna głównego 900×650.
-- [ ] Testy publicznych obliczeń i kontrolek sprawdzają pełne przekazanie parametrów, zgodność klatka/seria przy tym samym katalogu, szkic/porównanie, anulowanie, brak danych i błędy. Raport podaje wykonane testy automatyczne, próby GUI i oddzielny status ręcznego odbioru użytkownika.
-- [ ] Testy i uruchomienia wykonano w netcat, sprawdzono limit 1000/1500 linii, zaktualizowano instrukcję menu i kolejny ticket 12. Dostarczono działające przykłady i dokładne oczekiwane wyniki testu ręcznego.
+- [x] Jedno okno i wspólny przycisk obejmują pełną drogę od wybranych danych do widocznych domen dla klatki, zakresu i serii. Nie pozostają niezależne formularze z rozbieżnymi kopiami ustawień ani przycisk uruchamiający niejawny wariant K5.
+- [x] Zakres analizy i zakres odkrywania klas są rozdzielone. Można odkryć klasy z 259–268 i obliczyć tylko 259 albo wszystkie wybrane klatki. K oznacza liczbę klas, a numery domen są lokalne.
+- [x] Wszystkie parametry czterech zakładek trafiają do obliczeń i metadanych każdego wyniku, również akceptacja klas w analizie serii. Nie ma cichego powrotu do wartości bazowych ani pobierania części ustawień z innej oglądanej klatki.
+- [x] „Dopasuj nowe” używa wybranego testu porządku do doboru próbek. „Użyj istniejących” zachowuje katalog bez fitu; lokalny katalog można stosować tylko do jego niezmienionych danych, a analiza wielu klatek wymaga zgodnego katalogu wspólnego. Brak zgodności ma czytelny komunikat bez ukrytego dopasowania.
+- [x] Zmiana promienia/sigmy/kwantyla przelicza właściwą kalibrację. Samo strojenie parametrów przy istniejącym katalogu nie zmienia jego ID. Wynik jednej klatki jest zgodny z wynikiem tej klatki w serii dla tego samego katalogu, danych i parametrów.
+- [x] Szkic, parametry wyświetlanego wyniku i konfiguracja trwającego przebiegu są rozróżnione. Start utrwala kompletny zestaw i zakres; nawigacja podczas pracy ich nie podmienia. Edycja pól nie zmienia obliczonego obrazu, licznika ani historycznego wyniku.
+- [x] Działają kopiowanie ustawień z wyniku, przywrócenie bazowych parametrów, porównanie i zachowanie szkicu opisane powyżej. Podsumowanie przed startem mówi, które klatki otrzymają domeny i skąd pochodzą klasy.
+- [x] Obliczenia działają w tle. Anulowanie dopasowania zachowuje wcześniejszy katalog i wynik; anulowanie serii zachowuje ukończone klatki, a pozostałe jawnie oznacza jako niewykonane. Wcześniejsze wyniki takich klatek nie udają wyników bieżącego przebiegu. Błąd, otwarcie innego zapisu i zamknięcie aplikacji nie publikują spóźnionych rezultatów.
+- [x] Zachowano widok molekuł i obszarów, zoom, gamma, raw/wyrównany, wyjaśnienia odmów, rozróżnienie braku danych od obliczonego zera oraz funkcje odebrane w 05–10. Odbiór obejmuje rzeczywiste GUI także przy rozmiarze okna głównego 900×650.
+- [x] Testy publicznych obliczeń i kontrolek sprawdzają pełne przekazanie parametrów, zgodność klatka/seria przy tym samym katalogu, szkic/porównanie, anulowanie, brak danych i błędy. Raport podaje wykonane testy automatyczne, próby GUI i oddzielny status ręcznego odbioru użytkownika.
+- [x] Testy i uruchomienia wykonano w netcat, sprawdzono limit 1000/1500 linii, zaktualizowano instrukcję menu i kolejny ticket 12. Dostarczono działające przykłady i dokładne oczekiwane wyniki testu ręcznego.
 
 ## Test ręczny użytkownika
 

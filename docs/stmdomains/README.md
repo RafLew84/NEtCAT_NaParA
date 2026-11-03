@@ -5,13 +5,18 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-03
 
-**Dodano SD-V4-11 — wspólne okno analizy.** Na polecenie użytkownika
-kolejność to **11 → 12**; **12 — Auto nie jest jeszcze wykonany**.
-[Ticket 11](implementation/interactive-v04/11-unified-analysis-window.md)
-łączy zakres, klasy i akceptację, porządek oraz domeny, z jednym przyciskiem
-analizy klatki lub serii. Ma kryteria i test ręczny; status `ready-for-agent`,
-bez rozpoczęcia implementacji. Plan ma **25 ticketów**. Numer 11 wykorzystano
-ponownie dla nowego zakresu na wyraźną prośbę użytkownika.
+**Wykonano SD-V4-11 (`d18048b`) — wspólne okno analizy.**
+**Analiza → Analiza…**: zakładki **Zakres, Klasy, Porządek, Domeny**,
+jeden szkic i pełne przekazanie parametrów do klatki lub serii. Przycisk
+**Analizuj klatkę…** otwiera to samo okno; obliczenia uruchamia **Analizuj**.
+Porównanie wyników nie zmienia szkicu; są jawne kopiowanie, bazowe progi,
+postęp, tabela klatek i anulowanie. [Raport i test ręczny 11](implementation/interactive-v04/acceptance-11.md).
+TTMAPP 259: 111/312, 8 domen przy parametrach ticketu; identyczny wynik
+osobno i w zakresie 259–268. **456 testów PASS**, GUI X11 i mypy PASS;
+Standards 0 / Spec 0, największy zmieniony plik 575 linii.
+Status `done`; **odbiór ręczny użytkownika oczekuje**.
+**Następny: 12 — Auto, nadal niewykonany.** Plan ma 25 ticketów.
+Starsze opisy menu poniżej dokumentują interfejs sprzed wspólnego okna.
 
 **Wykonano SD-V4-10 (`aa7e039`):** menu **Analiza → Test porządku…**
 pozwala ustawić kwantyl, minima wsparcia, promień i sigmę. Kalibracja
@@ -44,7 +49,7 @@ Następny rekomendowany pozostaje **12 — Auto**.
 Każdy ticket ma test ręczny. Plan ma **25 ticketów**; nowe zadania są
 `ready-for-agent` po zależnościach, **bez rozpoczęcia implementacji**.
 21 można wykonać po ukończonym 05a; 24 wymaga również 13, a 25 również 14.
-Następna kolejność głównej ścieżki to **11 — wspólne okno analizy → 12 — Auto**.
+Następna kolejność głównej ścieżki to **12 — Auto**.
 
 **Wykonano SD-V4-08 (`1c39ae2`, poprawka `46c274f`):** menu
 **Analiza → Analiza serii…** ma zakładki **Zakres i klasy** oraz
@@ -83,7 +88,7 @@ Można wyłączyć centra i ramki. Dotychczasowe maski wejściowe mają nazwę
 **Maski molekuł**; ich brak nie blokuje obszarów domen.
 [Raport i test ręczny 05a](implementation/interactive-v04/acceptance-05a.md).
 **Odbiór ręczny 05a potwierdzony przez użytkownika 2026-11-02** dla wersji
-`617b006` („testy manualn ok”). Plan ma obecnie **25 ticketów**, następny rekomendowany **11**, potem **12**.
+`617b006` („testy manualn ok”). Plan ma obecnie **25 ticketów**, następny rekomendowany **12**.
 
 **Wykonano SD-V4-05 (`fb37431`):** po otwarciu MPP z oznaczeniami MolTrack
 przycisk **Analizuj klatkę · K5** oblicza pięć lokalnych klas i końcowe domeny
@@ -91,8 +96,8 @@ z bieżących danych. Działają kolory domen/klas, legenda, liczniki, przyczyny
 odmów, postęp i anulowanie. Program nie wczytuje modelu ani wyniku v0.4.
 [Uruchomienie, wykonane sprawdzenia i test ręczny 05](implementation/interactive-v04/acceptance-05.md).
 **Odbiór ręczny użytkownika 05 oczekuje.** W aktualnym planie
-01–03, 05, 05a i 06–10 mają status `done`,
-11–18 oraz 21–25 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
+01–03, 05, 05a i 06–11 mają status `done`,
+12–18 oraz 21–25 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
 To wdrożenie eksperymentalnej metody, bez potwierdzenia trafności detektora.
 
 **Wcześniejsza zmiana kierunku na polecenie użytkownika:** usunięto ticket SD-V4-04
@@ -103,7 +108,7 @@ przywrócony plik ma **341 linii**. Lokalnych danych i paczek nie usuwano.
 
 [Aktualny plan](implementation/interactive-v04/README.md) przewiduje
 obliczenia od danych: **05 — klasy i domeny jednej klatki**, **06 — strojenie**,
-**07 — ręczne K i zakres odkrywania**, **08 — seria**, **12 — Auto**.
+**07 — ręczne K i zakres odkrywania**, **08 — seria**, **11 — wspólne okno**, **12 — Auto**.
 V0.4 jest wzorem kodu metody; nie wczytujemy jego modeli ani wyników.
 05 obejmuje bazowe K5 i czytelny wynik na molekułach; model powstaje wewnętrznie.
 Dawny 11 wchłonięto w 05/07, bez renumeracji pozostałych zadań.
