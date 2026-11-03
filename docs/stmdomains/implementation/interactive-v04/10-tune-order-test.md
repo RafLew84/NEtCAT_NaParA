@@ -6,21 +6,25 @@
 
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md).
 
-**Status:** ready-for-agent — plan zaktualizowany na polecenie użytkownika; wykonanie po zależnościach.
+**Status:** done — implementacja `aa7e039`, ukończono 2026-11-03; odbiór ręczny użytkownika oczekuje.
+
+[Uruchomienie, wykonane sprawdzenia i test ręczny](acceptance-10.md).
+Baza `3c09c0b`, gałąź `domains/interactive-v04-ui`, środowisko netcat.
+449 testów PASS, mypy 67 modułów PASS, Standards 0 / Spec 0; GUI X11 PASS.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
 ## Kryteria akceptacji
 
-- [ ] UI udostępnia kwantyl kontroli, minimum punktów lokalnych i efektywnych oraz promień i sigma otoczenia. Wartości faktycznie trafiają do obliczeń.
-- [ ] Zmiana ustawień unieważnia tylko zależne wyniki i odpowiednio przelicza kalibrację na kontrolach. Stare progi nie są bezwarunkowo stosowane do innego okna.
-- [ ] Kontrole i progi powstają w aplikacji według jawnej metody, dla bieżącej konfiguracji i skali, z zapisanym ziarnem oraz zakresem danych. Nie są odczytywane z historycznych wyników, modeli lub plików kalibracji v0.4.
-- [ ] Słownik pozostaje zamrożony w tym trybie. Jeśli użytkownik później odkrywa klasy ponownie, aktualna ocena porządku wpływa na zakres próbek zgodnie z zapisaną konfiguracją.
-- [ ] UI pokazuje przyczynę odmowy i parametry użyte w wyniku; kwantyl nie jest opisywany jako pewność poprawności domeny.
-- [ ] Kalibracja i analiza działają w tle, z anulowaniem i zachowaniem wcześniejszego poprawnego wyniku.
-- [ ] Testy obejmują zależności cache/kalibracji, słabe wsparcie, kontrolę regularną i losową. Rzędy pozostają jawnie przypadkiem metody v0.4, bez zmiany definicji sieci 2D.
-- [ ] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
-- [ ] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
+- [x] UI udostępnia kwantyl kontroli, minimum punktów lokalnych i efektywnych oraz promień i sigma otoczenia. Wartości faktycznie trafiają do obliczeń.
+- [x] Zmiana ustawień unieważnia tylko zależne wyniki i odpowiednio przelicza kalibrację na kontrolach. Stare progi nie są bezwarunkowo stosowane do innego okna.
+- [x] Kontrole i progi powstają w aplikacji według jawnej metody, dla bieżącej konfiguracji i skali, z zapisanym ziarnem oraz zakresem danych. Nie są odczytywane z historycznych wyników, modeli lub plików kalibracji v0.4.
+- [x] Słownik pozostaje zamrożony w tym trybie. Jeśli użytkownik później odkrywa klasy ponownie, aktualna ocena porządku wpływa na zakres próbek zgodnie z zapisaną konfiguracją.
+- [x] UI pokazuje przyczynę odmowy i parametry użyte w wyniku; kwantyl nie jest opisywany jako pewność poprawności domeny.
+- [x] Kalibracja i analiza działają w tle, z anulowaniem i zachowaniem wcześniejszego poprawnego wyniku.
+- [x] Testy obejmują zależności cache/kalibracji, słabe wsparcie, kontrolę regularną i losową. Rzędy pozostają jawnie przypadkiem metody v0.4, bez zmiany definicji sieci 2D.
+- [x] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
+- [x] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
 
 ## Test ręczny użytkownika
 

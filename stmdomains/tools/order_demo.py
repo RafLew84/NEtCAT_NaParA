@@ -18,7 +18,7 @@ def create_order_demo(directory: Path) -> Path:
     regular = lattice @ (np.array([[1., 1.], [-1., 1.]]) / np.sqrt(2)) + (128., 128.)
     random = rng.uniform(32., 224., (121, 2))
     rows = np.column_stack((rng.uniform(32., 224., 121), np.repeat(48. + 16. * np.arange(11), 11)))
-    sparse = np.array([[80., 80.], [92., 80.], [80., 92.], [92., 92.]])
+    sparse = np.array([[80., 80.], [128., 80.], [80., 128.], [128., 128.]])
     points = [regular, random, rows, sparse]
     images = np.stack([molecule_image(p)[:256, :256] for p in points])
     # Four narrow spots occupy less than the viewer's 2% contrast tail. Broaden

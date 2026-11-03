@@ -65,8 +65,18 @@ K1 ma nieaktywny margines. [Raport i test ręczny](acceptance-09.md).
 427 testów PASS, mypy 63 moduły PASS, kod/testy do 544 linii;
 GUI X11 sprawdzone, Standards/Spec bez uwag. **Odbiór ręczny użytkownika 09
 potwierdzony 2026-11-03** dla wersji `9dd934d` („testy manualne ok”).
-01–03, 05, 05a i 06–09 mają status `done`.
-10, 12–18 oraz 21–25 mają zakres `ready-for-agent`
+
+**Wykonano [10 — test porządku](10-tune-order-test.md)** — 2026-11-03,
+`aa7e039`: **Analiza → Test porządku…**, kwantyl kontroli, minima wsparcia,
+promień i sigma, kalibracja dla bieżącego otoczenia, zachowane klasy,
+porównanie i anulowanie. Jawne odkrywanie klas i analiza serii używają
+zastosowanych parametrów wyświetlanego wyniku; przy jego braku bazowych.
+[Raport, gotowe przykłady i test ręczny](acceptance-10.md). **449 testów PASS**, GUI X11 PASS,
+mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
+**Ręczny odbiór użytkownika 10 oczekuje.** Następny rekomendowany **12 — Auto**.
+
+01–03, 05, 05a i 06–10 mają status `done`.
+12–18 oraz 21–25 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 

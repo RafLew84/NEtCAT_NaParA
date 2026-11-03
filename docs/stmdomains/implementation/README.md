@@ -1,5 +1,13 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Wykonano SD-V4-10 — 2026-11-03 (`aa7e039`):**
+**Analiza → Test porządku…** — kwantyl, minima punktów, promień i sigma,
+nowa kalibracja, zachowany katalog i porównanie poprzedni/nowy.
+Zastosowane ustawienia przechodzą do ponownego odkrywania klas i serii.
+[Raport, kontrole i ręczny test](interactive-v04/acceptance-10.md).
+**449 testów PASS**, GUI X11 PASS, mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
+**Odbiór ręczny użytkownika 10 oczekuje.** Następny rekomendowany **12 — Auto**.
+
 **Wykonano SD-V4-09 — 2026-11-03 (`494ab9d`):**
 **Analiza → Akceptacja klasy…**, progi marginesu i promienia, przeliczenie
 z zachowanym katalogiem i porównanie wyników. Szczegóły molekuły rozdzielają
@@ -55,8 +63,8 @@ oblicza lokalne klasy i końcowe domeny z bieżącego obrazu MPP i oznaczeń
 MolTrack, z kolorami, legendą, odmowami, postępem i anulowaniem.
 [Uruchomienie, sprawdzenia i test ręczny](interactive-v04/acceptance-05.md).
 Ręczny odbiór użytkownika 05 oczekuje. Aktualny plan ma 24 tickety:
-01–03, 05, 05a i 06–09 `done`,
-10, 12–18 oraz 21–25 `ready-for-agent` po zależnościach, 19–20 `deferred`.
+01–03, 05, 05a i 06–10 `done`,
+12–18 oraz 21–25 `ready-for-agent` po zależnościach, 19–20 `deferred`.
 
 **Wcześniejsza zmiana kierunku — 2026-11-02:** na polecenie użytkownika wycofano
 SD-V4-04 i import jego wyników. Stan aplikacji wrócił wtedy do odebranego 03,

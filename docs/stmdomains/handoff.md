@@ -1,3 +1,80 @@
+# STM Domains — wykonano SD-V4-10: regulacja testu porządku
+
+Data **2026-11-03**, baza **`3c09c0b`**, implementacja **`aa7e039`**.
+Gałąź `domains/interactive-v04-ui`, worktree `/home/rlew/projekty/NEtCAT-domains`.
+[Ticket](implementation/interactive-v04/10-tune-order-test.md),
+[raport, przykłady i test ręczny](implementation/interactive-v04/acceptance-10.md).
+Status `done`; **odbiór ręczny użytkownika 10 oczekuje**. Commit końcowego
+zapisu podano w odpowiedzi. Następny rekomendowany ticket: **12 — Auto**.
+
+Menu **Analiza → Test porządku…** udostępnia kwantyl kontroli, minimum
+punktów lokalnych i efektywnych, promień i sigmę w jednostkach odstępu
+molekuł d. Jawny przycisk kalibruje kontrole dla aktualnych ustawień
+w tle i przelicza klatkę przy zachowanych klasach, akceptacji i domenowych
+ustawieniach. Jest porównanie poprzedni/nowy, przywracanie bazowych pól,
+postęp i anulowanie. Dane oznaczenia wyjaśniają wsparcie, koherencję i próg.
+
+Ponowne odkrywanie klas używa zastosowanego porządku do doboru próbek.
+Przy starcie analizy serii ustawienia pochodzą z wyświetlanego wyniku
+(lub są bazowe przy jego braku) i są jawnie opisane w oknie. Wynik zapisuje
+konfigurację, ziarno, kontrolne liczności, kalibrację, skalę i źródło.
+Brak cache progów: pełna analiza generuje kontrole ponownie; samo strojenie
+domen zachowuje oceny porządku. Strojenie nie zmienia tożsamości katalogu.
+Nowo dopasowane katalogi mogą mieć inne ID niż w 09 z powodu rozdzielenia
+parametrów stosowania modelu od pochodzenia doboru próbek.
+
+Uruchomienie w **netcat**: `python -m stmdomains.main`. Dla TTMAPP 259,
+**lokalnego K5 z bieżącej klatki** i bazowych domen/akceptacji:
+
+| Kwantyl | Promień / sigma [× d] | Porządek | Przypisania do domen |
+| --- | --- | --- | --- |
+| 0,950 | 3 / 4⁄3 | 159/312 | 120/312, 6 domen |
+| 0,925 | 3 / 4⁄3 | 179/312 | 134/312, 7 domen |
+| 0,925 | 2 / 1 | 77/312 | 47/312, 2 domeny |
+
+Powrót do bazowych ustawień odtwarza przypisania i mapę piksel w piksel.
+Akceptacja klas w trzech wariantach pozostaje 274/312. To test regulacji,
+nie potwierdzenie lepszej trafności domen.
+
+**Sprawdzenia:** 22 nowe przypadki PASS i 58 celowanych regresji PASS;
+TDD na obliczeniach, doborze próbek, UI i przekazaniu konfiguracji do serii.
+Mypy **67 modułów PASS**, **22 pliki kodu/testów, maksimum 566 linii**.
+Code-review `3c09c0b...aa7e039`: **Standards 0, Spec 0**, brak otwartych uwag.
+Po review rozsunięto cztery centra przykładu, aby były osobno widoczne;
+celowana próba GUI PASS. Pełny zestaw po review: **449 passed, bez pominięć,
+139,80 s**. Pierwsza próba przerwana sygnałem (kod 143), bez błędu testu;
+przyczyny sygnału nie ustalono. Kompletny ponowiony przebieg PASS;
+oba logi zachowane. **376 lokalnych odnośników z kotwicami w 7 dokumentach
+PASS**, 24 tickety, `git diff --check` PASS.
+
+Rzeczywiste **GUI X11 PASS**: TTMAPP, porównanie, szczegóły, raw/wyrównany,
+gamma, okna 900×650 i 1250×850, anulowanie, nawigacja, kontrolne serie
+regularna/losowa/rzędy/cztery centra, wyjście podczas pracy. Obejrzano
+zrzuty okna parametrów, szczegółów i obrazów. Przeliczanie około 0,4–0,7 s,
+RSS około 621 MiB, największa przerwa timera 0,235 s; trzy pule kończą
+z 0 aktywnych zadań. Blokada fit PCA/KMeans nie została wyzwolona.
+0 odczytów historycznych zasobów v0.4; MPP/JSON niezmienione według SHA-256.
+
+Artefakty poza Git: `.scratch/stmdomains-ui-10/`, w tym logi i PNG oraz
+gotowe `demo/order-controls.moltrack.json` z MPP. Generator:
+`python -m stmdomains.tools.order_demo --output .scratch/stmdomains-ui-10/demo`.
+Instrukcja opisuje K1 dopasowane na pierwszej kontroli i ocenę wszystkich
+czterech klatek. Rzędy mogą przejść test periodyczności bez dowodu sieci 2D.
+Zerowe domeny na losowej kontroli/rzędach obejmują też odmowę klasy, więc
+nie są samodzielnym sprawdzianem poprawności testu porządku.
+
+Ograniczenia: metoda zachowuje bazowe kotwice efektywnego wsparcia i stałą
+rodzinę kontroli, z interpolacją i progiem skrajnym poza kotwicami. Kwantyl
+nie jest prawdopodobieństwem poprawności domeny. Przy braku kontroli
+kalibracja zgłasza błąd i zachowuje poprzedni wynik. Brak nowych zależności,
+zmian wspólnego kodu, danych i środowiska. Dawne potrzeby integracyjne
+pozostają aktualne. Wyniki są w pamięci; zapis 13 i eksport 14 nadal
+przed nami. Plan ma 24 tickety: 01–03, 05, 05a i 06–10 `done`,
+12–18 i 21–25 gotowe po zależnościach, 19–20 odroczone. Odbiór naukowy
+metody i historyczne badawcze 04/13 pozostają odrębne.
+
+---
+
 # STM Domains — wykonano SD-V4-09: akceptacja klasy i przyczyny odmowy
 
 Data **2026-11-03**, baza **`b34e862`**, implementacja **`494ab9d`**.

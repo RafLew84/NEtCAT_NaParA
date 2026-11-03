@@ -5,6 +5,16 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-03
 
+**Wykonano SD-V4-10 (`aa7e039`):** menu **Analiza → Test porządku…**
+pozwala ustawić kwantyl, minima wsparcia, promień i sigmę. Kalibracja
+powstaje dla użytej konfiguracji; katalog klas pozostaje zachowany.
+Działa porównanie, odtworzenie bazowych ustawień i anulowanie. Nowe
+odkrywanie klas oraz analiza serii przejmują zastosowany test porządku.
+[Raport, gotowe kontrole i test ręczny 10](implementation/interactive-v04/acceptance-10.md).
+**449 testów PASS**, mypy 67 modułów PASS, 22 pliki kodu/testów do 566 linii; GUI TTMAPP i cztery
+kontrole PASS, Standards 0 / Spec 0. **Odbiór użytkownika 10 oczekuje.**
+Następny rekomendowany ticket: **12 — Auto**.
+
 **Wykonano SD-V4-09 (`494ab9d`):** menu **Analiza → Akceptacja klasy…**
 udostępnia minimalny margines i mnożnik promienia klasy, jawne przeliczenie,
 porównanie poprzedni/nowy i wartości bazowe. Katalog pozostaje zamrożony;
@@ -72,8 +82,8 @@ z bieżących danych. Działają kolory domen/klas, legenda, liczniki, przyczyny
 odmów, postęp i anulowanie. Program nie wczytuje modelu ani wyniku v0.4.
 [Uruchomienie, wykonane sprawdzenia i test ręczny 05](implementation/interactive-v04/acceptance-05.md).
 **Odbiór ręczny użytkownika 05 oczekuje.** W aktualnym planie
-01–03, 05, 05a i 06–09 mają status `done`,
-10, 12–18 oraz 21–25 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
+01–03, 05, 05a i 06–10 mają status `done`,
+12–18 oraz 21–25 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
 To wdrożenie eksperymentalnej metody, bez potwierdzenia trafności detektora.
 
 **Wcześniejsza zmiana kierunku na polecenie użytkownika:** usunięto ticket SD-V4-04
