@@ -11,6 +11,11 @@ Mapa kończy się, gdy decyzje potrzebne do implementacji są rozstrzygnięte.
 
 ## Notes
 
+- 2026-11-03: użytkownik potwierdził „testy manualne ok” dla
+  [REG-15](registration/issues/15-method-parameters.md). Status `done`.
+  REG-15a odblokowany, czeka na osobne zlecenie. REG-14 bez zmiany statusu.
+  Poniższe wpisy zachowują historię wdrożenia i wcześniejszych decyzji.
+
 - 2026-11-03: wdrożono [REG-15](registration/issues/15-method-parameters.md),
   status `ready-for-review`. Edytor AKAZE/LightGlue z menu głównego,
   kontrast i parametry wspólne dla pary/filmu/grafu, zapis konfiguracji

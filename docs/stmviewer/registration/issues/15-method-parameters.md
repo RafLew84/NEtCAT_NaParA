@@ -6,10 +6,10 @@ sprawdza parę, a następnie używa tej samej konfiguracji w filmie lub grafie.
 **Blocked by:** [REG-13](13-lightglue-superpoint.md) oraz [REG-14](14-akaze.md).
 REG-13 jest odebrany; REG-14 ma implementację i status ready-for-review,
 oczekuje manualnego odbioru. Dodanie ticketu nie oznacza tego odbioru.
-**Status:** ready-for-review — implementacja 53c6d69, poprawki 0032ace; 2026-11-03.
+**Status:** done — implementacja 53c6d69, poprawki 0032ace; odbiór 2026-11-03.
 **Zlecenie wykonania:** użytkownik zlecił REG-15 mimo otwartego odbioru REG-14;
 rozpoczęcie tego etapu nie zmienia statusu REG-14.
-**Manualny odbiór:** niewykonany; funkcja gotowa do próby.
+**Manualny odbiór:** zaliczony 2026-11-03; użytkownik potwierdził „testy manualne ok”.
 [Instrukcja GUI](../method-parameters-manual.md), [wyniki](../method-parameters-results.md),
 [testy i przeglądy](../reviews/REG-15.md).
 **Dodano do planu:** 2026-11-02, na zlecenie użytkownika.

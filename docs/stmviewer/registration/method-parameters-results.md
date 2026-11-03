@@ -64,6 +64,7 @@ Znane pozycje względem pierwszej klatki: (0, 0), (−7, +5), (+3, −4).
 
 Nie wykonano nowego pełnego przebiegu MOVIE_4/MOVIE_8 ani pełnego przemiatania
 parametrów. Próba nie porównuje wszystkich metod i nie zmienia wcześniejszych
-wniosków o Deep Matcher/RoMa. Ocena wizualna przez użytkownika i odbiór
-interaktywnego GUI pozostają otwarte. Samo zwiększenie liczby wyników AKAZE
+wniosków o Deep Matcher/RoMa. Użytkownik potwierdził odbiór funkcji
+2026-11-03: „testy manualne ok”, bez szczegółowej oceny poszczególnych
+par STM. Samo zwiększenie liczby wyników AKAZE
 z 0/4 do 2/4 nie oznacza wykazanej poprawy dokładności.

@@ -4,7 +4,8 @@
 o pięć pozostałych metod klasycznych. Użytkownik zmienia ustawienia, sprawdza
 wybraną parę, a następnie używa tej konfiguracji w filmie lub grafie.
 **Blocked by:** [REG-15](15-method-parameters.md), z odbiorem manualnym.
-**Status:** ready-for-agent — zakres przygotowany; zależność otwarta.
+**Status:** ready-for-agent — zakres przygotowany; zależność od REG-15 spełniona
+po odbiorze manualnym 2026-11-03. Wykonanie czeka na osobne zlecenie.
 **Manualny odbiór:** niewykonany; rozszerzenie jeszcze niewdrożone.
 **Dodano do planu:** 2026-11-02, na zlecenie użytkownika.
 

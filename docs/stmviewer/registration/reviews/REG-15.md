@@ -2,7 +2,7 @@
 
 Data: 2026-11-03. Baza: f61a6aea65c8078ffc168731c8b8cb18b76bc0b1.
 Implementacja: 53c6d69; poprawki po przeglądzie: 0032ace.
-Status: **ready-for-review**. [Instrukcja ręczna](../method-parameters-manual.md),
+Status: **done**; odbiór użytkownika 2026-11-03. [Instrukcja ręczna](../method-parameters-manual.md),
 [próby STM](../method-parameters-results.md).
 
 ## Zakres i TDD
@@ -101,8 +101,12 @@ uwaga jest nieblokująca i poza zakresem tego ticketu.
 
 ## Odbiór ręczny
 
-Odbiór użytkownika jeszcze niewykonany. Testy Qt offscreen są automatyczne.
-Nie potwierdzono interaktywnego przebiegu GUI, oglądania AVI w VLC,
-Windows 11 ani stanowiska referencyjnego. Ocena wizualna dopasowania STM
-pozostaje do wykonania. REG-14 zachowuje swój otwarty status;
-REG-15a/15b nie są zaimplementowane. Zmiany współdzielone nie są potrzebne.
+Użytkownik potwierdził 2026-11-03: „testy manualne ok”. Odbiór REG-15
+zamknięto; status done. Testy Qt offscreen pozostają automatyczne.
+Potwierdzenie nie zawiera szczegółów platformy, VLC, sprzętu ani wyników
+oceny konkretnych par STM, więc ograniczenia raportu jakości pozostają.
+REG-14 zachowuje swój otwarty status; REG-15a jest odblokowany i czeka
+na osobne zlecenie. REG-15a/15b nie są zaimplementowane.
+Zmieniono wyłącznie dokumentację odbioru; testów kodu nie powtarzano.
+Sprawdzono spójność statusów, odnośniki oraz git diff --check.
+Zmiany współdzielone nie są potrzebne.

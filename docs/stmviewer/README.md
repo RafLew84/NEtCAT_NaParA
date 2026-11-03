@@ -51,14 +51,15 @@ Na znanym wzorcu cały cykl działa, ale AKAZE odmówił wszystkich 18 wybranych
 par STM i nie utworzył pełnego grafu MOVIE_4/MOVIE_8.
 Manualny odbiór użytkownika niewykonany.
 
-**REG-15: Parametry AKAZE i LightGlue — ready-for-review (2026-11-03).**
+**REG-15: Parametry AKAZE i LightGlue — done (2026-11-03).**
 Menu **Rejestracja → Parametry metod…** otwiera edytor progów, tolerancji
 i przygotowania kontrastu. Ustawienia są wspólne dla pary/filmu/grafu;
 sesja zachowuje oba profile, wyniki mają niezależny zapis użytej konfiguracji.
 [Instrukcja GUI](registration/method-parameters-manual.md),
 [24 próby na STM](registration/method-parameters-results.md),
 [testy i przeglądy](registration/reviews/REG-15.md).
-Odbiór manualny REG-15 i wcześniejszego REG-14 pozostaje otwarty.
+Użytkownik potwierdził „testy manualne ok”; odbiór REG-15 zamknięty.
+Wcześniejszy REG-14 zachowuje otwarty odbiór.
 [REG-15a](registration/issues/15a-cpu-method-parameters.md) rozszerzy edytor
 o pięć pozostałych metod klasycznych,
 a [REG-15b](registration/issues/15b-model-method-parameters.md) o sześć modeli

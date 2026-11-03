@@ -1,6 +1,6 @@
 # REG-15 — ręczne sprawdzenie parametrów metod
 
-Status: ready-for-review, 2026-11-03. Odbiór użytkownika jeszcze niewykonany.
+Status: done, 2026-11-03. Użytkownik potwierdził „testy manualne ok”.
 [Ticket](issues/15-method-parameters.md), [wyniki prób](method-parameters-results.md),
 [testy i przeglądy](reviews/REG-15.md).
 
@@ -109,6 +109,7 @@ odmowy nie wystarcza do uznania XY za poprawne.
 dwie trudne pary MOVIE_4. Ticket zapewnia kontrolę parametrów, nie gwarancję
 skuteczności tych metod na całym filmie.
 
-Do odbioru pozostaje przejście tej instrukcji w interaktywnym GUI,
-ocena STM i AVI/VLC przez użytkownika. Qt offscreen jest osobnym testem
-automatycznym.
+Odbiór funkcji potwierdzono 2026-11-03: „testy manualne ok”. Użytkownik
+nie podał szczegółów platformy, VLC ani oceny poszczególnych par STM;
+nie przypisujemy temu potwierdzeniu dodatkowych wyników pomiarowych.
+Qt offscreen pozostaje osobnym testem automatycznym.

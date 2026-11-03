@@ -11,14 +11,15 @@ RoMa otrzyma jedno miejsce edycji już dostępnych parametrów.
 REG-15 jest wdrożony (aktualizacja 2026-11-03); REG-15a/15b mają tylko
 przygotowany zakres. REG-14 nadal oczekuje manualnego odbioru.
 
-**REG-15 — 2026-11-03: ready-for-review.**
+**REG-15 — 2026-11-03: done.**
 [Okno parametrów AKAZE i LightGlue/SuperPoint](issues/15-method-parameters.md)
 działa z menu **Rejestracja → Parametry metod…**. Wspólne ustawienia
 pary/filmu/grafu zapisują się w sesji; wyniki i MPP zachowują rzeczywistą
 konfigurację obliczenia. [Instrukcja GUI](method-parameters-manual.md),
 [wyniki prób](method-parameters-results.md), [testy](reviews/REG-15.md).
 Wdrożono na wyraźne zlecenie mimo otwartego odbioru REG-14; jego status
-pozostaje bez zmian. Odbiór REG-15 również oczekuje użytkownika.
+pozostaje bez zmian. Użytkownik potwierdził „testy manualne ok”;
+odbiór REG-15 zamknięty, REG-15a czeka na osobne zlecenie.
 Podstawa: [diagnoza jasności](brightness-diagnosis.md).
 
 **Przegląd kolejnych metod — 2026-11-02:**
@@ -65,7 +66,7 @@ w parze, filmie i grafie, z zapisem sesji oraz MPP/AVI.
 wyniki są przeważnie niepewne. Użytkownik potwierdził „testy manualne ok”;
 odbiór REG-12 zamknięty, ograniczenia modelu pozostają zapisane.
 
-Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b, REG-08c, REG-08e, REG-10, REG-11, REG-12 i REG-13 `done`. Użytkownik potwierdził odbiór REG-02
+Status: REG-01, REG-01a, REG-02, REG-02a, REG-04, REG-05, REG-07, REG-08a, REG-08b, REG-08c, REG-08e, REG-10, REG-11, REG-12, REG-13 i REG-15 `done`. Użytkownik potwierdził odbiór REG-02
 2026-10-31 i zgłosił brak istotnej poprawy względem Phase na MOVIE_4.
 Deep Matcher ocenia najlepiej w obejrzanych pierwszych 100 klatkach.
 [Instrukcja REG-02](unnormalized-correlation-manual.md), [wyniki](reviews/REG-02.md).
@@ -197,12 +198,12 @@ wzorce oraz oba pełne filmy. Użytkownik potwierdził odbiór 2026-11-02,
 po diagnozie odmowy 2/32; ograniczenia metody pozostają zapisane.
 REG-14 ma status `ready-for-review`: metoda oraz 18 dodatkowych prób AKAZE
 są gotowe; ograniczenia jakości opisuje raport. Odbiór manualny niewykonany.
-REG-15 ma status `ready-for-review`: edytor AKAZE/LightGlue i wspólne
-konfiguracje są wdrożone; próba manualna oczekuje użytkownika.
+REG-15 ma status `done`: edytor AKAZE/LightGlue i wspólne konfiguracje
+odebrano 2026-11-03 po potwierdzeniu „testy manualne ok”.
 Wyraźne zlecenie implementacji nie zamknęło odbioru REG-14.
-REG-15a i REG-15b mają status
-`ready-for-agent` (zakres przygotowany) i czekają na wykonanie oraz odbiór
-poprzedniego etapu. Dodanie ticketów nie uruchamia implementacji.
+REG-15a i REG-15b mają status `ready-for-agent` (zakres przygotowany).
+REG-15a jest odblokowany i czeka na osobne zlecenie; REG-15b nadal czeka
+na wykonanie i odbiór REG-15a. Nie uruchamiamy implementacji automatycznie.
 REG-06 ma status
 `planned` jako odłożony; nie blokuje bieżącej ścieżki i nie jest odebrany.
 REG-08d ma status `planned` jako odłożony po wycofaniu implementacji; REG-09

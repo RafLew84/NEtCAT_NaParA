@@ -1,6 +1,20 @@
+# REG-15: odbiór manualny — 2026-11-03
+
+Użytkownik potwierdził „testy manualne ok”. REG-15 ma status **done**.
+Implementacja 53c6d69, poprawki 0032ace, dokumentacja c4e187c.
+Zaktualizowano ticket, plan, mapę, README, instrukcję i kartę przeglądów.
+REG-15a odblokowany; czeka na osobne zlecenie. Status REG-14 bez zmian.
+
+To aktualizacja dokumentacji; testów kodu nie powtarzano. Sprawdzono
+spójność statusów, lokalne odnośniki oraz git diff --check.
+Potwierdzenie nie podaje platformy, VLC ani oceny konkretnych par STM;
+wyniki automatyczne i ograniczenia jakości pozostają zapisane osobno.
+Nie zmieniano aplikacji, danych użytkownika ani modułów współdzielonych.
+
 # REG-15: edytor parametrów AKAZE/LightGlue — 2026-11-03
 
-Status **ready-for-review**. Implementacja 53c6d69, poprawki 0032ace;
+Historyczny status przy przekazaniu: **ready-for-review**; późniejszy odbiór
+zapisano powyżej. Implementacja 53c6d69, poprawki 0032ace;
 baza f61a6aea65c8078ffc168731c8b8cb18b76bc0b1.
 Menu **Rejestracja → Parametry metod…**, niezależne profile, wspólne
 ustawienia kolejnego obliczenia pary/łańcucha/grafu, wersjonowany zapis
