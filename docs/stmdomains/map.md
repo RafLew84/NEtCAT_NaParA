@@ -14,6 +14,22 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Wykonano SD-V4-12 — Auto (`274f348`, poprawka `88006c1`).**
+**Analiza → Analiza… → Klasy**: ręczne K albo Auto, maksimum 1–8,
+jawne uzasadnienie i ranking bieżących danych. Jedna klatka, zakres lub
+seria używa pełnego szkicu parametrów. Odmowa nie zastępuje wcześniejszego
+kompletnego wyniku; istniejący katalog zachowuje decyzję Auto.
+Kontrole: K1 dla jednej sieci, K2 dla dwóch orientacji, odmowa dla szumu
+oraz słabych/pustych danych. TTMAPP 259 i 259–268: **nierozstrzygnięte**
+według reguły zapisanej przed próbą, bez zastępowania ręcznym K5.
+[Raport i test ręczny](implementation/interactive-v04/acceptance-12.md),
+[reguła wyboru](implementation/interactive-v04/auto-class-count-rule.md).
+Sprawdzenia: **476 testów PASS**, mypy 70 plików PASS, GUI X11 PASS;
+Standards/Spec: 0 otwartych uwag; maks. zmieniony kod/test 302 linie.
+Status `done`; **odbiór ręczny użytkownika 12 oczekuje**.
+Następny rekomendowany ticket: **13 — zapis i otwarcie projektu**.
+Plan ma 26 ticketów; 23a pozostaje po 23. Poniżej historia wcześniejszych etapów.
+
 **Rozszerzenie planu — 2026-11-03:** dodano
 [SD-V4-23a — scalanie i dzielenie klas](implementation/interactive-v04/23a-split-merge-classes.md).
 Zależność 23; nowe operacje z podglądem, zakresem klatek i Cofnij/Ponów.

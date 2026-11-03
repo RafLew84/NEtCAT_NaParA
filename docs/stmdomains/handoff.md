@@ -1,3 +1,53 @@
+# STM Domains — wykonano SD-V4-12: automatyczna liczba klas
+
+Data **2026-11-03**, baza **`3297b98`**, implementacja **`274f348`**,
+poprawka **`88006c1`**. Gałąź `domains/interactive-v04-ui`, worktree
+`/home/rlew/projekty/NEtCAT-domains`.
+[Ticket 12](implementation/interactive-v04/12-automatic-class-count.md),
+[raport, kontrole i test ręczny](implementation/interactive-v04/acceptance-12.md),
+[reguła Auto v1](implementation/interactive-v04/auto-class-count-rule.md).
+Status `done`; **odbiór ręczny użytkownika oczekuje**. Następny rekomendowany
+**13 — zapis i otwarcie projektu**, jeszcze niewykonany.
+
+**Analiza → Analiza… → Klasy**: ręczne K / Auto, maksimum 1–8, ranking i
+uzasadnienie. Auto przechodzi przez lokalne/wspólne dopasowanie i segmentację,
+z całym szkicem akceptacji, porządku i domen. K1 ma osobną regułę zwartości;
+K≥2 wymaga silhouette i kontroli geometrii cech. Brak dopuszczalnego wariantu
+jest nierozstrzygnięciem, bez katalogu/K5. Użycie istniejącego katalogu zachowuje
+wybrane K i ranking bez ponownego fitu. Wyniki pozostają w pamięci do 13.
+Odmowa zachowuje wcześniejszy kompletny wynik i oznacza go jako spoza przebiegu.
+
+Reguła zapisana **przed TTMAPP**, bez późniejszego strojenia progów.
+Kontrole: jedna sieć **K1 (117/121 w 1 domenie)**, dwie orientacje **K2
+(234/242 w 12 domenach)**; szum/cztery centra/brak oznaczeń: odmowa.
+Klas nie utożsamiamy z liczbą domen. TTMAPP **259 i 259–268 nierozstrzygnięte**:
+159/312 i 1715/3054 użytecznych, ranking maks. 1200; silhouette maks.
+0,368 / 0,335 poniżej progu 0,50, zbyt rozproszone grupy. Nie jest to
+wynik 0% wykrywalności ani dowód braku domen. Ręczne K5 dla 259–268 nadal
+na 259 daje **105/312, 5 domen**, katalog `9d3b7286`.
+
+Netcat bez instalacji. **20 nowych testów**, kontrole przez obrazy MPP + JSON;
+pełny zestaw **476 PASS w 173,61 s** po ponowieniu przerwanego procesu
+(SIGTERM 143 bez raportu błędu asercji; przyczyna nieustalona).
+Mypy **70 plików PASS**. Rzeczywiste GUI X11 kontrolne i TTMAPP PASS,
+ranking/porównanie/nawigacja/anulowanie/zamykanie, brak odczytów dawnych modeli,
+SHA-256 źródeł bez zmian; 0 aktywnych pracowników po zamknięciu.
+Standards: 0 naruszeń, sugestia duplikacji uwzględniona, recheck 0 otwartych;
+Spec: 0 otwartych uwag po poprawieniu jednej zbiorczej listy statusów.
+17 plików kodu/testów, maksimum **302 linie**, poniżej 1000/1500.
+409 lokalnych odnośników/kotwic w 8 dokumentach PASS, 26 ticketów,
+zgodna tabela zależności, bez cykli; `git diff --check` PASS.
+
+Kontrole do otwarcia: `.scratch/stmdomains-ui-12/demo/auto-controls.moltrack.json`;
+generator `python -m stmdomains.tools.auto_classes_demo` w netcat.
+Dowody lokalne `.scratch/stmdomains-ui-12/`, instrukcja w raporcie.
+Nie wykonano oceny naukowej ani Auto dla pełnych 268 klatek TTMAPP;
+ścieżka całej serii sprawdzona na kontrolach. Brak zmian współdzielonych
+modułów i potrzeb integracyjnych. Commit dokumentacji podany w odpowiedzi
+końcowej. Poniżej historia wcześniejszych przekazań.
+
+---
+
 # STM Domains — potwierdzony ręczny odbiór SD-V4-11
 
 Data **2026-11-03**, wersja **`76c8284`**, gałąź `domains/interactive-v04-ui`,

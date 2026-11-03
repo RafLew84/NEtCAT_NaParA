@@ -5,6 +5,22 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-03
 
+**Wykonano SD-V4-12 — Auto (`274f348`, poprawka `88006c1`).**
+**Analiza → Analiza… → Klasy**: ręczne K albo Auto, maksimum 1–8,
+jawne uzasadnienie i ranking bieżących danych. Jedna klatka, zakres lub
+seria używa pełnego szkicu parametrów. Odmowa nie zastępuje wcześniejszego
+kompletnego wyniku; istniejący katalog zachowuje decyzję Auto.
+Kontrole: K1 dla jednej sieci, K2 dla dwóch orientacji, odmowa dla szumu
+oraz słabych/pustych danych. TTMAPP 259 i 259–268: **nierozstrzygnięte**
+według reguły zapisanej przed próbą, bez zastępowania ręcznym K5.
+[Raport i test ręczny](implementation/interactive-v04/acceptance-12.md),
+[reguła wyboru](implementation/interactive-v04/auto-class-count-rule.md).
+Sprawdzenia: **476 testów PASS**, mypy 70 plików PASS, GUI X11 PASS;
+Standards/Spec: 0 otwartych uwag; maks. zmieniony kod/test 302 linie.
+Status `done`; **odbiór ręczny użytkownika 12 oczekuje**.
+Następny rekomendowany ticket: **13 — zapis i otwarcie projektu**.
+Plan ma 26 ticketów; 23a pozostaje po 23. Poniżej historia wcześniejszych etapów.
+
 **Dodano 23a — scalanie i dzielenie klas.**
 [Ticket](implementation/interactive-v04/23a-split-merge-classes.md) wymaga 23,
 obejmuje zakres klatek, podgląd i Cofnij/Ponów. Scalenie klas zachowuje
@@ -103,8 +119,8 @@ z bieżących danych. Działają kolory domen/klas, legenda, liczniki, przyczyny
 odmów, postęp i anulowanie. Program nie wczytuje modelu ani wyniku v0.4.
 [Uruchomienie, wykonane sprawdzenia i test ręczny 05](implementation/interactive-v04/acceptance-05.md).
 **Odbiór ręczny użytkownika 05 oczekuje.** W aktualnym planie
-01–03, 05, 05a i 06–11 mają status `done`,
-12–18, 21–25 oraz 23a — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
+01–03, 05, 05a i 06–12 mają status `done`,
+13–18, 21–25 oraz 23a — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
 To wdrożenie eksperymentalnej metody, bez potwierdzenia trafności detektora.
 
 **Wcześniejsza zmiana kierunku na polecenie użytkownika:** usunięto ticket SD-V4-04

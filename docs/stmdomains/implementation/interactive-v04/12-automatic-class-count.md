@@ -7,22 +7,23 @@
 **Blocked by:** [07: Wybierz liczbę klas i zakres ich odkrywania](07-fit-shared-classes.md),
 [11: Ustaw i uruchom pełną analizę w jednym oknie](11-unified-analysis-window.md).
 
-**Status:** ready-for-agent — niewykonany; następny po zaimplementowanym 11
-(`d18048b`; ręczny odbiór 11 potwierdzony 2026-11-03 dla wersji `76c8284`).
+**Status:** done — implementacja `274f348`, poprawka `88006c1`.
+**Odbiór ręczny użytkownika oczekuje.**
+[Raport i instrukcja testu](acceptance-12.md), [reguła zapisana przed TTMAPP](auto-class-count-rule.md).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
 ## Kryteria akceptacji
 
-- [ ] Auto jest dostępne w zakładce Klasy wspólnego okna z 11, dla bieżącej klatki, zakresu i całej serii. Zachowuje jeden zestaw parametrów akceptacji, porządku i domen; nie tworzy odrębnego formularza ani ścieżki resetującej ustawienia.
-- [ ] Tryb Auto jest przekazywany przez dopasowanie, wybór modelu i segmentację; bazowe K5 ani wcześniejsze ręczne K nie nadpisują go po drodze. Klasy są wyznaczane z wybranego wejścia, bez modelu/paczki v0.4.
-- [ ] Program porównuje dopuszczalnych kandydatów do wskazanego maksimum, z kontrolą liczby próbek. Pokazuje wybrane K i krótkie uzasadnienie.
-- [ ] Jawna reguła odróżnia jedną klasę, K>=2 i brak podstaw do oceny. Reguła jest zapisana przed oceną TTMAPP; samo silhouette nie jest stosowane do K1.
-- [ ] Kontrole obejmują pojedynczą sieć, dwa odróżnialne otoczenia, szum oraz brak/słabe dane. Program nie wymusza co najmniej dwóch klas.
-- [ ] Użytkownik może przełączyć na ręczne K i porównać wynik. Wynik Auto nie jest potajemnie zastępowany ręcznym K5 ani historycznym rankingiem paczki; ranking powstaje dla aktualnie wybranych danych.
-- [ ] Testy obejmują obie skale zakresu, powtarzalność, K1, nierozstrzygnięcie i pełne przejście trybu Auto przez obliczenia.
-- [ ] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
-- [ ] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
+- [x] Auto jest dostępne w zakładce Klasy wspólnego okna z 11, dla bieżącej klatki, zakresu i całej serii. Zachowuje jeden zestaw parametrów akceptacji, porządku i domen; nie tworzy odrębnego formularza ani ścieżki resetującej ustawienia.
+- [x] Tryb Auto jest przekazywany przez dopasowanie, wybór modelu i segmentację; bazowe K5 ani wcześniejsze ręczne K nie nadpisują go po drodze. Klasy są wyznaczane z wybranego wejścia, bez modelu/paczki v0.4.
+- [x] Program porównuje dopuszczalnych kandydatów do wskazanego maksimum, z kontrolą liczby próbek. Pokazuje wybrane K i krótkie uzasadnienie.
+- [x] Jawna reguła odróżnia jedną klasę, K>=2 i brak podstaw do oceny. Reguła jest zapisana przed oceną TTMAPP; samo silhouette nie jest stosowane do K1.
+- [x] Kontrole obejmują pojedynczą sieć, dwa odróżnialne otoczenia, szum oraz brak/słabe dane. Program nie wymusza co najmniej dwóch klas.
+- [x] Użytkownik może przełączyć na ręczne K i porównać wynik. Wynik Auto nie jest potajemnie zastępowany ręcznym K5 ani historycznym rankingiem paczki; ranking powstaje dla aktualnie wybranych danych.
+- [x] Testy obejmują obie skale zakresu, powtarzalność, K1, nierozstrzygnięcie i pełne przejście trybu Auto przez obliczenia.
+- [x] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
+- [x] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
 
 ## Test ręczny użytkownika
 

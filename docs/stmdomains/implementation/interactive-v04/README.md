@@ -1,5 +1,21 @@
 # Interaktywne STM Domains — obliczenia z danych
 
+**Wykonano SD-V4-12 — Auto (`274f348`, poprawka `88006c1`).**
+**Analiza → Analiza… → Klasy**: ręczne K albo Auto, maksimum 1–8,
+jawne uzasadnienie i ranking bieżących danych. Jedna klatka, zakres lub
+seria używa pełnego szkicu parametrów. Odmowa nie zastępuje wcześniejszego
+kompletnego wyniku; istniejący katalog zachowuje decyzję Auto.
+Kontrole: K1 dla jednej sieci, K2 dla dwóch orientacji, odmowa dla szumu
+oraz słabych/pustych danych. TTMAPP 259 i 259–268: **nierozstrzygnięte**
+według reguły zapisanej przed próbą, bez zastępowania ręcznym K5.
+[Raport i test ręczny](acceptance-12.md),
+[reguła wyboru](auto-class-count-rule.md).
+Sprawdzenia: **476 testów PASS**, mypy 70 plików PASS, GUI X11 PASS;
+Standards/Spec: 0 otwartych uwag; maks. zmieniony kod/test 302 linie.
+Status `done`; **odbiór ręczny użytkownika 12 oczekuje**.
+Następny rekomendowany ticket: **13 — zapis i otwarcie projektu**.
+Plan ma 26 ticketów; 23a pozostaje po 23. Poniżej historia wcześniejszych etapów.
+
 Gałąź implementacji: **`domains/interactive-v04-ui`**, utworzona z
 `domains/start` na commicie `b21e0ca`. Worktree:
 `/home/rlew/projekty/NEtCAT-domains`.
@@ -93,10 +109,10 @@ zastosowanych parametrów wyświetlanego wyniku; przy jego braku bazowych.
 [Raport, gotowe przykłady i test ręczny](acceptance-10.md). **449 testów PASS**, GUI X11 PASS,
 mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 **Ręczny odbiór użytkownika 10 potwierdzony 2026-11-03** dla wersji
-`4b55727` („testy manualne ok”). Obecnie wykonano również 11; następny **12**.
+`4b55727` („testy manualne ok”). Później wykonano 11 i 12; obecnie następny **13**.
 
-01–03, 05, 05a i 06–11 mają status `done`.
-12–18, 21–25 oraz 23a mają zakres `ready-for-agent`
+01–03, 05, 05a i 06–12 mają status `done`.
+13–18, 21–25 oraz 23a mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -104,7 +120,7 @@ wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 **21–25 — ręczną edycję domen i klas, zapis historii oraz eksport korekt**.
 Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
 To plan przyszłych funkcji; implementacji nie rozpoczęto. Następny
-rekomendowany etap głównej ścieżki to teraz **12 — Auto**; 21 można
+rekomendowany etap głównej ścieżki to teraz **13 — zapis projektu**; 21 można
 wybrać niezależnie już po wykonanym 05a.
 
 ## Tickety i kolejność
@@ -142,8 +158,8 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [24 — Zapisz korekty i wznów ręczną edycję projektu](24-save-manual-corrections.md) | SD-V4-13, SD-V4-23a | Otwórz zapisane korekty bez źródeł i kontynuuj Cofnij/Ponów. |
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23a | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 
-Po wykonanych 05, 05a i 06–11 następny rekomendowany ticket to
-**12 — Auto**. 07 i nowy 11 są zaimplementowane i odebrane ręcznie. **12 nie jest wykonany.**
+Po wykonanych 05, 05a i 06–12 następny rekomendowany ticket to
+**13 — zapis i otwarcie projektu**. 12 jest zaimplementowany; jego odbiór ręczny użytkownika oczekuje.
 13, 14 i 16 są niezależnie dostępne po 05, a 15 po 07. 08 korzysta
 z dopasowania z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności
 od usuniętego 04 ani historycznego, wchłoniętego zakresu 11.
