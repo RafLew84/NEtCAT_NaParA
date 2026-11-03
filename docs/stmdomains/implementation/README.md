@@ -12,7 +12,7 @@ według reguły zapisanej przed próbą, bez zastępowania ręcznym K5.
 [reguła wyboru](interactive-v04/auto-class-count-rule.md).
 Sprawdzenia: **476 testów PASS**, mypy 70 plików PASS, GUI X11 PASS;
 Standards/Spec: 0 otwartych uwag; maks. zmieniony kod/test 302 linie.
-Status `done`; **odbiór ręczny użytkownika 12 oczekuje**.
+Status `done`; **odbiór ręczny użytkownika 12 potwierdzony 2026-11-03 dla wersji `7edd8de` („testy manualne ok”)**.
 Następny rekomendowany ticket: **13 — zapis i otwarcie projektu**.
 Plan ma 26 ticketów; 23a pozostaje po 23. Poniżej historia wcześniejszych etapów.
 

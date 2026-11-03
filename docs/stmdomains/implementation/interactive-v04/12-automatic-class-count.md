@@ -8,7 +8,7 @@
 [11: Ustaw i uruchom pełną analizę w jednym oknie](11-unified-analysis-window.md).
 
 **Status:** done — implementacja `274f348`, poprawka `88006c1`.
-**Odbiór ręczny użytkownika oczekuje.**
+**Odbiór ręczny użytkownika potwierdzony 2026-11-03 dla wersji `7edd8de`** („testy manualne ok”).
 [Raport i instrukcja testu](acceptance-12.md), [reguła zapisana przed TTMAPP](auto-class-count-rule.md).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).

@@ -12,7 +12,7 @@ według reguły zapisanej przed próbą, bez zastępowania ręcznym K5.
 [reguła wyboru](auto-class-count-rule.md).
 Sprawdzenia: **476 testów PASS**, mypy 70 plików PASS, GUI X11 PASS;
 Standards/Spec: 0 otwartych uwag; maks. zmieniony kod/test 302 linie.
-Status `done`; **odbiór ręczny użytkownika 12 oczekuje**.
+Status `done`; **odbiór ręczny użytkownika 12 potwierdzony 2026-11-03 dla wersji `7edd8de` („testy manualne ok”)**.
 Następny rekomendowany ticket: **13 — zapis i otwarcie projektu**.
 Plan ma 26 ticketów; 23a pozostaje po 23. Poniżej historia wcześniejszych etapów.
 
@@ -159,7 +159,7 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23a | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 
 Po wykonanych 05, 05a i 06–12 następny rekomendowany ticket to
-**13 — zapis i otwarcie projektu**. 12 jest zaimplementowany; jego odbiór ręczny użytkownika oczekuje.
+**13 — zapis i otwarcie projektu**. 12 jest zaimplementowany i odebrany ręcznie przez użytkownika 2026-11-03 dla wersji `7edd8de`.
 13, 14 i 16 są niezależnie dostępne po 05, a 15 po 07. 08 korzysta
 z dopasowania z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności
 od usuniętego 04 ani historycznego, wchłoniętego zakresu 11.

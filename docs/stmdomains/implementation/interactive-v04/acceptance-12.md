@@ -3,8 +3,10 @@
 Data **2026-11-03**, gałąź `domains/interactive-v04-ui`, worktree
 `/home/rlew/projekty/NEtCAT-domains`. Baza `3297b98`, implementacja `274f348`, poprawka `88006c1`.
 [Ticket 12](12-automatic-class-count.md), [reguła Auto v1](auto-class-count-rule.md).
-**Odbiór ręczny użytkownika oczekuje.** Poniżej sprawdzenia wykonane przez agenta
-oraz instrukcja do samodzielnego powtórzenia.
+**Odbiór ręczny użytkownika potwierdzony 2026-11-03 dla wersji `7edd8de`**
+słowami „testy manualne ok”. Ticket 12 jest wykonany i odebrany.
+Poniżej wcześniejsze sprawdzenia agenta oraz instrukcja do ponownego testu.
+Zapis potwierdzenia zmienia tylko dokumentację; nie ponawiano testów aplikacji ani GUI.
 
 ## Obsługa
 

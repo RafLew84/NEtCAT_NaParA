@@ -1,4 +1,4 @@
-# STM Domains — wykonano SD-V4-12: automatyczna liczba klas
+# STM Domains — potwierdzony ręczny odbiór SD-V4-12
 
 Data **2026-11-03**, baza **`3297b98`**, implementacja **`274f348`**,
 poprawka **`88006c1`**. Gałąź `domains/interactive-v04-ui`, worktree
@@ -6,8 +6,13 @@ poprawka **`88006c1`**. Gałąź `domains/interactive-v04-ui`, worktree
 [Ticket 12](implementation/interactive-v04/12-automatic-class-count.md),
 [raport, kontrole i test ręczny](implementation/interactive-v04/acceptance-12.md),
 [reguła Auto v1](implementation/interactive-v04/auto-class-count-rule.md).
-Status `done`; **odbiór ręczny użytkownika oczekuje**. Następny rekomendowany
+Status `done`; **odbiór ręczny użytkownika potwierdzony 2026-11-03 dla
+wersji `7edd8de`**, słowami „testy manualne ok”. Następny rekomendowany
 **13 — zapis i otwarcie projektu**, jeszcze niewykonany.
+
+Zapis potwierdzenia zmienia wyłącznie dokumentację. Nie ponawiano testów
+aplikacji ani GUI; poniżej zachowano wcześniejsze wyniki weryfikacji 12.
+Sprawdzono odnośniki i spójność planu oraz `git diff --check`.
 
 **Analiza → Analiza… → Klasy**: ręczne K / Auto, maksimum 1–8, ranking i
 uzasadnienie. Auto przechodzi przez lokalne/wspólne dopasowanie i segmentację,
