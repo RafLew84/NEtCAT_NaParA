@@ -14,6 +14,17 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Zmiana planu — 2026-11-03:** dodano
+[SD-V4-11 — wspólne okno analizy](implementation/interactive-v04/11-unified-analysis-window.md).
+Zależności: ukończone 06, 08, 09, 10. Następna kolejność **11 → 12**;
+**12 — Auto pozostaje niewykonany** i rozszerzy zakładkę Klasy w nowym oknie.
+Plan ma **25 ticketów**; 11 `ready-for-agent`, bez implementacji. Zakres
+obejmuje jeden szkic parametrów i pełne przekazanie także akceptacji klas
+w analizie serii. Ticket zawiera test ręczny, netcat i limit 1000/1500 linii.
+Przywrócenie numeru 11 dla nowego zakresu wynika z polecenia użytkownika;
+wcześniejsze zadanie 11 pozostaje historycznie wchłonięte przez 05/07.
+Poniżej historia wykonanych etapów i ich ówczesnych rekomendacji.
+
 **Wykonano SD-V4-10 — 2026-11-03 (`aa7e039`):**
 **Analiza → Test porządku…**, pięć parametrów, kalibracja zgodna z otoczeniem,
 zamrożony katalog, porównanie i anulowanie. Zastosowany porządek wpływa

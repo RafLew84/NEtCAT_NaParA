@@ -1,3 +1,40 @@
+# STM Domains — zaplanowano SD-V4-11: wspólne okno analizy
+
+Data **2026-11-03**, baza **`3267207`**, gałąź `domains/interactive-v04-ui`,
+worktree `/home/rlew/projekty/NEtCAT-domains`.
+Na polecenie użytkownika dodano [ticket 11](implementation/interactive-v04/11-unified-analysis-window.md).
+**12 — Auto nie jest wykonany**, zgodnie ze sprostowaniem użytkownika.
+Nowa kolejność: **11 → 12**. Plan ma **25 ticketów**; 11 `ready-for-agent`,
+po ukończonych 06, 08, 09 i 10. 12 wymaga teraz 07 i nowego 11.
+
+11 dostarcza jedno niemodalne okno Analiza z zakładkami Zakres, Klasy,
+Porządek i Domeny, jednym szkicem ustawień i przyciskiem Analizuj.
+Zakres odkrywania klas jest oddzielny od zakresu obliczania domen.
+Wszystkie ustawienia, w tym akceptacja klas, trafiają zarówno do klatki,
+jak i serii. Użycie istniejącego katalogu pozostaje bez ponownego fitu;
+nowe odkrywanie używa wybranych parametrów porządku. Jest postęp,
+anulowanie, statusy klatek, porównanie i jawne kopiowanie ustawień z wyniku.
+Przycisk przy obrazie otwiera to samo okno, zamiast uruchamiać odrębną
+konfigurację. Po 11 przyszłe Auto z 12 pojawi się w zakładce Klasy.
+
+Ticket opisuje zachowanie szkicu podczas nawigacji, porównania i zmiany
+serii, ochronę wcześniejszych wyników oraz ręczny test klatka/seria
+z konkretnym wspólnym zestawem parametrów. Wymaga netcat i limitu
+1000/1500 linii. Nie wprowadza nowej metody, zapisu projektu, presetów,
+eksportu ani ręcznej edycji. **Implementacji nie rozpoczęto**.
+
+Poprzedni 11 był usunięty jako duplikat dopasowania z 05/07. Ponowne
+użycie numeru dla nowego zakresu jest jawną decyzją użytkownika z tej sesji;
+nie przywracamy starego zadania. Zaktualizowano indeks, zależności i zakres
+12 oraz wskazania aktualnego planu. Statusy odebranych zadań i badań
+pozostają zachowane. Brak zmian kodu, danych, środowiska i wspólnych modułów.
+Sprawdzenia dokumentacji: **386 lokalnych odnośników z kotwicami w 7 dokumentach
+PASS**, 25 unikalnych ticketów, zgodne zależności w plikach i indeksie oraz
+brak cykli. `git diff --check` PASS. Testów aplikacji ani GUI nie uruchamiano
+(zmiana wyłącznie dokumentacji). Commit planu podano w odpowiedzi końcowej.
+
+---
+
 # STM Domains — wykonano SD-V4-10: regulacja testu porządku
 
 Data **2026-11-03**, baza **`3c09c0b`**, implementacja **`aa7e039`**.

@@ -10,7 +10,14 @@ implementujemy w aplikacji i następnie rozszerzamy. Użytkownik otwiera
 obrazy z oznaczeniami, wybiera zakres i ustawienia, klika **Analizuj**.
 Parametry klas powstają wewnętrznie z wybranych danych, bez pliku modelu.
 
-Stan: **24 tickety w aktualnym planie**. **01–03 są wykonane i odebrane
+**Aktualizacja — 2026-11-03:** dodano
+[11 — wspólne okno analizy](11-unified-analysis-window.md), zgodnie z decyzją
+użytkownika. Kolejność: **11 → 12**; **12 — Auto pozostaje niewykonany**.
+11 łączy zakres, klasy i akceptację, porządek oraz domeny w jednym oknie,
+z pełnym przekazaniem parametrów do analizy klatki i serii. Wymaga wykonanych
+06, 08, 09 i 10. 12 rozszerzy zakładkę Klasy o Auto.
+
+Stan: **25 ticketów w aktualnym planie**. **01–03 są wykonane i odebrane
 ręcznie**: [obrazy i suwak](acceptance-01.md), [oznaczenia i geometria](acceptance-02.md),
 [miniatury, odtwarzanie i gamma](acceptance-03.md), wraz z poprawkami układu
 `0745e4e` i wyjścia `3dd8b47`. **05 jest zaimplementowany (`fb37431`, `done`),
@@ -22,10 +29,11 @@ Przed 05 kod i testy przywrócono do stanu `24625f2`: po wycofaniu 04
 **308 testów PASS**. To wynik historycznego rollbacku.
 
 **04 usunięto z planu**, a jego implementację `b6159ac` i `c13b291`
-wycofano bez przepisywania historii Git. **11 usunięto jako dublujący**:
+wycofano bez przepisywania historii Git. **Dawny 11 usunięto jako dublujący**:
 dopasowanie jednej klatki przejmują 05 (bazowe K5) i 07 (ręczne K i zakres).
-Numerów 04/11 nie wykorzystujemy ponownie; pozostałe ID i ścieżki zachowano.
-Historia usuniętych ticketów pozostaje w Git.
+Numer 04 pozostaje wycofany. Na wyraźną prośbę użytkownika z 2026-11-03
+numer 11 otrzymuje nowy zakres wspólnego okna; nie przywraca dawnego zadania.
+Pozostałe ID i ścieżki zachowano. Historia usuniętych ticketów pozostaje w Git.
 
 **Wykonano [05a — obszary i granice domen](05a-domain-regions.md)** (`dfcf392`),
 dodany na polecenie użytkownika: wypełnienie, obrysy, numery i krycie
@@ -74,10 +82,10 @@ zastosowanych parametrów wyświetlanego wyniku; przy jego braku bazowych.
 [Raport, gotowe przykłady i test ręczny](acceptance-10.md). **449 testów PASS**, GUI X11 PASS,
 mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 **Ręczny odbiór użytkownika 10 potwierdzony 2026-11-03** dla wersji
-`4b55727` („testy manualne ok”). Następny rekomendowany **12 — Auto**.
+`4b55727` („testy manualne ok”). Następny rekomendowany **11 → 12**.
 
 01–03, 05, 05a i 06–10 mają status `done`.
-12–18 oraz 21–25 mają zakres `ready-for-agent`
+11–18 oraz 21–25 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -85,7 +93,7 @@ wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 **21–25 — ręczną edycję domen i klas, zapis historii oraz eksport korekt**.
 Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
 To plan przyszłych funkcji; implementacji nie rozpoczęto. Następny
-rekomendowany etap głównej ścieżki pozostaje **12 — Auto**; 21 można
+rekomendowany etap głównej ścieżki to teraz **11 → 12**; 21 można
 wybrać niezależnie już po wykonanym 05a.
 
 ## Tickety i kolejność
@@ -106,7 +114,8 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [08 — Przelicz zakres lub całą serię](08-analyze-series.md) | SD-V4-07 | Dopasuj wspólne klasy i przelicz zakres; przeglądaj wyniki i anuluj pozostałe. |
 | [09 — Reguluj akceptację klasy i zobacz przyczynę odmowy](09-tune-class-acceptance.md) | SD-V4-07 | Zmień progi akceptacji i sprawdź powody odmowy, także dla K1. |
 | [10 — Reguluj test porządku z prawidłową kalibracją](10-tune-order-test.md) | SD-V4-05 | Zmień test porządku i obejrzyj wynik po kalibracji. |
-| [12 — Wybierz liczbę klas automatycznie](12-automatic-class-count.md) | SD-V4-07 | Wybierz Auto dla jednej klatki lub zakresu odkrywania i porównaj z ręcznym K. |
+| [11 — Ustaw i uruchom pełną analizę w jednym oknie](11-unified-analysis-window.md) | SD-V4-06, SD-V4-08, SD-V4-09, SD-V4-10 | Ustaw zakres, klasy, akceptację, porządek i domeny; jednym przyciskiem przelicz klatkę lub serię. |
+| [12 — Wybierz liczbę klas automatycznie](12-automatic-class-count.md) | SD-V4-07, SD-V4-11 | Wybierz Auto we wspólnym oknie analizy i porównaj z ręcznym K dla klatki oraz serii. |
 | [13 — Zapisz projekt i otwórz wynik bez ponownych obliczeń](13-save-open-project.md) | SD-V4-05 | Zapisz projekt i otwórz go bez plików źródłowych. |
 | [14 — Wyeksportuj przypisania i widok do CSV oraz PNG](14-export-csv-png.md) | SD-V4-05 | Wyeksportuj obliczony wynik i porównaj CSV/PNG z widokiem. |
 | [15 — Dostosuj opis otoczenia i bariery obrazu](15-advanced-descriptors-barriers.md) | SD-V4-07 | Zmień opis otoczenia/barier i sprawdź ich wpływ. |
@@ -121,10 +130,12 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [24 — Zapisz korekty i wznów ręczną edycję projektu](24-save-manual-corrections.md) | SD-V4-13, SD-V4-23 | Otwórz zapisane korekty bez źródeł i kontynuuj Cofnij/Ponów. |
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23 | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 
-Po wykonanych 05, 05a i 06–09 następny rekomendowany ticket: **12 — Auto**.
-Jego zależność 07 jest ukończona. Po 05 dostępne są niezależnie 06, 07, 10, 13,
-14 i 16; po 07 także 08, 09, 12 i 15. 08 wymaga wspólnego dopasowania
-z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności od usuniętych 04/11.
+Po wykonanych 05, 05a i 06–10 następny rekomendowany ticket to
+**11 — wspólne okno analizy**, potem **12 — Auto**. Zależności 11
+(06, 08, 09, 10) są ukończone; 12 wymaga 07 i nowego 11.
+13, 14 i 16 są niezależnie dostępne po 05, a 15 po 07. 08 korzysta
+z dopasowania z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności
+od usuniętego 04 ani historycznego, wchłoniętego zakresu 11.
 
 Rozszerzenia można zacząć od **16 po 05**, bez czekania na wszystkie 01–15.
 Po 06 i 16 dostępne są niezależne 17 oraz 18. Jako pierwszą próbę nowej
