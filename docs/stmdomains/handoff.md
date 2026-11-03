@@ -1,3 +1,35 @@
+# STM Domains — dodano SD-V4-23a: scalanie i dzielenie klas
+
+Data **2026-11-03**, baza **`25c82bd`**, gałąź `domains/interactive-v04-ui`,
+worktree `/home/rlew/projekty/NEtCAT-domains`.
+Na polecenie użytkownika dodano [23a](implementation/interactive-v04/23a-split-merge-classes.md),
+po 23. Status `ready-for-agent`; **bez implementacji**.
+
+Zakres: Scal klasy do jednej źródłowej lub nowej klasy; Podziel klasę przez
+jawne wskazanie członków; bieżąca klatka, zakres lub klatki tego wyniku
+ze wspólną listą klas. Podgląd pokazuje wszystkie zmiany i pominięcia.
+Scalenie klas zachowuje osobne domeny; podział części domeny używa reguł
+22/23 i jest widoczny w podglądzie. Całość, także wieloklatkowa, jest jednym
+atomowym krokiem Cofnij/Ponów. Model i bazowy wynik pozostają zachowane.
+Brak automatycznego przenoszenia zaznaczeń i utożsamiania różnych katalogów.
+
+Dodano ręczny test z małym przykładem o jawnych licznikach i próbą TTMAPP.
+Wymagane netcat i limit 1000/1500 linii. 24 i 25 zależą teraz od 23a
+(zamiast samego 23) oraz wymagają zapisu/eksportu scalenia i podziału klas.
+25 nadal nie zależy od 24. Uzupełniono indeks, reguły edycji, 23, mapę
+oraz instrukcje startowe. Ścieżka ręczna **21 → 22 → 23 → 23a → 24 → 25**.
+Plan ma **26 ticketów**. Następny główny ticket pozostaje **12 — Auto**,
+niewykonany; odbiór ręczny użytkownika 11 nadal oczekuje.
+
+Zmiana wyłącznie dokumentacji; nie uruchamiano testów aplikacji ani GUI.
+Sprawdzono **404 lokalne odnośniki z kotwicami w 9 dokumentach — PASS**,
+26 unikalnych ticketów, zgodność zależności z indeksem i brak cykli.
+`git diff --check` PASS. Commit tej zmiany podano w odpowiedzi końcowej.
+Brak zmian kodu, danych, środowiska i potrzeb integracyjnych poza wcześniej
+zapisanymi.
+
+---
+
 # STM Domains — wykonano SD-V4-11: wspólne okno analizy
 
 Data **2026-11-03**, baza **`c60e7fb`**, implementacja **`d18048b`**.

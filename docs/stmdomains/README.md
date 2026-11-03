@@ -5,6 +5,13 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-03
 
+**Dodano 23a — scalanie i dzielenie klas.**
+[Ticket](implementation/interactive-v04/23a-split-merge-classes.md) wymaga 23,
+obejmuje zakres klatek, podgląd i Cofnij/Ponów. Scalenie klas zachowuje
+osobne domeny. Ścieżka edycji: **21 → 22 → 23 → 23a → 24 → 25**;
+zapis 24 i eksport 25 obejmą te operacje. Plan ma **26 ticketów**.
+23a jest `ready-for-agent`, bez implementacji. Następny etap główny nadal **12**.
+
 **Wykonano SD-V4-11 (`d18048b`) — wspólne okno analizy.**
 **Analiza → Analiza…**: zakładki **Zakres, Klasy, Porządek, Domeny**,
 jeden szkic i pełne przekazanie parametrów do klatki lub serii. Przycisk
@@ -15,7 +22,7 @@ TTMAPP 259: 111/312, 8 domen przy parametrach ticketu; identyczny wynik
 osobno i w zakresie 259–268. **456 testów PASS**, GUI X11 i mypy PASS;
 Standards 0 / Spec 0, największy zmieniony plik 575 linii.
 Status `done`; **odbiór ręczny użytkownika oczekuje**.
-**Następny: 12 — Auto, nadal niewykonany.** Plan ma 25 ticketów.
+**Następny: 12 — Auto, nadal niewykonany.** Plan ma 26 ticketów.
 Starsze opisy menu poniżej dokumentują interfejs sprzed wspólnego okna.
 
 **Wykonano SD-V4-10 (`aa7e039`):** menu **Analiza → Test porządku…**
@@ -46,7 +53,7 @@ Następny rekomendowany pozostaje **12 — Auto**.
 21 tworzenie/rozszerzanie domen i Cofnij/Ponów, 22 podział/scalanie,
 23 własne klasy i przypisania, 24 zapis korekt z historią, 25 eksport CSV/PNG.
 [Zakres i kolejność](implementation/interactive-v04/README.md#edycja-ręczna-klas-i-domen).
-Każdy ticket ma test ręczny. Plan ma **25 ticketów**; nowe zadania są
+Każdy ticket ma test ręczny. Plan ma **26 ticketów**; nowe zadania są
 `ready-for-agent` po zależnościach, **bez rozpoczęcia implementacji**.
 21 można wykonać po ukończonym 05a; 24 wymaga również 13, a 25 również 14.
 Następna kolejność głównej ścieżki to **12 — Auto**.
@@ -88,7 +95,7 @@ Można wyłączyć centra i ramki. Dotychczasowe maski wejściowe mają nazwę
 **Maski molekuł**; ich brak nie blokuje obszarów domen.
 [Raport i test ręczny 05a](implementation/interactive-v04/acceptance-05a.md).
 **Odbiór ręczny 05a potwierdzony przez użytkownika 2026-11-02** dla wersji
-`617b006` („testy manualn ok”). Plan ma obecnie **25 ticketów**, następny rekomendowany **12**.
+`617b006` („testy manualn ok”). Plan ma obecnie **26 ticketów**, następny rekomendowany **12**.
 
 **Wykonano SD-V4-05 (`fb37431`):** po otwarciu MPP z oznaczeniami MolTrack
 przycisk **Analizuj klatkę · K5** oblicza pięć lokalnych klas i końcowe domeny
@@ -97,7 +104,7 @@ odmów, postęp i anulowanie. Program nie wczytuje modelu ani wyniku v0.4.
 [Uruchomienie, wykonane sprawdzenia i test ręczny 05](implementation/interactive-v04/acceptance-05.md).
 **Odbiór ręczny użytkownika 05 oczekuje.** W aktualnym planie
 01–03, 05, 05a i 06–11 mają status `done`,
-12–18 oraz 21–25 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
+12–18, 21–25 oraz 23a — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
 To wdrożenie eksperymentalnej metody, bez potwierdzenia trafności detektora.
 
 **Wcześniejsza zmiana kierunku na polecenie użytkownika:** usunięto ticket SD-V4-04

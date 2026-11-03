@@ -1,5 +1,12 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Dodano SD-V4-23a — 2026-11-03:**
+[Scalaj i dziel klasy ręcznie](interactive-v04/23a-split-merge-classes.md),
+po 23, z wyborem zakresu, podglądem i Cofnij/Ponów. 24 i 25 wymagają
+23a i obejmą zapis/eksport nowych operacji. Plan ma 26 ticketów;
+23a `ready-for-agent`, implementacji nie rozpoczęto. Główna kolejność
+pozostaje bez zmian: następny 12, odbiór ręczny 11 oczekuje.
+
 **Wykonano SD-V4-11 — 2026-11-03 (`d18048b`):**
 **Analiza → Analiza…** łączy zakres, klasy i akceptację, porządek oraz domeny.
 Szkic pozostaje podczas nawigacji/porównania; **Analizuj** uruchamia jeden
@@ -7,7 +14,7 @@ kompletny przebieg dla klatki, zakresu lub serii. Pięć wcześniejszych
 formularzy zastąpiono tym oknem. [Raport i test ręczny](interactive-v04/acceptance-11.md).
 **456 testów PASS**, GUI X11/mypy PASS, Standards 0 / Spec 0;
 status `done`, **odbiór ręczny użytkownika oczekuje**.
-Następny **12 — Auto**, nadal niewykonany. Plan ma **25 ticketów**.
+Następny **12 — Auto**, nadal niewykonany. Plan ma **26 ticketów**.
 Opisy menu starszych etapów poniżej zachowują historię interfejsu.
 
 **Wykonano SD-V4-10 — 2026-11-03 (`aa7e039`):**
@@ -73,9 +80,9 @@ użytkownika 2026-11-02 dla wersji `617b006`.
 oblicza lokalne klasy i końcowe domeny z bieżącego obrazu MPP i oznaczeń
 MolTrack, z kolorami, legendą, odmowami, postępem i anulowaniem.
 [Uruchomienie, sprawdzenia i test ręczny](interactive-v04/acceptance-05.md).
-Ręczny odbiór użytkownika 05 oczekuje. Aktualny plan ma 25 ticketów:
+Ręczny odbiór użytkownika 05 oczekuje. Aktualny plan ma 26 ticketów:
 01–03, 05, 05a i 06–11 `done`,
-12–18 oraz 21–25 `ready-for-agent` po zależnościach, 19–20 `deferred`.
+12–18, 21–25 oraz 23a `ready-for-agent` po zależnościach, 19–20 `deferred`.
 
 **Wcześniejsza zmiana kierunku — 2026-11-02:** na polecenie użytkownika wycofano
 SD-V4-04 i import jego wyników. Stan aplikacji wrócił wtedy do odebranego 03,

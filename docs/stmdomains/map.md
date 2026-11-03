@@ -14,6 +14,14 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Rozszerzenie planu — 2026-11-03:** dodano
+[SD-V4-23a — scalanie i dzielenie klas](implementation/interactive-v04/23a-split-merge-classes.md).
+Zależność 23; nowe operacje z podglądem, zakresem klatek i Cofnij/Ponów.
+Ścieżka ręczna **21 → 22 → 23 → 23a → 24 → 25**. 24/25 wymagają 23a,
+żeby zapisywać/eksportować także te korekty. Plan ma 26 ticketów;
+23a `ready-for-agent`, bez implementacji. Następny etap główny nadal 12;
+odbiór ręczny użytkownika 11 oczekuje. Poniżej historia poprzednich etapów.
+
 **Wykonano SD-V4-11 — 2026-11-03 (`d18048b`):**
 [Wspólne okno analizy](implementation/interactive-v04/11-unified-analysis-window.md)
 zastępuje pięć formularzy. **Analiza → Analiza…**: Zakres, Klasy, Porządek,

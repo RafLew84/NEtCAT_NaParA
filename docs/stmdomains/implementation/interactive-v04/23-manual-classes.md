@@ -33,3 +33,7 @@ Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) or
 ## Granice zadania
 
 Ręczne etykietowanie i poprawianie wyniku, bez douczania, wyznaczania wzorca z przykładów, automatycznego rozszerzania klasy na podobne molekuły ani zmiany algorytmu K/Auto. Użycie korekt do przyszłego uczenia wymaga osobnej decyzji i planu. Zapis z historią dodaje 24, eksport 25.
+
+Osobne operacje **Scal klasy / Podziel klasę**, z podglądem i jawnym
+zakresem wielu klatek, dodaje [23a](23a-split-merge-classes.md).
+23 pozostaje podstawą tworzenia klas i edycji przypisań na bieżącej klatce.

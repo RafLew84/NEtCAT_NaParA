@@ -10,6 +10,12 @@ implementujemy w aplikacji i następnie rozszerzamy. Użytkownik otwiera
 obrazy z oznaczeniami, wybiera zakres i ustawienia, klika **Analizuj**.
 Parametry klas powstają wewnętrznie z wybranych danych, bez pliku modelu.
 
+**Rozszerzenie planu — 2026-11-03:** dodano
+[23a — scalanie i dzielenie klas](23a-split-merge-classes.md), po 23.
+Zakres obejmuje jawny wybór klatek, podgląd i atomowe Cofnij/Ponów;
+scalenie klas zachowuje osobne domeny. 24 i 25 uwzględniają zapis oraz
+eksport tych operacji. Status `ready-for-agent`, bez implementacji.
+
 **Wykonano SD-V4-11 — 2026-11-03 (`d18048b`):**
 [Wspólne okno analizy](11-unified-analysis-window.md) zastępuje pięć osobnych
 formularzy. **Analiza → Analiza…** ma zakładki **Zakres, Klasy, Porządek,
@@ -22,7 +28,7 @@ Status `done`, **odbiór ręczny użytkownika oczekuje**. Następny **12 — Aut
 który pozostaje niewykonany i rozszerzy zakładkę Klasy.
 Wpisy o menu w starszych etapach poniżej opisują ich historyczny interfejs.
 
-Stan: **25 ticketów w aktualnym planie**. **01–03 są wykonane i odebrane
+Stan: **26 ticketów w aktualnym planie**. **01–03 są wykonane i odebrane
 ręcznie**: [obrazy i suwak](acceptance-01.md), [oznaczenia i geometria](acceptance-02.md),
 [miniatury, odtwarzanie i gamma](acceptance-03.md), wraz z poprawkami układu
 `0745e4e` i wyjścia `3dd8b47`. **05 jest zaimplementowany (`fb37431`, `done`),
@@ -90,7 +96,7 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 `4b55727` („testy manualne ok”). Obecnie wykonano również 11; następny **12**.
 
 01–03, 05, 05a i 06–11 mają status `done`.
-12–18 oraz 21–25 mają zakres `ready-for-agent`
+12–18, 21–25 oraz 23a mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -103,7 +109,7 @@ wybrać niezależnie już po wykonanym 05a.
 
 ## Tickety i kolejność
 
-Identyfikatory **SD-V4-01–25 oraz SD-V4-05a** odróżniają tę serię od dawnych ticketów
+Identyfikatory **SD-V4-01–25, SD-V4-05a oraz SD-V4-23a** odróżniają tę serię od dawnych ticketów
 badawczych 01–26 i implementacyjnych SD-IMPL. Każdy plik zawiera zakres,
 zależności, kryteria akceptacji i instrukcję testu ręcznego.
 
@@ -132,8 +138,9 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [21 — Twórz domeny ręcznie i zmieniaj ich skład](21-manual-domain-membership.md) | SD-V4-05a | Zaznacz molekuły, utwórz/rozszerz domenę, usuń członka i cofnij zmianę. |
 | [22 — Dziel i łącz domeny na obrazie](22-split-merge-domains.md) | SD-V4-21 | Wydziel część domeny lub połącz sąsiadujące domeny; porównaj i cofnij. |
 | [23 — Twórz klasy ręcznie i poprawiaj ich przypisania](23-manual-classes.md) | SD-V4-07, SD-V4-22 | Dodaj własną klasę, nazwę/kolor oraz przypisz molekuły lub domeny. |
-| [24 — Zapisz korekty i wznów ręczną edycję projektu](24-save-manual-corrections.md) | SD-V4-13, SD-V4-23 | Otwórz zapisane korekty bez źródeł i kontynuuj Cofnij/Ponów. |
-| [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23 | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
+| [23a — Scalaj i dziel klasy ręcznie](23a-split-merge-classes.md) | SD-V4-23 | Scal klasy lub wydziel wskazanych członków w jawnym zakresie; sprawdź podgląd i Cofnij/Ponów. |
+| [24 — Zapisz korekty i wznów ręczną edycję projektu](24-save-manual-corrections.md) | SD-V4-13, SD-V4-23a | Otwórz zapisane korekty bez źródeł i kontynuuj Cofnij/Ponów. |
+| [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23a | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 
 Po wykonanych 05, 05a i 06–11 następny rekomendowany ticket to
 **12 — Auto**. 07 i nowy 11 są zaimplementowane; odbiór ręczny użytkownika
@@ -162,16 +169,18 @@ wykonanie, przy czym odbiór programu i pozytywny wynik eksperymentu są odrębn
 ## Edycja ręczna klas i domen
 
 Użytkownik zlecił dodanie tego zakresu **2026-11-03**, po ręcznym odbiorze 08.
-Każdy z pięciu ticketów kończy się działającą funkcją z testem w GUI.
-Rekomendowana kolejność w tej ścieżce: **21 → 22 → 23 → 24 → 25**.
+Każdy z sześciu ticketów kończy się działającą funkcją z testem w GUI.
+Rekomendowana kolejność w tej ścieżce: **21 → 22 → 23 → 23a → 24 → 25**.
 Przed 24 potrzebny jest **13 — zapis projektu**, przed 25 **14 — eksport**;
-można je wykonać wcześniej niezależnie. 25 nie jest blokowany przez 24.
+można je wykonać wcześniej niezależnie. 24 i 25 wymagają teraz 23a,
+aby zachować także scalenia/podziały klas. 25 nie jest blokowany przez 24.
 07 i 05a są ukończone. Nie trzeba czekać na Auto, pomiary ani odłożony 20.
 
 Wspólny zakres i zasady:
 
 - Edytujemy członkostwo istniejących oznaczeń MolTrack: kliknięcia/lasso,
-  nowa domena, dodawanie i usuwanie członków, podział/scalenie oraz klasy.
+  nowa domena, dodawanie i usuwanie członków, podział/scalenie domen
+  oraz klas (23a).
   Po zmianie aktualizują się obszary, obrysy, kolory i liczniki. Nie jest to
   dorysowywanie molekuł ani swobodne malowanie granicy pikselowej.
 - Ręczna praca jest możliwa także bez analizy lub przy zerowej detekcji
@@ -182,6 +191,8 @@ Wspólny zakres i zasady:
   Zmiana klasy części domeny wymaga jawnego podziału z 22, realizowanego
   razem ze zmianą przypisania w 23. Klasa ręczna nie jest typem struktury
   zwalidowanym w 20 ani dodatkowym klastrem dopasowanego modelu.
+  Scalenie klas z 23a zachowuje osobne ID i geometrię domen. Podział klasy
+  obejmujący część domeny pokazuje również jej podział w podglądzie.
 - Korekty odnoszą się do konkretnego źródła, wyniku, klatki i ID oznaczeń.
   Wynik automatyczny pozostaje dostępny, a poprawiony ma własną rewizję.
   Nowa analiza nie dziedziczy korekt po numerach domen i nie nadpisuje
@@ -196,14 +207,16 @@ Wspólny zakres i zasady:
   ewentualny zapis samego bazowego automatu wymaga świadomego wyboru.
   Po 24/25 późniejsze prace nad zapisem i eksportem muszą zachować obsługę
   korekt. Zamknięcie programu nie może bez ostrzeżenia utracić edycji.
-- Ręczna korekta nie trenuje modelu i nie propaguje przypisań na serię.
+- Ręczna korekta nie trenuje modelu ani nie przenosi przypisań automatycznie
+  na inne klatki. W 23a użytkownik może jawnie objąć operacją wiele klatek
+  korzystających z tej samej listy klas; zakres i zmiany widzi w podglądzie.
   Nowa klasa, jej członkowie i pochodzenie są zapisywane oddzielnie od
   niezmienionego dopasowania. Uczenie z przykładów wymaga przyszłego
-  osobnego zlecenia; nie jest częścią ticketów 21–25.
+  osobnego zlecenia; nie jest częścią ticketów 21–25 ani 23a.
 
 Zakres rozszerza wcześniejszy, ograniczony wybór jednej z propozycji przy
 konflikcie domen. Historyczne kontrakty zachowujemy jako zapis tamtych
-decyzji; dla nowych operacji obowiązują 21–25. Nie oznacza to odbioru
+decyzji; dla nowych operacji obowiązują 21–25 oraz 23a. Nie oznacza to odbioru
 naukowego metody ani uznania ręcznych korekt za niezależną referencję.
 
 ## Rozszerzenia
