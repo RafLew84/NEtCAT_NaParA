@@ -21,6 +21,7 @@ from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.filmstrip import Filmstrip
 from stmdomains.ui.import_prompts import ImportPrompts, QtImportPrompts
 from stmdomains.ui.playback_controls import PlaybackControls
+from stmdomains.ui.export_dialog import ExportDialog
 from stmdomains.ui.project_actions import ProjectActions
 from stmdomains.ui.project_prompts import ProjectPrompts, QtProjectPrompts
 from stmdomains.ui.result_controls import ResultControls
@@ -187,6 +188,15 @@ class STMDomainsMainWindow(QMainWindow):
         self.controller.playback_changed.connect(self._show_playback)
         self.analysis_dialog = AnalysisDialog(self.controller, self)
         self.project_actions = ProjectActions(self, project_prompts or QtProjectPrompts(self), menu)
+        self.export_dialog = ExportDialog(self)
+        self.export_action = menu.addAction('Eksportuj PNG/CSV…') if menu is not None else None
+        if self.export_action is not None:
+            if menu is not None and close_action is not None:
+                menu.insertAction(close_action, self.export_action)
+            self.export_action.setObjectName('exportAction')
+            self.export_action.setEnabled(False)
+            self.export_action.triggered.connect(self._show_export)
+            self.controller.busy_changed.connect(self._refresh_export_action)
         analysis_menu = menu_bar.addMenu("&Analiza") if menu_bar is not None else None
         self.analysis_action = analysis_menu.addAction("Analiza…") if analysis_menu is not None else None
         if self.analysis_action is not None:
@@ -196,6 +206,16 @@ class STMDomainsMainWindow(QMainWindow):
         app = QCoreApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(self._finish_background_work)
+
+    def _refresh_export_action(self, busy: bool, message: str) -> None:
+        if self.export_action is not None:
+            self.export_action.setEnabled(self.controller.can_analyze)
+
+    def _show_export(self) -> None:
+        self.export_dialog.prepare()
+        self.export_dialog.show()
+        self.export_dialog.raise_()
+        self.export_dialog.activateWindow()
 
     def _select_frame(self, number: int) -> None:
         # The displayed number changes together with the prepared image.

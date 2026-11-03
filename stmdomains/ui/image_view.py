@@ -122,6 +122,11 @@ class ImageView(QGraphicsView):
     def set_domain_layers(self, *, fill: bool, outlines: bool, numbers: bool, opacity: float) -> None:
         self._domains.set_layers(fill=fill, outlines=outlines, numbers=numbers, opacity=opacity)
 
+    def visible_image_rect(self) -> tuple[float, float, float, float]:
+        viewport = self.viewport()
+        rect = self.mapToScene(viewport.rect()).boundingRect().intersected(self.sceneRect()) if viewport else self.sceneRect()
+        return rect.x(), rect.y(), rect.width(), rect.height()
+
     def view_state(self) -> dict:
         viewport = self.viewport()
         center = self.mapToScene(viewport.rect().center()) if viewport else self.sceneRect().center()

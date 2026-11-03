@@ -17,6 +17,8 @@ from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.class_catalogue import ClassCatalogue
 from stmdomains.core.series import Series
 from stmdomains.core.result_store import ResultStore
+from stmdomains.core.export import ExportOptions
+from stmdomains.ui.export_runner import ExportRunner
 from stmdomains.core.project import ProjectAnalysis, ProjectSnapshot
 from stmdomains.io.project import open_project, save_project
 from stmdomains.ui.project_selection import analysis_identifier, select_analysis, restored_run
@@ -42,6 +44,7 @@ class PreparedImport:
 
 
 class SessionController(QObject):
+    export_changed = pyqtSignal()
     project_saved = pyqtSignal(object)
     project_opened = pyqtSignal(object)
     series_changed = pyqtSignal(object)
@@ -86,6 +89,9 @@ class SessionController(QObject):
         self._play_timer.setTimerType(Qt.TimerType.PreciseTimer)
         self._play_timer.setSingleShot(True)
         self._play_timer.timeout.connect(self._advance_playback)
+        self._export_runner = ExportRunner(self)
+        self._export_runner.changed.connect(self._export_changed)
+        self._export_runner.failed.connect(self.prompts.show_error)
         self._series_runner = SeriesRunner(self)
         self._series_runner.changed.connect(self._series_changed)
         self._series_runner.catalogue_ready.connect(self._accept_series_catalogue)
@@ -94,7 +100,7 @@ class SessionController(QObject):
 
     @property
     def is_busy(self) -> bool:
-        return self.series_running or any(token is not None for token in (
+        return self.export_running or self.series_running or any(token is not None for token in (
             self._open_token, self._frame_token, self._analysis_token, self._save_token,
         ))
 
@@ -163,6 +169,26 @@ class SessionController(QObject):
             Path(path), snapshot, cancelled=cancelled.is_set, progress=report))
         self._busy()
 
+    @property
+    def export_running(self) -> bool:
+        return self._export_runner.running
+
+    @property
+    def export_message(self) -> str:
+        return self._export_runner.message
+
+    def _export_changed(self) -> None:
+        self.export_changed.emit()
+        self._busy()
+
+    def start_export(self, path: Path, indices: tuple[int, ...], options: ExportOptions, *,
+                     view: Mapping[str, Any], selection: str = 'displayed') -> None:
+        self.pause()
+        if not self.can_analyze or self.series is None:
+            return
+        snapshot = ProjectSnapshot(self.series, view, analysis=self.project_analysis(selection))
+        self._export_runner.start(path, snapshot, indices, options)
+
     def _cancel_save(self) -> None:
         self._abandon(self._save_token)
         self._save_token = None
@@ -212,12 +238,12 @@ class SessionController(QObject):
     def can_play(self) -> bool:
         return (self.series is not None and self.series.frame_count > 1
                 and self._open_token is None and self._analysis_token is None
-                and not self.series_running and not self._closed)
+                and not self.series_running and not self.export_running and self._save_token is None and not self._closed)
 
     @property
     def pending_task_count(self) -> int:
         """Includes abandoned, noninterruptible reads that are still finishing."""
-        return len(self._tasks) + self._series_runner.pending_task_count
+        return len(self._tasks) + self._series_runner.pending_task_count + self._export_runner.pending_task_count
 
     @property
     def series_running(self) -> bool:
@@ -280,7 +306,7 @@ class SessionController(QObject):
 
     def _busy(self, text: str = "") -> None:
         if not text:
-            text = "Zapisywanie projektu…" if self._save_token is not None else "Otwieranie zapisu…" if self._open_token is not None else (
+            text = self.export_message if self.export_running else "Zapisywanie projektu…" if self._save_token is not None else "Otwieranie zapisu…" if self._open_token is not None else (
                 self.series_run.message if self.series_running and self.series_run is not None else
                 "Analiza klatki…" if self._analysis_token is not None else
                 f"Przygotowanie klatki {self._requested_index + 1}…"
@@ -291,6 +317,7 @@ class SessionController(QObject):
     def open_session(self, path: Path | None = None) -> None:
         self.pause()
         self._cancel_save()
+        self._export_runner.cancel()
         self._series_runner.cancel()
         self._cancel_analysis()
         self._abandon(self._open_token)
@@ -493,6 +520,7 @@ class SessionController(QObject):
     def cancel(self) -> None:
         self.pause()
         self._cancel_save()
+        self._export_runner.cancel()
         self._series_runner.cancel()
         self._cancel_analysis()
         if self._open_token is not None:
@@ -650,6 +678,7 @@ class SessionController(QObject):
     def shutdown(self) -> None:
         self.pause()
         self._series_runner.shutdown()
+        self._export_runner.shutdown()
         self._closed = True
         for task in self._tasks.values():
             task.cancelled.set()
@@ -659,3 +688,4 @@ class SessionController(QObject):
         """Join cancelled work before Qt destroys the signals used by run()."""
         self._pool.waitForDone()
         self._series_runner.wait_for_workers()
+        self._export_runner.wait_for_workers()
