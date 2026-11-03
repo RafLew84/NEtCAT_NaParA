@@ -6,7 +6,7 @@
 
 **Blocked by:** [07: Wybierz liczbę klas i zakres ich odkrywania](07-fit-shared-classes.md).
 
-**Status:** done — implementacja `1b0c1de`, poprawki `9fe24a6` i `9bf767a`; odbiór ręczny użytkownika oczekuje.
+**Status:** done — implementacja `1b0c1de`, poprawki `9fe24a6` i `9bf767a`; odbiór ręczny użytkownika 15 potwierdzony 2026-11-03 dla wersji `f129ac2` („testy manualne ok”).
 
 [Raport i test ręczny](acceptance-15.md), [parametry i znaczenie](advanced-settings.md),
 [przegląd](review-15.md). Zakładka **Zaawansowane** we wspólnym oknie analizy.

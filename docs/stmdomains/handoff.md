@@ -1,4 +1,4 @@
-# STM Domains — wykonany SD-V4-15, oczekuje odbioru użytkownika
+# STM Domains — potwierdzony ręczny odbiór SD-V4-15
 
 Data **2026-11-03**, baza `bc3de1b`, implementacja `1b0c1de`, poprawki
 `9fe24a6` i `9bf767a`. Gałąź `domains/interactive-v04-ui`, worktree
@@ -6,8 +6,12 @@ Data **2026-11-03**, baza `bc3de1b`, implementacja `1b0c1de`, poprawki
 [raport i test ręczny](implementation/interactive-v04/acceptance-15.md),
 [parametry](implementation/interactive-v04/advanced-settings.md),
 [przegląd](implementation/interactive-v04/review-15.md).
-Status `done`; **ręczny odbiór użytkownika 15 oczekuje**. Odbiór 14 potwierdzony
+Status `done`; **odbiór ręczny użytkownika 15 potwierdzony 2026-11-03 dla wersji `f129ac2` („testy manualne ok”)**. Odbiór 14 potwierdzony
 w `bc3de1b`. Następny **16 — kierunek, rozstaw i jakość geometrii na obrazie**.
+
+Zapis potwierdzenia zmienia wyłącznie dokumentację. Nie ponawiano testów
+aplikacji ani GUI; poniżej zachowano wcześniejsze wyniki weryfikacji 15.
+Sprawdzono odnośniki, spójność planu i `git diff --check`.
 
 **Analiza → Analiza… → Zaawansowane** dodaje konfigurację sigma, histogramu,
 zakresu par i maksimum PCA oraz sześć parametrów barier. Obliczenia używają

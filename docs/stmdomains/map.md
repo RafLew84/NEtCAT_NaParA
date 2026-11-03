@@ -24,7 +24,7 @@ model przy zmianie barier. Projekt i PNG zachowują nową diagnostykę.
 przywrócenie bazowych parametrów odtwarza dokładnie katalog, przypisania
 oraz maskę. **510 testów PASS**, mypy 92 modułów PASS; maks. 474 linie
 w 32 plikach kodu/testów. Standards/Spec: 0 otwartych uwag.
-Status `done`; **odbiór ręczny użytkownika 15 oczekuje**.
+Status `done`; **odbiór ręczny użytkownika 15 potwierdzony 2026-11-03 dla wersji `f129ac2` („testy manualne ok”)**.
 Następny rekomendowany ticket: **16 — kierunek, rozstaw i jakość geometrii**.
 Poniżej historia wcześniejszych etapów.
 

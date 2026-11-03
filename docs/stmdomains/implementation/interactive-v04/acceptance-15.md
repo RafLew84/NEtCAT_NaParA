@@ -4,7 +4,11 @@ Data: **2026-11-03**. Baza `bc3de1b`, implementacja `1b0c1de`, poprawki
 `9fe24a6` i `9bf767a`. Gałąź `domains/interactive-v04-ui`, worktree
 `/home/rlew/projekty/NEtCAT-domains`. [Ticket](15-advanced-descriptors-barriers.md),
 [parametry i znaczenie](advanced-settings.md), [przegląd](review-15.md).
-Status implementacji: `done`. **Odbiór ręczny użytkownika oczekuje.**
+Status implementacji: `done`. **Odbiór ręczny użytkownika 15 potwierdzony 2026-11-03 dla wersji `f129ac2` („testy manualne ok”).**
+
+Potwierdzenie użytkownika dotyczy odbioru funkcji. Aktualizacja statusu
+zmienia tylko dokumentację; nie ponawiano testów aplikacji ani GUI.
+Poniższe wyniki testów dokumentują wcześniejszą weryfikację implementacji.
 
 ## Działająca funkcja
 
@@ -158,6 +162,6 @@ To udostępnienie parametrów istniejącej metody. Brak nowego detektora
 molekuł, barier lub treningu sieci. Więcej przypisań nie oznacza większej
 zwalidowanej wykrywalności. Nie wykonano oceny jakości względem referencji
 ani nowego przebiegu wszystkich 268 klatek z niestandardowym opisem.
-Odbiór użytkownika oraz wybór parametrów odpowiednich dla pomiaru pozostają
-otwarte. Następny rekomendowany ticket:
+Odbiór użytkownika potwierdzono 2026-11-03. Wybór parametrów odpowiednich
+dla pomiaru i walidacja naukowa pozostają otwarte. Następny rekomendowany ticket:
 [16 — kierunek, rozstaw i jakość geometrii](16-inspect-local-geometry.md).
