@@ -7,7 +7,7 @@ from stmdomains.ui.series_runner import FrameRunStatus, SeriesRun
 
 STATUS_TEXT = {"pending": "Oczekuje", "analysing": "Obliczanie", "not_run": "Niewykonana",
                "complete": "Gotowe", "no_annotations": "Brak oznaczeń",
-               "insufficient_data": "Za mało danych", "error": "Błąd"}
+               "insufficient_data": "Za mało danych", "error": "Błąd", "unavailable": "Brak w zapisie"}
 
 
 class AnalysisStatuses(QTableWidget):

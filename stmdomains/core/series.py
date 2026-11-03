@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
+from tempfile import TemporaryDirectory
 
 import numpy as np
 from numpy.typing import NDArray
@@ -31,6 +32,10 @@ class Series:
     raw_header: dict[str, Any] = field(default_factory=dict, repr=False)
     source_times_s: tuple[float, ...] | None = None
     identity: str = field(default_factory=lambda: uuid4().hex)
+
+    source_sha256: str = ""
+    provenance: dict[str, Any] = field(default_factory=dict, repr=False)
+    source_cache: TemporaryDirectory[str] | None = field(default=None, repr=False, compare=False)
 
     @property
     def frame_count(self) -> int:

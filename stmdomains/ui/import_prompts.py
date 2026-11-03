@@ -19,8 +19,8 @@ class QtImportPrompts:
 
     def choose_session(self) -> Path | None:
         filename, _ = QFileDialog.getOpenFileName(
-            self.parent, "Otwórz zapis MolTrack", "",
-            "Zapis MolTrack (*.moltrack.json *.json);;Wszystkie pliki (*)",
+            self.parent, "Otwórz projekt lub zapis MolTrack", "",
+            "Projekty i zapisy (*.stmdomains *.moltrack.json *.json);;Projekt STM Domains (*.stmdomains);;Zapis MolTrack (*.moltrack.json *.json)",
         )
         return Path(filename) if filename else None
 
@@ -48,4 +48,4 @@ class QtImportPrompts:
         return dialog.exec() == QMessageBox.StandardButton.Yes
 
     def show_error(self, message: str) -> None:
-        QMessageBox.warning(self.parent, "Nie można otworzyć obrazu", message)
+        QMessageBox.warning(self.parent, "Nie można wykonać operacji", message)

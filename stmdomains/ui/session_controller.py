@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, MutableMapping
+from typing import Any
+from uuid import uuid4
 from dataclasses import dataclass, replace
 from math import isfinite
 from pathlib import Path
@@ -14,6 +16,10 @@ from stmdomains.core.frame_presentation import FramePresenter, PresentedFrame
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.class_catalogue import ClassCatalogue
 from stmdomains.core.series import Series
+from stmdomains.core.result_store import ResultStore
+from stmdomains.core.project import ProjectAnalysis, ProjectSnapshot
+from stmdomains.io.project import open_project, save_project
+from stmdomains.ui.project_selection import analysis_identifier, select_analysis, restored_run
 from stmdomains.analysis import analyze_frame, recalculate_domains, discover_classes, recalculate_class_acceptance, recalculate_order
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.class_settings import ClassFitSettings
@@ -32,9 +38,12 @@ class PreparedImport:
     candidate: ImportCandidate
     presenter: FramePresenter
     view: PresentedFrame
+    project: ProjectSnapshot | None = None
 
 
 class SessionController(QObject):
+    project_saved = pyqtSignal(object)
+    project_opened = pyqtSignal(object)
     series_changed = pyqtSignal(object)
     frame_changed = pyqtSignal(object)
     busy_changed = pyqtSignal(bool, str)
@@ -58,7 +67,12 @@ class SessionController(QObject):
         self._open_token: int | None = None
         self._frame_token: int | None = None
         self._analysis_token: int | None = None
-        self._results: dict[int, FrameAnalysis] = {}
+        self._results: MutableMapping[int, FrameAnalysis] = {}
+        self._run_results: dict[int, FrameAnalysis] = {}
+        self._save_token: int | None = None
+        self._saving_path: Path | None = None
+        self.project_path: Path | None = None
+        self.loaded_project: ProjectSnapshot | None = None
         self._previous_results: dict[int, FrameAnalysis] = {}
         self._selected_versions: dict[int, str] = {}
         self._active_catalogue: ClassCatalogue | None = None
@@ -81,7 +95,7 @@ class SessionController(QObject):
     @property
     def is_busy(self) -> bool:
         return self.series_running or any(token is not None for token in (
-            self._open_token, self._frame_token, self._analysis_token,
+            self._open_token, self._frame_token, self._analysis_token, self._save_token,
         ))
 
     @property
@@ -107,11 +121,52 @@ class SessionController(QObject):
     @property
     def available_catalogues(self) -> tuple[ClassCatalogue, ...]:
         catalogues = {result.catalogue.identifier: result.catalogue
-                      for results in (self._previous_results, self._results) for result in results.values()
+                      for results in (self._previous_results, self._memory_results) for result in results.values()
                       if result.catalogue is not None}
+        if self.loaded_project is not None and self.loaded_project.analysis is not None:
+            catalogues.update({c.identifier: c for c in self.loaded_project.analysis.catalogues})
         if self.active_catalogue is not None:
             catalogues[self.active_catalogue.identifier] = self.active_catalogue
         return tuple(catalogues.values())
+
+    @property
+    def _memory_results(self) -> Mapping[int, FrameAnalysis]:
+        return self._results.memory if isinstance(self._results, ResultStore) else self._results
+
+    def project_analysis(self, selection: str = "displayed") -> ProjectAnalysis | None:
+        if selection == "none":
+            return None
+        run = self.series_run
+        if selection == "latest":
+            identifier = run.identifier if run else ""
+        elif selection == "displayed":
+            identifier = analysis_identifier(self.result) if self.result else ""
+        else:
+            raise ValueError("Nieznany wybór wyniku do zapisu.")
+        if not identifier:
+            return None
+        saved = self.loaded_project.analysis if self.loaded_project else None
+        if saved is not None and saved.identifier == identifier:
+            return saved
+        return select_analysis(identifier, self._memory_results, self._previous_results, run, self._run_results)
+
+    def save_project(self, path: Path, *, view: Mapping[str, Any] | None = None,
+                     draft: Mapping[str, Any] | None = None, selection: str = "displayed") -> None:
+        self.pause()
+        if not self.can_analyze or self.series is None:
+            return
+        snapshot = ProjectSnapshot(self.series, view or {'current_index': self.current_index,
+                                    'mode': self.view_mode, 'gamma': self.gamma}, draft or {},
+                                    self.project_analysis(selection))
+        self._saving_path = Path(path).resolve()
+        self._save_token = self._submit(lambda cancelled, report: save_project(
+            Path(path), snapshot, cancelled=cancelled.is_set, progress=report))
+        self._busy()
+
+    def _cancel_save(self) -> None:
+        self._abandon(self._save_token)
+        self._save_token = None
+        self._saving_path = None
 
     @property
     def catalogue_status(self) -> str:
@@ -177,6 +232,7 @@ class SessionController(QObject):
         if not self.can_analyze or self.presenter is None:
             return
         try:
+            self._run_results = {}
             self._series_runner.start(self.presenter, plan, catalogue if catalogue is not None else self.active_catalogue)
         except ValueError as error:
             self.prompts.show_error(str(error))
@@ -194,6 +250,7 @@ class SessionController(QObject):
         if result is None or self.series is None or result.series_id != self.series.identity:
             return
         index = result.working_index
+        self._run_results[index] = result
         previous = self._results.get(index)
         if previous is not None and previous.status == "complete":
             if result.status != "complete":
@@ -223,7 +280,7 @@ class SessionController(QObject):
 
     def _busy(self, text: str = "") -> None:
         if not text:
-            text = "Otwieranie zapisu…" if self._open_token is not None else (
+            text = "Zapisywanie projektu…" if self._save_token is not None else "Otwieranie zapisu…" if self._open_token is not None else (
                 self.series_run.message if self.series_running and self.series_run is not None else
                 "Analiza klatki…" if self._analysis_token is not None else
                 f"Przygotowanie klatki {self._requested_index + 1}…"
@@ -233,6 +290,7 @@ class SessionController(QObject):
 
     def open_session(self, path: Path | None = None) -> None:
         self.pause()
+        self._cancel_save()
         self._series_runner.cancel()
         self._cancel_analysis()
         self._abandon(self._open_token)
@@ -250,14 +308,17 @@ class SessionController(QObject):
         gamma = self.gamma
 
         def read(cancelled: Event, report: Callable[[str], None]) -> object:
-            result = prepare_import(path, source, cancelled=cancelled.is_set, progress=report)
+            project = open_project(path, cancelled=cancelled.is_set, progress=report) if path.suffix.lower() == '.stmdomains' else None
+            result = ImportCandidate(project.series) if project else prepare_import(path, source, cancelled=cancelled.is_set, progress=report)
             if isinstance(result, SourceRequest):
                 return result
             report("Przygotowanie pierwszego obrazu…")
             presenter = FramePresenter(result.series)
+            view = project.view if project else {}
             return PreparedImport(result, presenter, presenter.present(
-                result.series.active_frame_index, presenter.initial_mode, gamma=gamma,
-            ))
+                int(view.get('current_index', result.series.active_frame_index)),
+                str(view.get('mode', presenter.initial_mode)), gamma=float(view.get('gamma', gamma)),
+            ), project)
 
         self._open_token = self._submit(read)
         self._busy()
@@ -431,6 +492,7 @@ class SessionController(QObject):
 
     def cancel(self) -> None:
         self.pause()
+        self._cancel_save()
         self._series_runner.cancel()
         self._cancel_analysis()
         if self._open_token is not None:
@@ -449,10 +511,18 @@ class SessionController(QObject):
     def _receive(self, token: int, result: object) -> None:
         if self._closed:
             return
-        if token == self._analysis_token and isinstance(result, FrameAnalysis):
+        if token == self._save_token:
+            self._save_token = None
+            self.project_path = self._saving_path
+            self._saving_path = None
+            self._busy()
+            self.project_saved.emit(self.project_path)
+        elif token == self._analysis_token and isinstance(result, FrameAnalysis):
             if (self.series is not None and result.series_id == self.series.identity
                     and result.working_index == self.current_index == self._requested_index
                     and result.source_index == self.series.frame(self.current_index).source_index):
+                result = replace(result, metadata={**{k: v for k, v in result.metadata.items() if k != "series_analysis"},
+                                                   "analysis_id": uuid4().hex})
                 previous = self.latest_result
                 if previous is not None and previous.status == "complete" and result.status != "complete":
                     self._failed(token, result.message)
@@ -498,15 +568,27 @@ class SessionController(QObject):
             self._abandon(self._frame_token)
             self._frame_token = None
             self.series = candidate.series
+            if not result.project:
+                self.series.provenance["source_confirmation_accepted"] = bool(candidate.confirmation_reasons)
             self.presenter = result.presenter
-            self._results.clear()
+            self._results = {}
+            self._run_results = {}
+            self.loaded_project = result.project
+            self.project_path = candidate.series.session_path if result.project else None
             self._previous_results.clear()
             self._selected_versions.clear()
             self._active_catalogue = None
             self._series_runner.reset()
+            if result.project and result.project.analysis:
+                analysis = result.project.analysis
+                self._results = ResultStore(analysis.frames)
+                self._series_runner.state = restored_run(analysis, self.series.identity)
+                self._active_catalogue = self._series_runner.state.catalogue
             self._published = None
             self.series_changed.emit(self.series)
             self._publish(result.view)
+            if result.project:
+                self.project_opened.emit(result.project)
         elif token == self._frame_token and isinstance(result, PresentedFrame):
             self._frame_token = None
             if self.series is not None and result.series_id == self.series.identity:
@@ -534,9 +616,12 @@ class SessionController(QObject):
 
     @pyqtSlot(int, str)
     def _failed(self, token: int, message: str) -> None:
-        if self._closed or token not in (self._open_token, self._frame_token, self._analysis_token):
+        if self._closed or token not in (self._open_token, self._frame_token, self._analysis_token, self._save_token):
             return
-        if token == self._analysis_token:
+        if token == self._save_token:
+            self._save_token = None
+            self._saving_path = None
+        elif token == self._analysis_token:
             self._analysis_token = None
         elif token == self._open_token:
             self._open_token = None
@@ -552,7 +637,7 @@ class SessionController(QObject):
 
     @pyqtSlot(int, str)
     def _progress(self, token: int, text: str) -> None:
-        if token == self._open_token or (self._open_token is None and (
+        if token == self._save_token or token == self._open_token or (self._open_token is None and (
             token == self._analysis_token or (self._analysis_token is None and token == self._frame_token)
         )):
             self._busy(text)
@@ -567,7 +652,7 @@ class SessionController(QObject):
         self._closed = True
         for task in self._tasks.values():
             task.cancelled.set()
-        self._open_token = self._frame_token = self._analysis_token = None
+        self._open_token = self._frame_token = self._analysis_token = self._save_token = None
 
     def wait_for_workers(self) -> None:
         """Join cancelled work before Qt destroys the signals used by run()."""

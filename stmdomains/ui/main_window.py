@@ -21,6 +21,8 @@ from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.filmstrip import Filmstrip
 from stmdomains.ui.import_prompts import ImportPrompts, QtImportPrompts
 from stmdomains.ui.playback_controls import PlaybackControls
+from stmdomains.ui.project_actions import ProjectActions
+from stmdomains.ui.project_prompts import ProjectPrompts, QtProjectPrompts
 from stmdomains.ui.result_controls import ResultControls
 from stmdomains.ui.result_style import assignment_description
 from stmdomains.ui.assignment_details import assignment_details
@@ -30,6 +32,7 @@ from stmdomains.ui.session_controller import PresentedFrame, SessionController
 class STMDomainsMainWindow(QMainWindow):
     def __init__(
         self, parent: QWidget | None = None, *, prompts: ImportPrompts | None = None,
+        project_prompts: ProjectPrompts | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("STM Domains")
@@ -40,9 +43,9 @@ class STMDomainsMainWindow(QMainWindow):
         self.setCentralWidget(central)
 
         files = QHBoxLayout()
-        self.open_button = QPushButton("Otwórz zapis MolTrack…")
+        self.open_button = QPushButton("Otwórz projekt / MolTrack…")
         self.open_button.setObjectName("openButton")
-        self.open_button.clicked.connect(lambda: self.controller.open_session())
+        self.open_button.clicked.connect(lambda: self.project_actions.open())
         files.addWidget(self.open_button)
         self.analyze_button = QPushButton("Analizuj klatkę…")
         self.analyze_button.setObjectName("analyzeButton")
@@ -170,10 +173,10 @@ class STMDomainsMainWindow(QMainWindow):
         menu_bar = self.menuBar()
         menu = menu_bar.addMenu("&Plik") if menu_bar is not None else None
         if menu is not None:
-            open_action = menu.addAction("&Otwórz zapis MolTrack…")
+            open_action = menu.addAction("&Otwórz projekt / MolTrack…")
             if open_action is not None:
                 open_action.setShortcut(QKeySequence.StandardKey.Open)
-                open_action.triggered.connect(lambda: self.controller.open_session())
+                open_action.triggered.connect(lambda: self.project_actions.open())
             close_action = menu.addAction("&Zakończ")
             if close_action is not None:
                 close_action.setShortcut(QKeySequence.StandardKey.Quit)
@@ -183,6 +186,7 @@ class STMDomainsMainWindow(QMainWindow):
         self.controller.busy_changed.connect(self._show_progress)
         self.controller.playback_changed.connect(self._show_playback)
         self.analysis_dialog = AnalysisDialog(self.controller, self)
+        self.project_actions = ProjectActions(self, project_prompts or QtProjectPrompts(self), menu)
         analysis_menu = menu_bar.addMenu("&Analiza") if menu_bar is not None else None
         self.analysis_action = analysis_menu.addAction("Analiza…") if analysis_menu is not None else None
         if self.analysis_action is not None:
@@ -428,6 +432,10 @@ class STMDomainsMainWindow(QMainWindow):
             self.frame_slider.setValue(self.controller.current_index + 1)
 
     def closeEvent(self, event: QCloseEvent | None) -> None:
+        if not self.project_actions.allow_close():
+            if event is not None:
+                event.ignore()
+            return
         self.filmstrip.shutdown()
         self.controller.shutdown()
         super().closeEvent(event)

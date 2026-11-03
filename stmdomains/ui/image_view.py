@@ -1,5 +1,8 @@
 """A raw image in pixel coordinates, with fitting, zoom and panning."""
 
+from collections.abc import Mapping
+from typing import Any
+
 from PyQt6.QtCore import QPoint, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QImage, QMouseEvent, QPen, QPixmap, QResizeEvent, QWheelEvent
 from PyQt6.QtWidgets import (
@@ -118,6 +121,20 @@ class ImageView(QGraphicsView):
 
     def set_domain_layers(self, *, fill: bool, outlines: bool, numbers: bool, opacity: float) -> None:
         self._domains.set_layers(fill=fill, outlines=outlines, numbers=numbers, opacity=opacity)
+
+    def view_state(self) -> dict:
+        viewport = self.viewport()
+        center = self.mapToScene(viewport.rect().center()) if viewport else self.sceneRect().center()
+        return {'fit': self._fit_mode, 'scale': self.transform().m11(), 'center': [center.x(), center.y()]}
+
+    def restore_view_state(self, state: Mapping[str, Any]) -> None:
+        if state['fit']:
+            self.fit_to_window()
+        else:
+            self._fit_mode = False
+            self.resetTransform()
+            self.scale(state['scale'], state['scale'])
+            self.centerOn(*state['center'])
 
     def mousePressEvent(self, event: QMouseEvent | None) -> None:
         if event is not None and event.button() == Qt.MouseButton.LeftButton:

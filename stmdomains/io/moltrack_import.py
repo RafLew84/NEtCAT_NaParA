@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path, PureWindowsPath
 from typing import Any
 
@@ -14,6 +15,7 @@ from nanotrack.io.mpp_loader import load_mpp_sequence
 from nanotrack.core import STMSequence
 
 from stmdomains.core.series import Series
+from stmdomains.io.source_identity import source_digest
 
 
 class MolTrackImportError(ValueError):
@@ -36,9 +38,10 @@ class SourceRequest:
     suggested_path: Path | None = None
 
 
-def _read_session(path: Path) -> dict[str, Any]:
+def _read_session(path: Path) -> tuple[dict[str, Any], str]:
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        contents = path.read_bytes()
+        payload = json.loads(contents)
     except (OSError, UnicodeError, ValueError) as exc:
         raise MolTrackImportError(f"Nie można odczytać zapisu MolTrack: {exc}") from exc
     if not isinstance(payload, dict):
@@ -58,7 +61,7 @@ def _read_session(path: Path) -> dict[str, Any]:
         raise MolTrackImportError("Mapa klatek wymaga nieujemnych indeksów całkowitych.")
     if len(set(indices)) != len(indices):
         raise MolTrackImportError("Mapa klatek zawiera powtórzone indeksy.")
-    return payload
+    return payload, hashlib.sha256(contents).hexdigest()
 
 
 def _source_paths(source: dict[str, Any], session_path: Path) -> list[Path]:
@@ -180,7 +183,7 @@ def prepare_import(
 ) -> ImportCandidate | SourceRequest:
     _checkpoint(cancelled, progress, "Odczyt zapisu MolTrack…")
     session_path = Path(session_path).resolve()
-    payload = _read_session(session_path)
+    payload, session_sha256 = _read_session(session_path)
     _checkpoint(cancelled)
     indices = tuple(payload["working_series"]["source_frame_indices"])
     source = payload["source"]
@@ -192,7 +195,10 @@ def prepare_import(
     for source_path in paths:
         _checkpoint(cancelled, progress, f"Odczyt MPP: {source_path.name}…")
         try:
+            digest = source_digest(source_path, lambda: _checkpoint(cancelled))
             sequence, reasons = _load_source(source_path, source, indices)
+            if source_digest(source_path, lambda: _checkpoint(cancelled)) != digest:
+                raise MolTrackImportError("MPP zmienił się podczas odczytu. Otwórz źródło ponownie.")
         except MolTrackImportError:
             raise
         except (OSError, ValueError, OverflowError) as exc:
@@ -200,6 +206,12 @@ def prepare_import(
             continue
         _checkpoint(cancelled, progress, "Przygotowanie serii…")
         series = _series_from_source(session_path, source_path, payload, sequence)
+        series = replace(series, source_sha256=digest, provenance={
+            "input_session_path": str(session_path), "input_session_sha256": session_sha256,
+            "source_original_path": str(source_path), "source_sha256_at_import": digest,
+            "adapter": "moltrack-1", "source_confirmation_reasons": list(reasons),
+            "historical_source_hash_available": False,
+        })
         _checkpoint(cancelled)
         return ImportCandidate(series, reasons)
     _checkpoint(cancelled)

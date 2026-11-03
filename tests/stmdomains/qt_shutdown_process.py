@@ -25,15 +25,15 @@ def main() -> int:
     window.controller.frame_changed.connect(lambda frame: late_frames.append(frame) if closed else None)
 
     if work == "import":
-        read_text = Path.read_text
+        read_bytes = Path.read_bytes
 
         def delayed_read(path, *args, **kwargs):
             if path == session:
                 entered.set()
                 assert release.wait(5), "read not released"
-            return read_text(path, *args, **kwargs)
+            return read_bytes(path, *args, **kwargs)
 
-        Path.read_text = delayed_read
+        Path.read_bytes = delayed_read
         window.controller.open_session(session)
     else:
         series = prepare_import(session).series

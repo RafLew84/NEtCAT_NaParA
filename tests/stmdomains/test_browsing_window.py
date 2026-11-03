@@ -173,7 +173,7 @@ def test_cancelled_slow_file_read_cannot_replace_a_newer_series(qtbot, tmp_path,
     window.show()
     open_and_wait(qtbot, window, paths["single"])
     entered, release = Event(), Event()
-    original_read = Path.read_text
+    original_read = Path.read_bytes
 
     def delayed_read(path, *args, **kwargs):
         if path == paths["changed_mtime"]:
@@ -182,7 +182,7 @@ def test_cancelled_slow_file_read_cannot_replace_a_newer_series(qtbot, tmp_path,
                 raise TimeoutError("The UI did not release the delayed filesystem read")
         return original_read(path, *args, **kwargs)
 
-    monkeypatch.setattr(Path, "read_text", delayed_read)
+    monkeypatch.setattr(Path, "read_bytes", delayed_read)
     try:
         window.controller.open_session(paths["changed_mtime"])
         qtbot.waitUntil(entered.is_set)
