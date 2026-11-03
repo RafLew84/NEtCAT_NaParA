@@ -3,8 +3,10 @@
 Data **2026-11-03**, baza `0288aa7`, implementacja `a20e14b`, poprawka `361a7d0`.
 Gałąź `domains/interactive-v04-ui`, worktree `/home/rlew/projekty/NEtCAT-domains`.
 [Ticket](14-export-csv-png.md), [format eksportu](export-format-v1.md).
-**Odbiór ręczny użytkownika pozostaje do wykonania.** Poniżej rozróżniono
-automatyczne testy i sprawdzenia natywnego GUI wykonane przez agenta.
+**Odbiór ręczny użytkownika potwierdzony 2026-11-03 dla wersji `4e9f1d9`
+(„testy manualne ok”).** Zapis potwierdzenia zmienia wyłącznie dokumentację;
+nie ponawiano testów aplikacji ani GUI. Poniżej zachowano wcześniejsze
+wyniki automatycznych testów i sprawdzeń natywnego GUI wykonanych przez agenta.
 
 ## Działanie
 

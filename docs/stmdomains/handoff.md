@@ -1,4 +1,4 @@
-# STM Domains — wykonano SD-V4-14: eksport PNG i CSV
+# STM Domains — potwierdzony ręczny odbiór SD-V4-14
 
 Data **2026-11-03**, baza `0288aa7`, implementacja `a20e14b`, poprawka
 `361a7d0`. Gałąź `domains/interactive-v04-ui`, worktree
@@ -6,10 +6,14 @@ Data **2026-11-03**, baza `0288aa7`, implementacja `a20e14b`, poprawka
 [raport i test ręczny](implementation/interactive-v04/acceptance-14.md),
 [format eksportu](implementation/interactive-v04/export-format-v1.md),
 [przegląd](implementation/interactive-v04/review-14.md).
-Status `done`; **ręczny odbiór użytkownika 14 pozostaje do wykonania**.
+Status `done`; **odbiór ręczny użytkownika 14 potwierdzony 2026-11-03 dla wersji `4e9f1d9` („testy manualne ok”)**.
 Następny rekomendowany **15 — opis otoczenia i bariery obrazu**.
 Plan nadal 26 ticketów; 01–03, 05, 05a, 06–14 wykonane,
 15–18 i 21–25/23a gotowe po zależnościach, 19–20 odłożone.
+
+Zapis potwierdzenia zmienia wyłącznie dokumentację. Nie ponawiano testów
+aplikacji ani GUI; poniżej zachowano wcześniejsze wyniki weryfikacji 14.
+Sprawdzono odnośniki, spójność planu i `git diff --check`.
 
 **Plik → Eksportuj PNG/CSV…**: wyświetlany wynik, ostatni przebieg lub
 same oznaczenia wejściowe; bieżąca klatka albo zakres; CSV/PNG niezależnie;
@@ -62,8 +66,9 @@ Dowody `.scratch/stmdomains-ui-14/`, bez dużych plików w Git.
 441 lokalnych odnośników/kotwic w 9 dokumentach, zgodność 26 ticketów,
 tabeli zależności i brak cykli PASS; `git diff --check` PASS.
 Nie oceniano naukowej trafności domen ani eksportu pełnych 268 klatek
-czy odporności na odcięcie zasilania. Odbiór agenta nie zastępuje
-potwierdzenia użytkownika. Commit dokumentacji podany w odpowiedzi końcowej.
+czy odporności na odcięcie zasilania. Po odbiorze agenta użytkownik
+potwierdził testy manualne wersji `4e9f1d9`. Commit dokumentacji podany
+w odpowiedzi końcowej.
 Poniżej zachowano historię wcześniejszych przekazań.
 
 ---

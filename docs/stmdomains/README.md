@@ -9,7 +9,7 @@ postęp/anulowanie oraz odmowa nadpisania chronią wcześniejsze pliki.
 [Raport i test ręczny](implementation/interactive-v04/acceptance-14.md), [format eksportu](implementation/interactive-v04/export-format-v1.md).
 GUI X11 TTMAPP i kontrola wyniku zerowego PASS; kontrola typów 88 plików
 PASS, Standards/Spec 0 otwartych uwag; 12 plików kodu/testów do 691 linii.
-**499 testów PASS**. Status `done`; **odbiór ręczny użytkownika 14 do wykonania**.
+**499 testów PASS**. Status `done`; **odbiór ręczny użytkownika 14 potwierdzony 2026-11-03 dla wersji `4e9f1d9` („testy manualne ok”)**.
 Następny rekomendowany ticket: **15 — opis otoczenia i bariery obrazu**.
 Poniżej historia wcześniejszych etapów.
 

@@ -6,7 +6,7 @@
 
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md).
 
-**Status:** done — implementacja `a20e14b`, poprawka `361a7d0`; testy i natywne GUI sprawdzone przez agenta. Odbiór ręczny użytkownika do wykonania. [Raport i instrukcja](acceptance-14.md), [format eksportu](export-format-v1.md), [przegląd](review-14.md).
+**Status:** done — implementacja `a20e14b`, poprawka `361a7d0`; testy i natywne GUI sprawdzone przez agenta. Odbiór ręczny użytkownika potwierdzony 2026-11-03 dla wersji `4e9f1d9` („testy manualne ok”). [Raport i instrukcja](acceptance-14.md), [format eksportu](export-format-v1.md), [przegląd](review-14.md).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
