@@ -1,4 +1,4 @@
-# STM Domains — SD-V4-13: zapis i otwieranie projektu
+# STM Domains — potwierdzony ręczny odbiór SD-V4-13
 
 Data **2026-11-03**, baza `5b2ddc8`, implementacja `4f40c28`, poprawki
 `1c9c221`. Gałąź `domains/interactive-v04-ui`, worktree
@@ -6,10 +6,14 @@ Data **2026-11-03**, baza `5b2ddc8`, implementacja `4f40c28`, poprawki
 [raport i test ręczny](implementation/interactive-v04/acceptance-13.md),
 [format 1](implementation/interactive-v04/project-format-v1.md),
 [przegląd](implementation/interactive-v04/review-13.md).
-Status `done`; **odbiór ręczny użytkownika 13 oczekuje**.
+Status `done`; **odbiór ręczny użytkownika 13 potwierdzony 2026-11-03 dla wersji `21fd906` („testy manualne ok”)**.
 Następny rekomendowany **14 — eksport PNG/CSV**. Plan nadal 26 ticketów;
 01–03, 05, 05a, 06–13 wykonane, 14–18 i 21–25/23a gotowe po zależnościach,
 19–20 odłożone. Ręczna edycja i jej historia pozostają w 21–24.
+
+Zapis potwierdzenia zmienia wyłącznie dokumentację. Nie ponawiano testów
+aplikacji ani GUI; poniżej zachowano wcześniejsze wyniki weryfikacji 13.
+Sprawdzono odnośniki, spójność planu i `git diff --check`.
 
 **Plik → Zapisz projekt… / Zapisz projekt jako…**, otwieranie `.stmdomains`
 przez wspólny przycisk/menu. Samowystarczalny ZIP zawiera pełne bajty MPP,
@@ -44,8 +48,8 @@ Save As, anulowanie zapisu, uszkodzony projekt i zakończenie pracowników PASS.
 Zapis ~4,25 s, odczyt ~1,43 s, 142 121 164 B; źródła bez zmian.
 Dowody lokalne `.scratch/stmdomains-ui-13/`, bez dużych danych w Git.
 
-Odbiór GUI wykonał agent sterujący widocznym oknem. Użytkownik nie potwierdził
-jeszcze odbioru 13. Nie oceniano jakości naukowej, pełnej analizy 268 klatek
+Odbiór GUI wykonał agent sterujący widocznym oknem; następnie użytkownik
+potwierdził ręczny odbiór wersji `21fd906` słowami „testy manualne ok”. Nie oceniano jakości naukowej, pełnej analizy 268 klatek
 ani odporności na odcięcie zasilania. Format zachowuje rzeczywiście dostępne
 miary, nie deklaruje pełnego pokrycia/zwalidowanej powierzchni domen.
 Kontrola 425 lokalnych odnośników/kotwic w 9 dokumentach, 26 ticketów,

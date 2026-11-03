@@ -3,7 +3,8 @@
 Data: **2026-11-03**. Baza `5b2ddc8`, implementacja `4f40c28`, poprawki `1c9c221`.
 Gałąź `domains/interactive-v04-ui`, worktree `/home/rlew/projekty/NEtCAT-domains`.
 [Ticket](13-save-open-project.md), [format 1](project-format-v1.md).
-Status implementacji `done`; **odbiór ręczny użytkownika oczekuje**.
+Status implementacji `done`; **odbiór ręczny użytkownika potwierdzony 2026-11-03 dla wersji `21fd906` („testy manualne ok”)**.
+Potwierdzenie zmienia dokumentację; nie ponawiano testów aplikacji ani GUI.
 
 ## Działanie
 

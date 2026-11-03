@@ -6,7 +6,7 @@
 
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md).
 
-**Status:** done — implementacja `4f40c28`, poprawki `1c9c221`; testy i odbiór GUI przez agenta, ręczny odbiór użytkownika oczekuje. [Raport i instrukcja](acceptance-13.md), [format projektu](project-format-v1.md).
+**Status:** done — implementacja `4f40c28`, poprawki `1c9c221`; testy i odbiór GUI przez agenta, ręczny odbiór użytkownika potwierdzony 2026-11-03 dla wersji `21fd906` („testy manualne ok”). [Raport i instrukcja](acceptance-13.md), [format projektu](project-format-v1.md).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 

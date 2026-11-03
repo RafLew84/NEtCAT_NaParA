@@ -24,7 +24,7 @@ wyniku, kontrola integralności, anulowanie oraz ochrona niezapisanej pracy.
 GUI X11 na TTMAPP: identyczne 105/312 i 5 domen po odtworzeniu, także dalsza
 analiza z zapisanym katalogiem bez dopasowania. **490 testów PASS**, mypy
 82 pliki PASS, Standards/Spec 0 otwartych uwag; maks. 661 linii. Status `done`;
-**odbiór ręczny użytkownika 13 oczekuje**. Następny rekomendowany ticket:
+**odbiór ręczny użytkownika 13 potwierdzony 2026-11-03 dla wersji `21fd906` („testy manualne ok”)**. Następny rekomendowany ticket:
 **14 — eksport PNG i CSV**. Poniżej zachowano historię wcześniejszych etapów.
 
 **Wykonano SD-V4-12 — Auto (`274f348`, poprawka `88006c1`).**
