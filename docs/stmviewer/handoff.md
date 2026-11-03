@@ -1,3 +1,68 @@
+# Paczka programu i modeli do przekazania — 2026-11-03
+
+Przygotowano lokalny **data/distribution/STMViewer-2026-11-03.zip**:
+1 291 170 688 bajtów, 613 plików opisanych w manifeście + sam manifest.
+Źródła programu i instrukcji: commit **26fe31407bf4500f2decd2e1ac7d50b13f5af759**.
+Archiwum i plik .sha256 są ignorowane przez Git. SHA-256 ZIP:
+`1fda1ec599d2e2f351b07e6c4788fe163a690c14b9da8abdd7380a1c6164d19c`.
+
+Paczka zawiera stmviewer, potrzebne moduły napara/nanotrack, małe syntetyczne
+przykłady STP/S94/MPP, instrukcję HTML i wymagania bibliotek. W models są
+LoFTR outdoor, EfficientLoFTR, LightGlue + SuperPoint, MatchAnything i RoMa v2
+z DINOv3; zachowano licencje. Dołączono koło instalacyjne romav2 2.0.1
+pobrane z PyPI bez zależności i bez zmian istniejących środowisk.
+Nie dołączono pomiarów, sesji autora, środowisk, historii Git ani cache Pythona.
+
+[Instrukcja paczki](distribution.md) opisuje wszystkie ścieżki i instalację
+RoMa w osobnym środowisku. Program nie skanuje dysku. Deep przyjmuje wybrany
+plik lub STMVIEWER_LOFTR_WEIGHTS; pozostałe modele używają wskazanych ścieżek
+lub propozycji pod ~/.cache/stmviewer. Python RoMa ma propozycję
+~/miniconda3/envs/netcat-romav2, bez wykrywania środowisk conda.
+Paczka models nie jest automatycznie znajdowana; odbiorca wskazuje pliki w GUI.
+Kod aplikacji i algorytmy nie zmieniły się w tym zadaniu.
+
+Generator [build-bundle.py](build-bundle.py) pobiera wyłącznie wskazany commit,
+pakuje wybrane lokalne zasoby, tworzy manifest SHA-256 i sprawdza wszystkie
+pliki ZIP przed publikacją. Odtworzenie (z własnymi ścieżkami wejść):
+
+~~~text
+python docs/stmviewer/build-bundle.py --commit 26fe314 --loftr-weights /sciezka/loftr_outdoor.ckpt --roma-wheel /sciezka/romav2-2.0.1-py3-none-any.whl --output data/distribution/nowa-paczka.zip
+~~~
+
+Wykonane sprawdzenia:
+
+- Pełne CRC, rozmiary i SHA-256 zawartości ZIP oraz osobna kontrola sumy ZIP.
+- Rozpakowanie do /tmp/stmviewer-bundle-check/NEtCAT; PYTHONPATH wyczyszczony.
+  Wszystkie importy stmviewer/napara/nanotrack pochodziły z tej kopii.
+- W świeżym środowisku CPU z poprzedniego zadania: odczyt STP/S94/MPP,
+  Phase z oczekiwanymi przesunięciami, zapis i ponowny odczyt original/aligned
+  MPP oraz sesji, AVI MJPG/FFV1 z dekodowaniem kontrolnym, start głównego okna
+  Qt offscreen i dostępność wszystkich metod CPU.
+- Wszystkie pięć modeli uruchomiono z rozpakowanego models na CPU
+  w istniejącym netcat; RoMa jako proces istniejącego netcat-romav2.
+  Publiczne estimate_pair odtworzyło znane (-7, 5) px z tolerancją 1 px na oś:
+  Deep (-6.984, 5.083), Efficient (-6.997, 4.989), LightGlue (-7, 5),
+  MatchAnything (-6.402, 4.267), RoMa (-7.009, 5.030).
+  To próba kompletności paczki, nie walidacja dryfu fizycznego STM.
+- Walidatory modeli zaakceptowały kopie kodu i checkpointów.
+  Dodatkowo SHA-256 źródeł wewnątrz koła RoMa odpowiada adapterowi,
+  a suma LoFTR outdoor odpowiada przygotowanemu checkpointowi.
+- 48 kotwic HTML, nazwy ścieżek zgodne z Windows, brak kolizji wielkości liter
+  i brak prywatnych wejść użytkownika. W kodzie modeli zachowano ich katalogi
+  o nazwie data: są to pliki źródłowe/konfiguracja, nie pomiary autora.
+- Ruff F, parsowanie kodu, git diff --check; generator 198 linii,
+  generator HTML 62, wygenerowany HTML 1115.
+
+Logi i raporty lokalne: /tmp/stmviewer-bundle-build.log,
+stmviewer-bundle-cpu.log/.json, stmviewer-bundle-models.log/.json;
+skrypt próby /tmp/stmviewer-bundle-smoke.py.
+Nie wykonano ręcznej próby GUI, uruchomienia na Windows ani instalacji
+pełnego nowego stosu GPU/RoMa. Biblioteki Python i sterownik GPU odbiorca
+instaluje osobno; ZIP nie jest instalatorem offline zależności.
+Wspólne moduły jedynie skopiowano z commita, bez zmian. Brak potrzeby zmian
+integracyjnych; istniejące pliki proba*.stmtrial.json i sesja.stmsession
+pozostawiono bez zmian i poza paczką.
+
 # Instrukcje instalacji i obsługi dla początkujących — 2026-11-03
 
 Na zlecenie użytkownika przygotowano [instalację krok po kroku](installation.md),
