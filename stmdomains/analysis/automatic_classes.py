@@ -67,7 +67,7 @@ def _geometry_reasons(geometry: dict[str, Any], k: int, count: int) -> list[str]
 
 def fit_auto_model(
     selected: NDArray[np.float64], max_k: int, check: Callable[[], None], *,
-    active_count: int, useful_count: int, progress: Callable[[str], None] = lambda text: None,
+    active_count: int, useful_count: int, pca_max_components: int = 24, progress: Callable[[str], None] = lambda text: None,
 ) -> dict[str, Any]:
     """Return the fitted model with its decision, or raise with a recorded refusal.
 
@@ -99,7 +99,7 @@ def fit_auto_model(
         for k in range(1, max_k + 1):
             check()
             progress(f"Auto: porównanie K{k}/{max_k} · {len(samples)} otoczeń…")
-            state = fit_model(samples, k, check)
+            state = fit_model(samples, k, check, pca_max_components=pca_max_components)
             row: dict[str, Any] = {"k": k, "silhouette": None, "eligible": False,
                                    "sizes": [], "radius95": [], "separation": None}
             if state is None:
@@ -126,7 +126,7 @@ def fit_auto_model(
             chosen = min(row["k"] for row in candidates if row["silhouette"] >= best - RULE["silhouette_tie"])
         check()
         progress(f"Auto: końcowe dopasowanie K{chosen} do {len(selected)} otoczeń…")
-        final = fit_model(selected, chosen, check)
+        final = fit_model(selected, chosen, check, pca_max_components=pca_max_components)
         if final is None:
             refuse("końcowe dopasowanie nie zachowało wybranych klas.")
         assert final is not None

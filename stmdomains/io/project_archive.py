@@ -93,7 +93,7 @@ def extract_checked(path: Path, directory: Path, check: Callable[[], None]) -> d
             raise ProjectError('Brak wymaganych części projektu lub niezgodny manifest.')
         if sum(info.file_size for info in archive.infolist()) > MAX_TOTAL:
             raise ProjectError('Projekt przekracza limit 16 GiB.')
-        pattern = r'(source\.mpp|input\.json|project\.json|catalogues/[0-9a-f]{64}\.json|frames/[0-9]+\.(json|npy))'
+        pattern = r'(source\.mpp|input\.json|project\.json|catalogues/[0-9a-f]{64}\.json|frames/[0-9]+\.(json|npy|barriers\.npy))'
         for name, entry in entries.items():
             check()
             if not re.fullmatch(pattern, name) or archive.getinfo(name).file_size != entry['size']:

@@ -20,6 +20,7 @@ def capture_view(window: 'STMDomainsMainWindow') -> dict:
             'playback_rate': controller.playback_rate, 'assignment_mode': window.result_controls.mode.currentData(),
             'viewport': window.image_view.view_state(),
             'layers': {**{name: getattr(annotations, name).isChecked() for name in ('centers', 'boxes', 'masks')},
+                       'barriers': window.analysis_dialog.advanced_fields.show_barriers.isChecked(),
                        **{name: getattr(regions, name).isChecked() for name in ('fill', 'outlines', 'numbers')},
                        'mask_opacity': annotations.opacity.value(), 'domain_opacity': regions.opacity.value()}}
 
@@ -28,6 +29,7 @@ def restore_view(window: 'STMDomainsMainWindow', view: Mapping[str, Any]) -> Non
     # The controller has already prepared the saved frame, gamma and geometry.
     annotations, regions = window.annotation_controls, window.result_controls.regions
     layers = view.get('layers', {})
+    window.analysis_dialog.advanced_fields.show_barriers.setChecked(layers.get('barriers', False))
     for controls, names in ((annotations, ('centers', 'boxes', 'masks')), (regions, ('fill', 'outlines', 'numbers'))):
         for name in names:
             if name in layers:
@@ -53,7 +55,7 @@ def restore_draft(dialog: 'AnalysisDialog', draft: Mapping[str, Any]) -> None:
         return
     plan = analysis_plan(draft['plan'])
     classes, scope = dialog.class_fields, dialog.scope_fields
-    fields = (scope, classes, dialog.acceptance_fields, dialog.order_fields, dialog.domain_fields)
+    fields = (scope, classes, dialog.acceptance_fields, dialog.order_fields, dialog.domain_fields, dialog.advanced_fields)
     blockers = [QSignalBlocker(item) for item in fields]
     scope.scope.setCurrentIndex(scope.scope.findData(draft['scope']))
     scope.start.setValue(draft.get('scope_start', plan.start) + 1)
@@ -70,5 +72,7 @@ def restore_draft(dialog: 'AnalysisDialog', draft: Mapping[str, Any]) -> None:
     dialog.acceptance_fields.load(plan.acceptance)
     dialog.order_fields.load(plan.order_settings)
     dialog.domain_fields.load(plan.domain_settings)
+    dialog.advanced_fields.descriptor.load(plan.descriptor_settings)
+    dialog.advanced_fields.barriers.load(plan.barrier_settings)
     del blockers
     dialog.refresh()

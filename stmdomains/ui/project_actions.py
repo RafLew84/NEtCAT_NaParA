@@ -45,8 +45,14 @@ class ProjectActions:
         self._revision += 1
 
     def _state(self) -> tuple:
+        try:
+            draft = capture_draft(self.window.analysis_dialog)
+        except ValueError as error:
+            # An invalid edit is still unsaved work; saving reports the error,
+            # while closing/opening may explicitly discard it.
+            draft = {'invalid_draft': str(error)}
         return (self.controller.series.identity if self.controller.series else None, self._revision,
-                capture_view(self.window), capture_draft(self.window.analysis_dialog),
+                capture_view(self.window), draft,
                 analysis_identifier(self.controller.result) if self.controller.result else None)
 
     @property

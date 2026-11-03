@@ -22,6 +22,7 @@ def render_export_png(frame: PresentedFrame, view: Mapping[str, Any], options: E
     image_view = ImageView()
     image_view.set_frame(frame)
     mode, layers = view.get('assignment_mode', 'domains'), view.get('layers', {})
+    image_view.set_barriers_visible(layers.get('barriers', False))
     image_view.set_assignment_mode(mode)
     image_view.set_layers(centers=layers.get('centers', True), boxes=layers.get('boxes', False),
                           masks=layers.get('masks', False), opacity=layers.get('mask_opacity', 45) / 100)
@@ -39,6 +40,8 @@ def render_export_png(frame: PresentedFrame, view: Mapping[str, Any], options: E
     legend = description.legend
     if frame.result is None:
         legend = (LegendEntry('Oznaczenia wejściowe', '#46e6be', len(frame.annotations.detections)),)
+    if layers.get('barriers') and frame.result is not None and frame.result.barrier_mask is not None:
+        legend = (*legend, LegendEntry('Bariery [px]', '#ff8e2e', int(frame.result.barrier_mask.sum())))
     result = frame.result
     analysis_id = (result.metadata.get('series_analysis', {}).get('run_id') or result.metadata.get('analysis_id', '')) if result else ''
     catalogue_id = result.metadata.get('model_id', '') if result else ''

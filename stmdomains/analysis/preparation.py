@@ -9,6 +9,7 @@ from numpy.typing import NDArray
 
 from stmdomains.analysis.config import PARAMETERS
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.descriptor_settings import DescriptorSettings
 from stmdomains.analysis.features import pair_features, prepare_points
 from stmdomains.analysis.order import evaluate_order
 from stmdomains.analysis.order_settings import OrderSettings
@@ -47,10 +48,11 @@ def prepare_frame(
     data: AnalysisInput, k: int, settings: DomainSettings,
     check: Callable[[], None], progress: Callable[[str], None],
     *, order_settings: OrderSettings = OrderSettings(),
+    descriptor_settings: DescriptorSettings = DescriptorSettings(),
 ) -> PreparedFrame | FrameAnalysis:
     image = np.asarray(data.frame.image, dtype=float)
     detections = data.annotations.detections
-    parameters = {**PARAMETERS, **settings.parameters(), **order_settings.parameters(), "k": k}
+    parameters = {**PARAMETERS, **settings.parameters(), **order_settings.parameters(), **descriptor_settings.parameters(), "k": k}
     metadata: dict[str, Any] = {
         "fit_scope": "current_frame", "working_index": data.frame.working_index,
         "source_index": data.frame.source_index, "annotation_state": data.annotations.detection_state,
@@ -95,7 +97,7 @@ def prepare_frame(
         return unavailable("insufficient_data", f"Za mało różnych molekuł do wyznaczenia skali i K{k}.", "insufficient_samples")
     parameters["spacing_px"] = spacing
     progress("Obliczanie opisów otoczeń…")
-    features, valid, support = pair_features(points, spacing, check)
+    features, valid, support = pair_features(points, spacing, check, settings=descriptor_settings)
     progress("Ocena lokalnego porządku…")
     order, calibration = evaluate_order(points, spacing, check, progress, settings=order_settings)
     metadata["order_calibration"] = calibration

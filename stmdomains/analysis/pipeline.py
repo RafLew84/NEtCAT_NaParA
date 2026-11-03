@@ -9,10 +9,12 @@ import numpy as np
 from stmdomains.analysis.automatic_classes import AutoSelectionUnavailable, fit_auto_model
 from stmdomains.analysis.class_settings import ClassFitSettings
 from stmdomains.analysis.barriers import image_barriers
+from stmdomains.analysis.barrier_settings import BarrierSettings
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
-from stmdomains.analysis.clustering import apply_classes, fit_model
+from stmdomains.analysis.clustering import apply_classes, fit_model, validate_model_dimensions
 from stmdomains.analysis.config import COLORS, PARAMETERS, model_parameters
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.descriptor_settings import DescriptorSettings
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.analysis.preparation import PreparedFrame, prepare_frame
 from stmdomains.analysis.provenance import input_fingerprint
@@ -28,6 +30,8 @@ def analyze_frame(
     class_count_mode: Literal["manual", "auto"] = "manual", auto_max_k: int = 8,
     acceptance: ClassAcceptanceSettings = ClassAcceptanceSettings(),
     order_settings: OrderSettings = OrderSettings(),
+    descriptor_settings: DescriptorSettings | None = None,
+    barrier_settings: BarrierSettings = BarrierSettings(),
     cancelled: Callable[[], bool] = lambda: False,
     progress: Callable[[str], None] = lambda text: None,
 ) -> FrameAnalysis:
@@ -38,10 +42,18 @@ def analyze_frame(
     check()
     if catalogue is not None:
         k = catalogue.k
-        validate_catalogue(data, catalogue)
+        validate_catalogue(data, catalogue, descriptor_settings=descriptor_settings)
+        descriptor_settings = DescriptorSettings.from_parameters(catalogue.parameters)
+    descriptor_settings = descriptor_settings or DescriptorSettings()
     request = ClassFitSettings(k=k, class_count_mode=class_count_mode, auto_max_k=auto_max_k)
     prepared = prepare_frame(data, k if catalogue else request.preparation_k, settings, check, progress,
-                             order_settings=order_settings)
+                             order_settings=order_settings, descriptor_settings=descriptor_settings)
+    base = prepared if isinstance(prepared, FrameAnalysis) else prepared.base
+    base = replace(base, parameters={**base.parameters, **barrier_settings.parameters()})
+    if isinstance(prepared, FrameAnalysis):
+        prepared = base
+    else:
+        prepared.base = base
     state: dict[str, Any] | None
     if catalogue is None:
         base = prepared if isinstance(prepared, FrameAnalysis) else prepared.base
@@ -49,7 +61,8 @@ def analyze_frame(
             samples = np.empty((0, 0)) if isinstance(prepared, FrameAnalysis) else prepared.features[prepared.fit_mask]
             try:
                 state = fit_auto_model(samples, auto_max_k, check, active_count=base.active_count,
-                                       useful_count=len(samples), progress=progress)
+                                       useful_count=len(samples), progress=progress,
+                                       pca_max_components=descriptor_settings.pca_max_components)
             except AutoSelectionUnavailable as error:
                 decision = {**error.decision, "fit_scope": "current_frame",
                             "fit_working_indices": (data.frame.working_index,),
@@ -65,7 +78,8 @@ def analyze_frame(
             if isinstance(prepared, FrameAnalysis):
                 return replace(prepared, parameters={**prepared.parameters, **acceptance.parameters()})
             progress(f"Dopasowanie lokalnych klas K{k}…")
-            state = fit_model(prepared.features[prepared.fit_mask], k, check)
+            state = fit_model(prepared.features[prepared.fit_mask], k, check,
+                              pca_max_components=descriptor_settings.pca_max_components)
         if state is None:
             result = replace(base, message=f"Za mało użytecznych lub różnych otoczeń do dopasowania K{k}.")
             return replace(result, parameters={**result.parameters, **acceptance.parameters()})
@@ -73,16 +87,20 @@ def analyze_frame(
         catalogue = ClassCatalogue(
             data.series_id, "current_frame", (data.frame.working_index,), state,
             {"frames": [prepared.fit_record(np.flatnonzero(prepared.fit_mask))], "sampling": "all_useful_samples"},
-            model_parameters(state["k"]),
+            model_parameters(state["k"], descriptor_settings),
         )
-    return apply_prepared(prepared, catalogue, settings, check, progress, acceptance=acceptance)
+    return apply_prepared(prepared, catalogue, settings, check, progress, acceptance=acceptance,
+                          barrier_settings=barrier_settings)
 
 
-def validate_catalogue(data: AnalysisInput, catalogue: ClassCatalogue) -> None:
+def validate_catalogue(data: AnalysisInput, catalogue: ClassCatalogue, *,
+                       descriptor_settings: DescriptorSettings | None = None) -> None:
     if data.series_id != catalogue.series_id:
         raise ValueError("Katalog klas pochodzi z innej serii. Dopasuj klasy ponownie.")
-    if plain_metadata(catalogue.parameters) != model_parameters(catalogue.k):
+    descriptor_settings = descriptor_settings or DescriptorSettings.from_parameters(catalogue.parameters)
+    if plain_metadata(catalogue.parameters) != model_parameters(catalogue.k, descriptor_settings):
         raise ValueError("Katalog klas używa innych parametrów metody. Dopasuj klasy ponownie.")
+    validate_model_dimensions(catalogue.state, descriptor_settings.dimension, descriptor_settings.pca_max_components)
     if catalogue.scope == "current_frame":
         source = catalogue.provenance["frames"][0]
         bounded = (data.frame.image.size <= PARAMETERS["maximum_image_pixels"]
@@ -96,6 +114,7 @@ def apply_prepared(
     prepared: PreparedFrame | FrameAnalysis, catalogue: ClassCatalogue, settings: DomainSettings,
     check: Callable[[], None], progress: Callable[[str], None], *,
     acceptance: ClassAcceptanceSettings = ClassAcceptanceSettings(),
+    barrier_settings: BarrierSettings = BarrierSettings(),
 ) -> FrameAnalysis:
     count_parameters: dict[str, Any] = {"k": catalogue.k, "class_count_mode": "manual"}
     if "class_selection" in catalogue.state:
@@ -103,13 +122,14 @@ def apply_prepared(
     classes = tuple(ResultClass(str(index + 1), color) for index, color in enumerate(COLORS[:catalogue.k]))
     if isinstance(prepared, FrameAnalysis):
         return replace(prepared, catalogue=catalogue, classes=classes,
-                       parameters={**prepared.parameters, **acceptance.parameters(), **count_parameters},
+                       parameters={**prepared.parameters, **acceptance.parameters(), **barrier_settings.parameters(), **count_parameters},
                        metadata={**prepared.metadata, **catalogue.metadata()})
     data = prepared.data
     labels, reliable, class_details = apply_classes(prepared.features, prepared.valid, catalogue.state, check,
                                                     acceptance=acceptance)
     progress("Wyznaczanie barier obrazu i domen…")
-    barrier, barrier_metadata = image_barriers(np.asarray(data.frame.image, float), prepared.spacing, check)
+    barrier, barrier_metadata = image_barriers(np.asarray(data.frame.image, float), prepared.spacing, check,
+                                               settings=barrier_settings)
     order = prepared.order
     domain_ids, domain_labels, geometry_metadata = segment_domains(
         prepared.points, labels, reliable & order["supported"], prepared.features,
@@ -147,5 +167,5 @@ def apply_prepared(
     check()
     return replace(prepared.base, status="complete", message=f"Obliczono klasy K{catalogue.k} i domeny.",
                    assignments=assignments, classes=classes, metadata=metadata,
-                   domain_labels=domain_labels, catalogue=catalogue,
-                   parameters={**prepared.base.parameters, **acceptance.parameters(), **count_parameters})
+                   domain_labels=domain_labels, catalogue=catalogue, barrier_mask=barrier,
+                   parameters={**prepared.base.parameters, **acceptance.parameters(), **barrier_settings.parameters(), **count_parameters})

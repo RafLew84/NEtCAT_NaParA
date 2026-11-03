@@ -187,6 +187,7 @@ class STMDomainsMainWindow(QMainWindow):
         self.controller.busy_changed.connect(self._show_progress)
         self.controller.playback_changed.connect(self._show_playback)
         self.analysis_dialog = AnalysisDialog(self.controller, self)
+        self.analysis_dialog.advanced_fields.show_barriers.toggled.connect(self.image_view.set_barriers_visible)
         self.project_actions = ProjectActions(self, project_prompts or QtProjectPrompts(self), menu)
         self.export_dialog = ExportDialog(self)
         self.export_action = menu.addAction('Eksportuj PNG/CSV…') if menu is not None else None

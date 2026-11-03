@@ -4,11 +4,11 @@ from typing import Any
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.analysis.order_settings import OrderSettings
+from stmdomains.analysis.descriptor_settings import DescriptorSettings
 
 PARAMETERS: dict[str, Any] = {
     "method_version": "stm-domains-local-1", "k": 5, "seed": 24,
-    "descriptor_radial_bins": 14, "descriptor_angle_bins": 36, "descriptor_sigma_factor": 1.25,
-    "descriptor_pair_distance_range": [.55, 2.8], "pca_max_components": 24,
+    **DescriptorSettings().parameters(),
     **DomainSettings().parameters(),
     **ClassAcceptanceSettings().parameters(), "class_radius_quantile": .95,
     **OrderSettings().parameters(),
@@ -20,7 +20,7 @@ PARAMETERS: dict[str, Any] = {
 COLORS = ("#10b9bd", "#f5b343", "#e366b6", "#9075db", "#66c26d", "#5b9de3", "#e77b54", "#c5c94d")
 
 
-def model_parameters(k: int) -> dict[str, Any]:
-    return {key: k if key == "k" else value for key, value in PARAMETERS.items()
+def model_parameters(k: int, descriptor_settings: DescriptorSettings = DescriptorSettings()) -> dict[str, Any]:
+    return {key: k if key == "k" else value for key, value in {**PARAMETERS, **descriptor_settings.parameters()}.items()
             if key not in DomainSettings().parameters() and key not in ClassAcceptanceSettings().parameters()
             and key not in OrderSettings().parameters()}

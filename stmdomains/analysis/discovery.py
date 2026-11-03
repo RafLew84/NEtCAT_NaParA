@@ -10,6 +10,7 @@ from stmdomains.analysis.class_settings import ClassFitSettings
 from stmdomains.analysis.clustering import fit_model
 from stmdomains.analysis.config import model_parameters
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.descriptor_settings import DescriptorSettings
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.analysis.pipeline import analyze_frame, apply_prepared
 from stmdomains.analysis.preparation import PreparedFrame, prepare_frame
@@ -23,6 +24,7 @@ def discover_classes(
     read_frame: Callable[[int], AnalysisInput], *, frame_count: int, current_index: int,
     settings: ClassFitSettings, domain_settings: DomainSettings = DomainSettings(),
     order_settings: OrderSettings = OrderSettings(),
+    descriptor_settings: DescriptorSettings = DescriptorSettings(),
     cancelled: Callable[[], bool] = lambda: False,
     progress: Callable[[str], None] = lambda text: None,
 ) -> FrameAnalysis:
@@ -34,24 +36,25 @@ def discover_classes(
     indices = settings.indices(current_index, frame_count)
     if settings.scope == "current_frame":
         result = analyze_frame(read_frame(current_index), k=settings.k, settings=domain_settings,
-                               order_settings=order_settings, cancelled=cancelled, progress=progress,
+                               order_settings=order_settings, descriptor_settings=descriptor_settings, cancelled=cancelled, progress=progress,
                                class_count_mode=settings.class_count_mode, auto_max_k=settings.auto_max_k)
         if result.catalogue is None:
             raise ValueError(result.message)
         return result
     catalogue, target = _fit_shared(read_frame, indices, settings, domain_settings, check, progress,
-                                    current_index, order_settings=order_settings)
+                                    current_index, order_settings=order_settings, descriptor_settings=descriptor_settings)
     if target is None:
         data = read_frame(current_index)
         if data.series_id != catalogue.series_id or data.frame.working_index != current_index:
             raise ValueError("Bieżąca klatka pochodzi z innej serii.")
-        target = prepare_frame(data, settings.preparation_k, domain_settings, check, progress, order_settings=order_settings)
+        target = prepare_frame(data, settings.preparation_k, domain_settings, check, progress, order_settings=order_settings, descriptor_settings=descriptor_settings)
     return apply_prepared(target, catalogue, domain_settings, check, progress)
 
 
 def fit_shared_catalogue(
     read_frame: Callable[[int], AnalysisInput], *, frame_count: int, settings: ClassFitSettings,
     order_settings: OrderSettings = OrderSettings(),
+    descriptor_settings: DescriptorSettings = DescriptorSettings(),
     cancelled: Callable[[], bool] = lambda: False, progress: Callable[[str], None] = lambda text: None,
 ) -> ClassCatalogue:
     """Discover once without computing domains on any target frame."""
@@ -64,7 +67,7 @@ def fit_shared_catalogue(
 
     check()
     catalogue, _ = _fit_shared(read_frame, settings.indices(0, frame_count), settings,
-                                DomainSettings(), check, progress, order_settings=order_settings)
+                                DomainSettings(), check, progress, order_settings=order_settings, descriptor_settings=descriptor_settings)
     return catalogue
 
 
@@ -73,6 +76,7 @@ def _fit_shared(
     domain_settings: DomainSettings, check: Callable[[], None], progress: Callable[[str], None],
     current_index: int | None = None,
     *, order_settings: OrderSettings = OrderSettings(),
+    descriptor_settings: DescriptorSettings = DescriptorSettings(),
 ) -> tuple[ClassCatalogue, PreparedFrame | FrameAnalysis | None]:
     if len(indices) > MAX_FIT_SAMPLES:
         raise ValueError(f"Wybierz najwyżej {MAX_FIT_SAMPLES} klatek do jednego dopasowania.")
@@ -93,7 +97,7 @@ def _fit_shared(
             progress(f"Odkrywanie klas {ordinal}/{len(indices)} · klatka {index + 1}: {text}")
 
         report("przygotowanie danych…")
-        prepared = prepare_frame(data, settings.preparation_k, domain_settings, check, report, order_settings=order_settings)
+        prepared = prepare_frame(data, settings.preparation_k, domain_settings, check, report, order_settings=order_settings, descriptor_settings=descriptor_settings)
         active_count += prepared.active_count if isinstance(prepared, FrameAnalysis) else len(prepared.active)
         if index == current_index:
             target = prepared
@@ -114,7 +118,8 @@ def _fit_shared(
         selected = np.concatenate(parts) if parts else np.empty((0, 0))
         try:
             state = fit_auto_model(selected, settings.auto_max_k, check, active_count=active_count,
-                                   useful_count=useful_count, progress=progress)
+                                   useful_count=useful_count, progress=progress,
+                                   pca_max_components=descriptor_settings.pca_max_components)
         except AutoSelectionUnavailable as error:
             raise AutoSelectionUnavailable({**error.decision, "fit_scope": settings.scope,
                                             "fit_working_indices": indices, "fit_frames": records}) from error
@@ -123,7 +128,7 @@ def _fit_shared(
             raise ValueError("Brak użytecznych otoczeń w wybranym zakresie. Katalog klas nie został zmieniony.")
         selected = np.concatenate(parts)
         progress(f"Dopasowanie wspólnego K{settings.k} z {len(selected)} otoczeń…")
-        state = fit_model(selected, settings.k, check)
+        state = fit_model(selected, settings.k, check, pca_max_components=descriptor_settings.pca_max_components)
     if state is None:
         raise ValueError(f"Za mało użytecznych lub różnych otoczeń dla K{settings.k}. Zmniejsz K lub zmień zakres.")
     state["fit_scope"] = settings.scope
@@ -131,6 +136,6 @@ def _fit_shared(
     catalogue = ClassCatalogue(series_id, settings.scope, indices, state,
                                {"frames": records, "sampling": {"rule": "evenly_spaced_per_frame",
                                 "maximum_total_samples": MAX_FIT_SAMPLES, "maximum_per_frame": per_frame_limit}},
-                               model_parameters(state["k"]))
+                               model_parameters(state["k"], descriptor_settings))
     check()
     return catalogue, target

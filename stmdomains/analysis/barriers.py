@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 from scipy import ndimage as ndi
+from stmdomains.analysis.barrier_settings import BarrierSettings
 
 
 def _components(mask: np.ndarray, check: Callable[[], None]) -> list[dict[str, Any]]:
@@ -189,11 +190,16 @@ def _detect(
                 gradient_strength=(gm / (np.std(z) + 1e-12)).astype(np.float32), metadata=metadata)
 
 
-def image_barriers(image: np.ndarray, spacing: float, check: Callable[[], None]):
+def image_barriers(image: np.ndarray, spacing: float, check: Callable[[], None], *,
+                   settings: BarrierSettings = BarrierSettings()):
     result = _detect(image, spacing, check, sigma_yx=(.25 * spacing, 5 / 12 * spacing),
-                     min_span_x=max(3, round(3 * spacing)), max_gap_px=5 / 3 * spacing,
+                     low_percentile=settings.low_percentile, high_percentile=settings.high_percentile,
+                     max_tilt_degrees=settings.maximum_tilt_degrees,
+                     min_span_x=max(3, round(settings.minimum_span_factor * spacing)),
+                     max_gap_px=settings.maximum_gap_factor * spacing,
                      max_edge_extension_px=2 / 3 * spacing)
-    mask = ndi.binary_dilation(result["completed"], iterations=max(1, round(spacing / 12)))
+    dilation = max(1, round(settings.dilation_factor * spacing)) if settings.dilation_factor else 0
+    mask = ndi.binary_dilation(result["completed"], iterations=dilation) if dilation else result['completed'].copy()
     metadata = dict(result["metadata"], dilated_pixels=int(mask.sum()),
-                    dilation_pixels=max(1, round(spacing / 12)))
+                    dilation_pixels=dilation, requested_settings=settings.parameters())
     return mask, metadata

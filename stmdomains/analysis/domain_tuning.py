@@ -12,6 +12,8 @@ import numpy as np
 
 from stmdomains.analysis.barriers import image_barriers
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.barrier_settings import BarrierSettings
+from stmdomains.analysis.descriptor_settings import DescriptorSettings
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.features import pair_features, prepare_points
@@ -44,10 +46,12 @@ def recalculate_domains(
         # a resource-limit refusal. Repeat validation and report its real cause.
         return analyze_frame(data, settings=settings, k=int(previous.parameters.get("k", 5)),
                              order_settings=OrderSettings.from_parameters(previous.parameters),
+                             barrier_settings=BarrierSettings.from_parameters(previous.parameters),
                              acceptance=ClassAcceptanceSettings.from_parameters(previous.parameters),
                              catalogue=previous.catalogue, cancelled=cancelled, progress=progress)
     upstream_matches = all(json.dumps(previous.parameters.get(key), sort_keys=True) == json.dumps(value, sort_keys=True)
-                           for key, value in model_parameters(int(previous.parameters.get("k", 5))).items())
+                           for key, value in model_parameters(int(previous.parameters.get("k", 5)),
+                               DescriptorSettings.from_parameters(previous.parameters)).items())
     bounded = (image.size <= PARAMETERS["maximum_image_pixels"]
                and len(data.annotations.detections) <= PARAMETERS["maximum_input_detections"])
     if (not upstream_matches or not bounded
@@ -61,8 +65,8 @@ def recalculate_domains(
     labels = np.array([int(member.provisional_class_id) - 1 for member in members])
     accepted = np.array([bool(member.metadata["class_reliable"] and member.metadata["order_supported"])
                          for member in members])
-    features, _, _ = pair_features(points, spacing, check)
-    barrier, barrier_metadata = image_barriers(image, spacing, check)
+    features, _, _ = pair_features(points, spacing, check, settings=DescriptorSettings.from_parameters(previous.parameters))
+    barrier, barrier_metadata = image_barriers(image, spacing, check, settings=BarrierSettings.from_parameters(previous.parameters))
     ids, regions, geometry_metadata = segment_domains(
         points, labels, accepted, features, spacing, barrier, check, settings=settings,
     )
@@ -80,6 +84,6 @@ def recalculate_domains(
     # This is a new individual result, not a result of the unchanged batch plan.
     metadata.pop("series_analysis", None)
     metadata.update(barriers=barrier_metadata, domain_construction=geometry_metadata)
-    return replace(previous, assignments=assignments, domain_labels=regions,
+    return replace(previous, assignments=assignments, domain_labels=regions, barrier_mask=barrier,
                    parameters={**previous.parameters, **settings.parameters()},
                    metadata=metadata)

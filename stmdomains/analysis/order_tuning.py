@@ -4,6 +4,7 @@ from collections.abc import Callable
 
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.barrier_settings import BarrierSettings
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.analysis.pipeline import analyze_frame
 from stmdomains.analysis.provenance import input_fingerprint
@@ -26,5 +27,6 @@ def recalculate_order(
     progress("Nowa ocena i kalibracja porządku przy zachowanym katalogu klas…")
     return analyze_frame(data, catalogue=previous.catalogue, order_settings=settings,
                          settings=DomainSettings.from_parameters(previous.parameters),
+                         barrier_settings=BarrierSettings.from_parameters(previous.parameters),
                          acceptance=ClassAcceptanceSettings.from_parameters(previous.parameters),
                          cancelled=cancelled, progress=progress)

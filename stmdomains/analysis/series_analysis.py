@@ -7,6 +7,8 @@ from uuid import uuid4
 
 from stmdomains.analysis.automatic_classes import AutoSelectionUnavailable
 from stmdomains.analysis.config import model_parameters
+from stmdomains.analysis.clustering import validate_model_dimensions
+from stmdomains.analysis.descriptor_settings import DescriptorSettings
 from stmdomains.analysis.discovery import fit_shared_catalogue
 from stmdomains.analysis.pipeline import analyze_frame, validate_catalogue
 from stmdomains.analysis.series_settings import SeriesAnalysisPlan
@@ -30,13 +32,16 @@ class ClassSelectionFailure:
         object.__setattr__(self, "decision", freeze_metadata(self.decision))
 
 
-def validate_shared_catalogue(catalogue: ClassCatalogue | None, series_id: str, k: int) -> None:
+def validate_shared_catalogue(catalogue: ClassCatalogue | None, series_id: str, k: int,
+                              descriptor_settings: DescriptorSettings | None = None) -> None:
     if catalogue is None or catalogue.scope == "current_frame":
         raise ValueError("Wybierz wspólny katalog albo dopasuj klasy z zakresu.")
     if catalogue.series_id != series_id or catalogue.k != k:
         raise ValueError("Wybrany katalog ma inną serię lub K. Dopasuj klasy ponownie.")
-    if plain_metadata(catalogue.parameters) != model_parameters(k):
+    descriptor_settings = descriptor_settings or DescriptorSettings.from_parameters(catalogue.parameters)
+    if plain_metadata(catalogue.parameters) != model_parameters(k, descriptor_settings):
         raise ValueError("Katalog używa innych parametrów metody. Dopasuj klasy ponownie.")
+    validate_model_dimensions(catalogue.state, descriptor_settings.dimension, descriptor_settings.pca_max_components)
 
 
 def validate_plan_catalogue(
@@ -46,10 +51,11 @@ def validate_plan_catalogue(
     if catalogue is not None and catalogue.scope == "current_frame" and plan.current_frame:
         if catalogue.series_id != series_id or catalogue.k != plan.k or catalogue.frame_indices != (plan.start,):
             raise ValueError("Lokalny katalog należy do innej klatki. Dopasuj nowe klasy lub wybierz wspólny katalog.")
-        if plain_metadata(catalogue.parameters) != model_parameters(plan.k):
+        if plain_metadata(catalogue.parameters) != model_parameters(plan.k, plan.descriptor_settings):
             raise ValueError("Katalog używa innych parametrów metody. Dopasuj klasy ponownie.")
+        validate_model_dimensions(catalogue.state, plan.descriptor_settings.dimension, plan.descriptor_settings.pca_max_components)
         return
-    validate_shared_catalogue(catalogue, series_id, plan.k)
+    validate_shared_catalogue(catalogue, series_id, plan.k, plan.descriptor_settings)
 
 
 def analyze_series(
@@ -75,7 +81,8 @@ def analyze_series(
         if data.series_id != series_id or data.frame.working_index != indices[0]:
             raise ValueError("Dane należą do innej serii lub klatki.")
         result = analyze_frame(data, k=plan.k, settings=plan.domain_settings, acceptance=plan.acceptance,
-                               order_settings=plan.order_settings, cancelled=cancelled, progress=progress,
+                               order_settings=plan.order_settings, descriptor_settings=plan.descriptor_settings,
+                               barrier_settings=plan.barrier_settings, cancelled=cancelled, progress=progress,
                                class_count_mode=plan.class_count_mode, auto_max_k=plan.auto_max_k)
         check()
         if result.catalogue is not None:
@@ -86,7 +93,7 @@ def analyze_series(
     if fit is not None:
         try:
             catalogue = fit_shared_catalogue(read_frame, frame_count=frame_count, settings=fit,
-                                             order_settings=plan.order_settings,
+                                             order_settings=plan.order_settings, descriptor_settings=plan.descriptor_settings,
                                              cancelled=cancelled, progress=progress)
         except AutoSelectionUnavailable as error:
             check()
@@ -111,8 +118,8 @@ def analyze_series(
             if data.series_id != series_id or data.frame.working_index != index:
                 raise ValueError("Dane należą do innej serii lub klatki.")
             result = analyze_frame(data, catalogue=catalogue, settings=plan.domain_settings,
-                                    acceptance=plan.acceptance,
-                                    order_settings=plan.order_settings,
+                                    acceptance=plan.acceptance, barrier_settings=plan.barrier_settings,
+                                    order_settings=plan.order_settings, descriptor_settings=plan.descriptor_settings,
                                     cancelled=cancelled, progress=report)
             result = result_with_run(result)
             check()

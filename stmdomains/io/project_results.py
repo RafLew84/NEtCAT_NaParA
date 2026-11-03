@@ -19,6 +19,10 @@ from stmdomains.core.project import ProjectAnalysis
 from stmdomains.core.series import Series
 from stmdomains.analysis.provenance import input_fingerprint
 from stmdomains.io.project_masks import check_labels, load_labels
+from stmdomains.io.project_barriers import check_barriers, load_barriers, save_barriers
+from stmdomains.analysis.descriptor_settings import DescriptorSettings
+from stmdomains.analysis.barrier_settings import BarrierSettings
+from stmdomains.analysis.clustering import validate_model_dimensions
 from stmdomains.io.project_validation import validate_execution, validate_selection
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.domain_settings import DomainSettings
@@ -43,6 +47,8 @@ def load_catalogue(record: dict, series: Series) -> ClassCatalogue:
     if 'class_selection' in catalogue.state and catalogue.state['class_selection'] is None:
         raise ProjectError('Brak wymaganej decyzji Auto w katalogu.')
     validate_selection(catalogue.state.get("class_selection"))
+    descriptor = DescriptorSettings.from_parameters(catalogue.parameters)
+    validate_model_dimensions(catalogue.state, descriptor.dimension, descriptor.pca_max_components)
     return catalogue
 
 
@@ -61,13 +67,15 @@ def frame_record(result: FrameAnalysis) -> dict:
             'classes': [asdict(item) for item in result.classes],
             'parameters': plain_metadata(result.parameters), 'metadata': plain_metadata(result.metadata),
             'catalogue': result.catalogue.identifier if result.catalogue else None,
-            'domain_labels': result.domain_labels is not None}
+            'domain_labels': result.domain_labels is not None, 'barrier_mask': result.barrier_mask is not None}
 
 
 def validate_frame(result: FrameAnalysis, series: Series, presenter: FramePresenter) -> None:
     ClassAcceptanceSettings.from_parameters(result.parameters)
     DomainSettings.from_parameters(result.parameters)
     OrderSettings.from_parameters(result.parameters)
+    descriptor = DescriptorSettings.from_parameters(result.parameters)
+    BarrierSettings.from_parameters(result.parameters)
     validate_selection(result.metadata.get("class_selection"))
     if not isinstance(result.message, str):
         raise ProjectError('Niepoprawny opis wyniku.')
@@ -106,8 +114,13 @@ def validate_frame(result: FrameAnalysis, series: Series, presenter: FramePresen
             set(np.unique(labels)) - {0} != set(domain_classes)):
         raise ProjectError('Maska domen ma inne wymiary lub ID niż przypisania.')
     if result.catalogue is not None:
+        if descriptor != DescriptorSettings.from_parameters(result.catalogue.parameters):
+            raise ProjectError('Opis wyniku nie odpowiada katalogowi klas.')
         if result.catalogue.k != len(classes) or result.metadata.get('model_id') != result.catalogue.identifier:
             raise ProjectError('Wynik odwołuje się do innego katalogu klas.')
+    if result.barrier_mask is not None and (result.status != 'complete' or result.barrier_mask.shape != series.frame_shape or
+            int(result.barrier_mask.sum()) != result.metadata.get('barriers', {}).get('dilated_pixels')):
+        raise ProjectError('Maska barier nie odpowiada klatce lub metadanym.')
     expected = result.metadata.get('input_sha256')
     if expected is not None and expected != input_fingerprint(data):
         raise ProjectError('Wynik obliczono dla innych obrazów lub oznaczeń.')
@@ -140,6 +153,8 @@ def save_analysis(archive: zipfile.ZipFile, entries: dict, analysis: ProjectAnal
         if result.catalogue:
             catalogues[result.catalogue.identifier] = result.catalogue
         put_bytes(archive, entries, f'frames/{index}.json', json_bytes(frame_record(result)))
+        if result.barrier_mask is not None:
+            save_barriers(archive, entries, index, result.barrier_mask)
         if result.domain_labels is not None:
             output = io.BytesIO()
             np.save(output, np.asarray(result.domain_labels, dtype='<i4'), allow_pickle=False)
@@ -166,12 +181,16 @@ def read_result(root: Path, index: int, series: Series, catalogues: Mapping[str,
     record = read_json(root / f'frames/{index}.json')
     if type(record['domain_labels']) is not bool:
         raise ProjectError('Niepoprawny stan maski domen.')
+    if type(record.get('barrier_mask', False)) is not bool:
+        raise ProjectError('Niepoprawny stan maski barier.')
     labels = load_labels(root / f'frames/{index}.npy', series.frame_shape) if load_mask and record['domain_labels'] else None
+    barrier = load_barriers(root / f'frames/{index}.barriers.npy', series.frame_shape,
+                            record['metadata']['barriers']['dilated_pixels']) if load_mask and record.get('barrier_mask') else None
     assignments = {key: MoleculeAssignment(**item) for key, item in record['assignments'].items()}
     catalogue = catalogues[record['catalogue']] if record['catalogue'] is not None else None
     return FrameAnalysis(series.identity, record['working_index'], record['source_index'], record['status'],
                          record['message'], assignments, tuple(ResultClass(**item) for item in record['classes']),
-                         record['parameters'], record['metadata'], labels, catalogue)
+                         record['parameters'], record['metadata'], labels, catalogue, barrier)
 
 
 class SavedFrameResults(Mapping[int, FrameAnalysis]):
@@ -246,6 +265,12 @@ def load_analysis(record: dict | None, root: Path, series: Series, entries: dict
                     ('assigned', result.assigned_count), ('active', result.active_count), ('domains', result.domain_count))):
                 raise ProjectError('Liczniki nie odpowiadają przypisaniom klatki.')
             expected_entries.add(f'frames/{index}.json')
+            if read_json(root / f'frames/{index}.json').get('barrier_mask'):
+                if result.status != 'complete':
+                    raise ProjectError('Niewykonana analiza zawiera maskę barier.')
+                check_barriers(root / f'frames/{index}.barriers.npy', series.frame_shape,
+                               result.metadata.get('barriers', {}).get('dilated_pixels'), check)
+                expected_entries.add(f'frames/{index}.barriers.npy')
             if read_json(root / f'frames/{index}.json')['domain_labels']:
                 check_labels(root / f'frames/{index}.npy', series.frame_shape,
                              {item.domain_local_id for item in result.assignments.values()} - {0}, check)

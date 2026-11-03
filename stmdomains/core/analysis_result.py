@@ -60,6 +60,7 @@ class FrameAnalysis:
     domain_labels: NDArray[np.int32] | None = field(default=None, repr=False, compare=False)
 
     catalogue: ClassCatalogue | None = field(default=None, repr=False, compare=False)
+    barrier_mask: NDArray[np.bool_] | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "assignments", MappingProxyType(dict(self.assignments)))
@@ -72,6 +73,12 @@ class FrameAnalysis:
             # Own immutable backing storage; callers cannot re-enable writes.
             frozen = np.frombuffer(labels.tobytes(), dtype=np.int32).reshape(labels.shape)
             object.__setattr__(self, "domain_labels", frozen)
+        if self.barrier_mask is not None:
+            mask = np.asarray(self.barrier_mask)
+            if mask.ndim != 2 or mask.dtype != np.bool_:
+                raise ValueError('Maska barier musi być logicznym obrazem 2D.')
+            frozen_mask = np.frombuffer(mask.tobytes(), dtype=np.bool_).reshape(mask.shape)
+            object.__setattr__(self, 'barrier_mask', frozen_mask)
 
     @property
     def total_count(self) -> int:

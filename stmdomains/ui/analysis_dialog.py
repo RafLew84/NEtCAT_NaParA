@@ -18,6 +18,9 @@ from stmdomains.analysis.series_analysis import validate_plan_catalogue
 from stmdomains.analysis.series_settings import SeriesAnalysisPlan
 from stmdomains.ui.auto_ranking_dialog import AutoRankingDialog
 from stmdomains.ui.acceptance_fields import AcceptanceFields
+from stmdomains.analysis.descriptor_settings import DescriptorSettings
+from stmdomains.analysis.barrier_settings import BarrierSettings
+from stmdomains.ui.advanced_fields import AdvancedFields
 from stmdomains.ui.analysis_scope_fields import AnalysisScopeFields, ClassFields
 from stmdomains.ui.analysis_status import AnalysisStatuses
 from stmdomains.ui.catalogue_style import catalogue_description
@@ -50,8 +53,10 @@ class AnalysisDialog(QDialog):
         class_layout.addWidget(self.acceptance_fields)
         self.order_fields = OrderFields()
         self.domain_fields = DomainSettingsFields()
+        self.advanced_fields = AdvancedFields()
         for title, fields in (("Zakres", self.scope_fields), ("Klasy", classes),
-                               ("Porządek", self.order_fields), ("Domeny", self.domain_fields)):
+                               ("Porządek", self.order_fields), ("Domeny", self.domain_fields),
+                               ("Zaawansowane", self.advanced_fields)):
             scroll = QScrollArea()
             scroll.setWidgetResizable(True)
             scroll.setWidget(fields)
@@ -63,7 +68,7 @@ class AnalysisDialog(QDialog):
         self.copy_result.setToolTip("Skopiuj progi i wybierz katalog wyświetlanego wyniku. Zakres analizy pozostaje bez zmian.")
         self.copy_result.clicked.connect(self._copy_result)
         self.baseline = QPushButton("Przywróć bazowe parametry")
-        self.baseline.setToolTip("Przywróć progi akceptacji, porządku i domen. Zakresy i wybór klas pozostają bez zmian.")
+        self.baseline.setToolTip("Przywróć opis, bariery i progi akceptacji, porządku oraz domen. Zakresy i wybór klas pozostają bez zmian; inny opis wymaga nowego dopasowania.")
         self.baseline.clicked.connect(self._baseline)
         edits.addWidget(self.copy_result)
         edits.addWidget(self.baseline)
@@ -108,8 +113,10 @@ class AnalysisDialog(QDialog):
         for button in (self.copy_result, self.baseline, self.calculate, self.cancel, close):
             button.setAutoDefault(False)
         for fields in (self.scope_fields, self.class_fields, self.acceptance_fields,
-                       self.order_fields, self.domain_fields):
+                       self.order_fields, self.domain_fields, self.advanced_fields):
             fields.changed.connect(self._validate)
+        self.class_fields.mode.currentIndexChanged.connect(self._load_catalogue_descriptor)
+        self.class_fields.catalogue.currentIndexChanged.connect(self._load_catalogue_descriptor)
         controller.frame_changed.connect(lambda _: self.refresh())
         controller.series_changed.connect(lambda _: self.refresh())
         controller.series_analysis_changed.connect(self.refresh)
@@ -142,6 +149,8 @@ class AnalysisDialog(QDialog):
             fit_start=classes.fit_start.value() - 1, fit_end=classes.fit_end.value() - 1,
             domain_settings=self.domain_fields.settings(), order_settings=self.order_fields.settings(),
             acceptance=self.acceptance_fields.settings(),
+            descriptor_settings=self.advanced_fields.descriptor.settings(),
+            barrier_settings=self.advanced_fields.barriers.settings(),
             class_count_mode="auto" if classes.automatic else "manual", auto_max_k=classes.maximum_k,
         )
 
@@ -150,6 +159,8 @@ class AnalysisDialog(QDialog):
         self.domain_fields.load(DomainSettings())
         self.acceptance_fields.load(ClassAcceptanceSettings())
         self.order_fields.load(OrderSettings())
+        self.advanced_fields.descriptor.load(DescriptorSettings())
+        self.advanced_fields.barriers.load(BarrierSettings())
         self._loading = False
         self._validate()
 
@@ -161,6 +172,8 @@ class AnalysisDialog(QDialog):
         self.domain_fields.load(DomainSettings.from_parameters(result.parameters))
         self.acceptance_fields.load(ClassAcceptanceSettings.from_parameters(result.parameters))
         self.order_fields.load(OrderSettings.from_parameters(result.parameters))
+        self.advanced_fields.descriptor.load(DescriptorSettings.from_parameters(result.parameters))
+        self.advanced_fields.barriers.load(BarrierSettings.from_parameters(result.parameters))
         if result.catalogue is not None:
             self.class_fields.choose_catalogue(result.catalogue)
             self.class_fields.mode.setCurrentIndex(1)
@@ -171,6 +184,14 @@ class AnalysisDialog(QDialog):
             if result.parameters.get("k") is not None:
                 self.class_fields.k.setValue(int(result.parameters["k"]))
         self._loading = False
+        self._validate()
+
+    def _load_catalogue_descriptor(self) -> None:
+        if self._loading or self.class_fields.mode.currentData() != 'existing':
+            return
+        catalogue = self.class_fields.selected_catalogue
+        if catalogue is not None:
+            self.advanced_fields.descriptor.load(DescriptorSettings.from_parameters(catalogue.parameters))
         self._validate()
 
     def _validate(self) -> None:
@@ -197,7 +218,7 @@ class AnalysisDialog(QDialog):
                 source = (f"nowe {count} z kl. {fit_indices[0] + 1}–{fit_indices[-1] + 1}"
                           + (" (lokalne)" if fit.scope == "current_frame" else " (wspólne)"))
             self.validation.setText(f"Szkic: domeny na kl. {target} ({len(indices)}) · {source}.\n"
-                                    "Analizuj zastosuje wszystkie cztery zakładki. Edycja nie zmienia obrazu.")
+                                    "Analizuj zastosuje wszystkie pięć zakładek. Edycja nie zmienia obrazu.")
             self.validation.setToolTip(self.validation.text() + "\n" + order_settings_description(plan.order_settings))
             self.calculate.setEnabled(self.controller.can_analyze)
         except ValueError as error:
@@ -227,6 +248,9 @@ class AnalysisDialog(QDialog):
             self.domain_fields.load(DomainSettings())
             self.acceptance_fields.load(ClassAcceptanceSettings())
             self.order_fields.load(OrderSettings())
+            self.advanced_fields.descriptor.load(DescriptorSettings())
+            self.advanced_fields.barriers.load(BarrierSettings())
+            self.advanced_fields.show_barriers.setChecked(False)
             self.context.setToolTip("Otwarto nową serię: szkic parametrów i wybór katalogu zostały zresetowane.")
         self.class_fields.offer_catalogues(controller.available_catalogues)
         run = controller.series_run
@@ -280,6 +304,10 @@ class AnalysisDialog(QDialog):
 
     def _display_result(self) -> None:
         controller, result = self.controller, self.controller.result
+        barrier = result.barrier_mask if result is not None else None
+        self.advanced_fields.barrier_status.setText(
+            f'Maska wyświetlanego wyniku: {int(barrier.sum())} px; parametry szkicu wymagają Analizuj.'
+            if barrier is not None else 'Brak zapisanej maski barier dla tego wyniku. Oblicz wynik, aby ją zobaczyć.')
         if result is None:
             self.displayed.setText("Brak wyniku na oglądanej klatce.")
             self.displayed.setToolTip("")

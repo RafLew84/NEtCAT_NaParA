@@ -25,14 +25,41 @@ def project_features(features: NDArray[np.float64], state: Mapping[str, Any]) ->
     return features @ components.T - np.asarray(state["pca_mean"])[None, :] @ components.T
 
 
+def validate_model_dimensions(state: Mapping[str, Any], dimension: int, maximum_components: int) -> None:
+    """Reject incompatible saved projections before descriptors or order calibration."""
+    try:
+        validate_k(state['k'])
+        mean = np.asarray(state['pca_mean'], dtype=float)
+        components = np.asarray(state['pca_components'], dtype=float)
+        centers = np.asarray(state['centers'], dtype=float)
+        radii = np.asarray(state['class_radius95'], dtype=float)
+        count = state['pca_components_count']
+        if type(count) is not int:
+            raise ValueError()
+        if state['projection'] == 'pca':
+            valid = 1 <= count <= min(maximum_components, dimension) and mean.shape == (dimension,) and components.shape == (count, dimension)
+            width = count
+        elif state['projection'] == 'identity':
+            valid = count == 0 and mean.size == 0 and components.size == 0
+            width = dimension
+        else:
+            raise ValueError()
+        if (not valid or centers.shape != (state['k'], width) or radii.shape != (state['k'],)
+                or np.any(radii < 0) or any(not np.isfinite(a).all() for a in (mean, components, centers, radii))):
+            raise ValueError()
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError('Nieprawidłowe wymiary lub wartości modelu dla wybranego opisu. Dopasuj klasy ponownie.') from error
+
+
 def fit_model(
     selected: NDArray[np.float64], k: int, check: Callable[[], None],
+    *, pca_max_components: int = 24,
 ) -> dict[str, Any] | None:
     validate_k(k)
     if len(selected) < k or len(np.unique(np.round(selected, 10), axis=0)) < k:
         return None
     check()
-    components = min(24, len(selected) - 1, selected.shape[1])
+    components = min(pca_max_components, len(selected) - 1, selected.shape[1])
     # One sample or a constant K1 set has no variance for PCA. Retain the
     # descriptor space so a different pattern can still be refused by radius.
     use_pca = components > 0 and float(np.ptp(selected, axis=0).max()) > 1e-12

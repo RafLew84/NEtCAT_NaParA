@@ -255,9 +255,10 @@ def test_open_validates_masks_streaming_and_materializes_only_requested_result(t
     calls = []
     original = np.load
     def observed(*args, **kwargs):
-        calls.append(True)
+        from pathlib import Path
+        calls.append(Path(getattr(args[0], "name", args[0])).name)
         return original(*args, **kwargs)
     monkeypatch.setattr(np, 'load', observed)
     assert opened.analysis.frames[0].assignments == frames[0].assignments
     assert opened.analysis.frames[0].domain_count == frames[0].domain_count
-    assert len(calls) == 1
+    assert sorted(calls) == ["0.barriers.npy", "0.npy"]

@@ -6,6 +6,8 @@ from typing import Literal
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.class_settings import ClassFitSettings
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.barrier_settings import BarrierSettings
+from stmdomains.analysis.descriptor_settings import DescriptorSettings
 from stmdomains.analysis.order_settings import OrderSettings
 
 
@@ -22,6 +24,8 @@ class SeriesAnalysisPlan:
     order_settings: OrderSettings = OrderSettings()
     acceptance: ClassAcceptanceSettings = ClassAcceptanceSettings()
     current_frame: bool = False
+    descriptor_settings: DescriptorSettings = DescriptorSettings()
+    barrier_settings: BarrierSettings = BarrierSettings()
 
     class_count_mode: Literal["manual", "auto"] = "manual"
     auto_max_k: int = 8

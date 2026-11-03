@@ -4,6 +4,7 @@ from collections.abc import Callable
 
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.barrier_settings import BarrierSettings
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.analysis.pipeline import analyze_frame
 from stmdomains.analysis.provenance import input_fingerprint
@@ -27,4 +28,5 @@ def recalculate_class_acceptance(
     return analyze_frame(data, catalogue=previous.catalogue,
                          settings=DomainSettings.from_parameters(previous.parameters), acceptance=settings,
                          order_settings=OrderSettings.from_parameters(previous.parameters),
+                             barrier_settings=BarrierSettings.from_parameters(previous.parameters),
                          cancelled=cancelled, progress=progress)

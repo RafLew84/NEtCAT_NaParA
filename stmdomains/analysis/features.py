@@ -9,6 +9,7 @@ from scipy.ndimage import gaussian_filter
 from scipy.spatial import cKDTree
 
 from stmdomains.core.annotations import Detection
+from stmdomains.analysis.descriptor_settings import DescriptorSettings
 
 
 def prepare_points(
@@ -75,14 +76,16 @@ def prepare_points(
 
 def pair_features(
     points: NDArray[np.float64], spacing: float, check: Callable[[], None],
+    *, settings: DescriptorSettings = DescriptorSettings(),
 ) -> tuple[NDArray[np.float64], NDArray[np.bool_], dict[str, NDArray[Any]]]:
     """Translation-invariant, orientation-sensitive square-root pair histograms."""
-    n, nr, na = len(points), 14, 36
+    n, nr, na = len(points), settings.descriptor_radial_bins, settings.descriptor_angle_bins
+    low, high = settings.descriptor_pair_distance_range
     tree = cKDTree(points)
-    pairs = np.asarray(sorted(tree.query_pairs(2.8 * spacing)), int).reshape(-1, 2)
+    pairs = np.asarray(sorted(tree.query_pairs(high * spacing)), int).reshape(-1, 2)
     vectors = points[pairs[:, 1]] - points[pairs[:, 0]]
     lengths = np.linalg.norm(vectors, axis=1)
-    keep = lengths >= .55 * spacing
+    keep = lengths >= low * spacing
     pairs, vectors, lengths = pairs[keep], vectors[keep], lengths[keep]
     features = np.zeros((n, nr * na))
     neighbors = np.asarray(tree.query_ball_point(points, 2.5 * spacing, return_length=True)) - 1
@@ -92,7 +95,7 @@ def pair_features(
         return features, np.zeros(n, bool), diagnostics
     midpoints = (points[pairs[:, 0]] + points[pairs[:, 1]]) / 2
     angles = np.mod(np.arctan2(vectors[:, 1], vectors[:, 0]), np.pi)
-    rr = np.clip((lengths / spacing - .55) / 2.25 * (nr - 1), 0, nr - 1 - 1e-7)
+    rr = np.clip((lengths / spacing - low) / round(high - low, 12) * (nr - 1), 0, nr - 1 - 1e-7)
     aa = angles / np.pi * na
     ri, ai = np.floor(rr).astype(int), np.floor(aa).astype(int)
     rf, af = rr - ri, aa - ai
@@ -102,7 +105,7 @@ def pair_features(
             targets.append((ri + dr) * na + (ai + da) % na)
             values.append(wr * wa)
     bins, factors = np.asarray(targets), np.asarray(values)
-    sigma = 1.25 * spacing
+    sigma = settings.descriptor_sigma_factor * spacing
     neighborhoods = cKDTree(midpoints).query_ball_point(points, 2.8 * sigma, return_length=False)
     for i, neighbors_i in enumerate(neighborhoods):
         check()

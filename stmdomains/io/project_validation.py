@@ -6,6 +6,8 @@ from typing import Any
 
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.descriptor_settings import DescriptorSettings
+from stmdomains.analysis.barrier_settings import BarrierSettings
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.analysis.series_settings import SeriesAnalysisPlan
 from stmdomains.io.project_archive import ProjectError
@@ -14,7 +16,8 @@ from stmdomains.io.project_archive import ProjectError
 def analysis_plan(record: Mapping[str, Any]) -> SeriesAnalysisPlan:
     value = dict(record)
     for key, constructor in (('acceptance', ClassAcceptanceSettings), ('domain_settings', DomainSettings),
-                              ('order_settings', OrderSettings)):
+                              ('order_settings', OrderSettings), ('descriptor_settings', DescriptorSettings),
+                              ('barrier_settings', BarrierSettings)):
         if key in value:
             value[key] = constructor(**value[key])
     return SeriesAnalysisPlan(**value)
@@ -47,7 +50,7 @@ def validate_project_state(view: Mapping, draft: Mapping, count: int) -> None:
     layers = view.get('layers', {})
     if not isinstance(layers, Mapping):
         raise ProjectError('Niepoprawny stan warstw projektu.')
-    for name in ('centers', 'boxes', 'masks', 'fill', 'outlines', 'numbers'):
+    for name in ('centers', 'boxes', 'masks', 'fill', 'outlines', 'numbers', 'barriers'):
         if name in layers and type(layers[name]) is not bool:
             raise ProjectError('Niepoprawny stan warstw projektu.')
     for name in ('mask_opacity', 'domain_opacity'):
