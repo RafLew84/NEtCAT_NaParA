@@ -1,3 +1,64 @@
+# STM Domains — wykonano SD-V4-09: akceptacja klasy i przyczyny odmowy
+
+Data **2026-11-03**, baza **`b34e862`**, implementacja **`494ab9d`**.
+Gałąź `domains/interactive-v04-ui`, worktree `/home/rlew/projekty/NEtCAT-domains`.
+[Ticket](implementation/interactive-v04/09-tune-class-acceptance.md),
+[raport i test ręczny](implementation/interactive-v04/acceptance-09.md).
+Status `done`; **odbiór ręczny użytkownika oczekuje**. Commit dokumentacji
+podano w odpowiedzi końcowej. Następny rekomendowany ticket pozostaje **12 — Auto**.
+
+Menu **Analiza → Akceptacja klasy…** ma dwa progi: minimalny margines
+(bazowo 0,075) i mnożnik promienia (1,10). Przeliczenie bieżącej klatki
+zachowuje wyświetlany katalog i parametry domen. Działa poprzedni/nowy,
+przywrócenie pól bazowych, anulowanie i zachowanie wyniku przy błędzie.
+K1 używa promienia i dostępności opisu, bez marginesu drugiej klasy.
+**Dane oznaczenia…** pokazują najpierw czytelny opis klasy wstępnej,
+akceptacji, testu porządku i domeny, a niżej dotychczasowe metadane.
+
+Uruchomienie w **netcat**: `python -m stmdomains.main`. Na TTMAPP 259
+przy K5 z zakresu 259–268, bazowych domenach i progach: **272/312**
+zaakceptowane klasy, **105 molekuł w 5 domenach**. Margines 0,06:
+**281/312** i nadal **105/312, 5 domen**. Margines 0,06 / mnożnik 0,80:
+**236/312** oraz **81/312, 4 domeny**. Powrót do 0,075 / 1,10 odtwarza
+bazowe przypisania i mapę piksel w piksel. To kontrola sterowania,
+nie ocena trafności detekcji.
+
+**Sprawdzenia:**
+
+- 18 nowych przypadków PASS i celowane regresje; TDD dla obliczeń,
+  kontrolki UI, szczegółów i zachowania progów przy ponownej analizie.
+- Pełny zestaw raz na koniec po review: **427 passed, bez pominięć, 111,88 s**.
+- Mypy **63 moduły PASS**, **15 plików kodu/testów, maksimum 544 linii**.
+- Code-review `b34e862...494ab9d`: **Standards 0, Spec 0**, brak otwartych uwag.
+- Rzeczywiste **GUI X11/xcb PASS**: TTMAPP 259, K1, porównanie, szczegóły,
+  raw/aligned, gamma, stabilny układ w 900×650 i 1250×850, anulowanie,
+  nawigacja, brak danych oraz zamknięcie podczas pracy. Obejrzano sześć PNG.
+- Przeliczenie TTMAPP około **0,70–0,71 s**, K1 **0,58 s**. RSS **631,90 MiB**,
+  największa przerwa timera **0,228 s**; trzy pule zakończone przy wyjściu.
+- Podczas strojenia wymuszona odmowa wywołań fit PCA/KMeans nie została
+  wyzwolona. **0 odczytów historycznych paczek/modeli**, MPP/JSON niezmienione
+  według SHA-256. Hashe i polecenia są w raporcie.
+- **365 lokalnych odnośników z kotwicami w 7 dokumentach PASS**;
+  24 tickety, zgodne zależności i brak cykli. `git diff --check` PASS.
+
+Artefakty `.scratch/stmdomains-ui-09/` poza Git: demo, GUI, log pełnych testów
+i zrzuty. Pierwsza próba X11 w piaskownicy nie miała dostępu do ekranu;
+ten sam test przeszedł po udostępnieniu lokalnego DISPLAY. Nie instalowano
+pakietów. Bez zmian wspólnych, danych i środowiska; dotychczasowe zgłoszenia
+zależności do integratora pozostają aktualne.
+
+Ograniczenia: 09 stroi jedną klatkę. Strojenie domen i Analizuj klatkę
+zachowują zastosowane progi; jawne odkrywanie nowego katalogu w 07 i nowa
+analiza serii w 08 używają bazowej akceptacji. Progi nie są częścią tożsamości
+dopasowania; nowe katalogi mogą mieć inny hash niż w 08 przy tych samych
+klasach bazowych, ale strojenie go nie zmienia. Wyniki są tylko w pamięci,
+do dwóch wersji na klatkę; zapis 13 i eksport 14 pozostają do wykonania.
+09 nie dodaje Auto, ręcznej edycji ani potwierdzenia fizycznych typów.
+Plan nadal ma 24 tickety; 01–03, 05, 05a i 06–09 `done`, 19–20 odroczone.
+Historyczne badawcze 04/13 i odbiór naukowy metody pozostają odrębne.
+
+---
+
 # STM Domains — plan ręcznej edycji klas i domen: SD-V4-21–25
 
 Data **2026-11-03**, baza **`02a54d4`**, gałąź `domains/interactive-v04-ui`,

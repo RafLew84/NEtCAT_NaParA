@@ -5,6 +5,15 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-03
 
+**Wykonano SD-V4-09 (`494ab9d`):** menu **Analiza → Akceptacja klasy…**
+udostępnia minimalny margines i mnożnik promienia klasy, jawne przeliczenie,
+porównanie poprzedni/nowy i wartości bazowe. Katalog pozostaje zamrożony;
+**Dane oznaczenia…** wyjaśniają klasę wstępną, akceptację, porządek i domenę.
+K1 pomija margines. [Raport i test ręczny 09](implementation/interactive-v04/acceptance-09.md).
+**427 testów PASS**, mypy 63 moduły PASS, największy zmieniony plik 544 linii.
+GUI X11 sprawdzone na TTMAPP i kontroli K1; Standards/Spec bez uwag.
+**Odbiór ręczny użytkownika 09 oczekuje.** Następny rekomendowany pozostaje **12 — Auto**.
+
 **Dodano do planu SD-V4-21–25 — ręczną edycję klas i domen:**
 21 tworzenie/rozszerzanie domen i Cofnij/Ponów, 22 podział/scalanie,
 23 własne klasy i przypisania, 24 zapis korekt z historią, 25 eksport CSV/PNG.
@@ -59,8 +68,8 @@ z bieżących danych. Działają kolory domen/klas, legenda, liczniki, przyczyny
 odmów, postęp i anulowanie. Program nie wczytuje modelu ani wyniku v0.4.
 [Uruchomienie, wykonane sprawdzenia i test ręczny 05](implementation/interactive-v04/acceptance-05.md).
 **Odbiór ręczny użytkownika 05 oczekuje.** W aktualnym planie
-01–03, 05, 05a, 06, 07 i 08 mają status `done`,
-09–10, 12–18 oraz 21–25 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
+01–03, 05, 05a i 06–09 mają status `done`,
+10, 12–18 oraz 21–25 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
 To wdrożenie eksperymentalnej metody, bez potwierdzenia trafności detektora.
 
 **Wcześniejsza zmiana kierunku na polecenie użytkownika:** usunięto ticket SD-V4-04

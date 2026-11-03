@@ -14,6 +14,17 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Wykonano SD-V4-09 — 2026-11-03 (`494ab9d`):** menu
+**Analiza → Akceptacja klasy…** pozwala regulować margines i promień,
+przeliczać klatkę przy zachowanym katalogu oraz porównywać wyniki.
+Szczegóły molekuły rozdzielają akceptację, porządek i końcową domenę;
+K1 pomija margines. [Ticket](implementation/interactive-v04/09-tune-class-acceptance.md),
+[raport i test ręczny](implementation/interactive-v04/acceptance-09.md).
+427 testów PASS, mypy 63 moduły PASS; 15 plików kodu/testów do 544 linii.
+Rzeczywiste GUI X11 PASS, Standards 0 / Spec 0. Status `done`, **ręczny
+odbiór użytkownika 09 oczekuje**. Plan ma 24 tickety; 01–03, 05, 05a i 06–09
+wykonane. Następny rekomendowany **12 — Auto**. Poniżej historia.
+
 **Rozszerzenie planu — 2026-11-03, decyzja użytkownika:** dodano
 [SD-V4-21–25](implementation/interactive-v04/README.md#edycja-ręczna-klas-i-domen):
 tworzenie i rozszerzanie domen, podział/scalanie, ręczne klasy, zapis historii

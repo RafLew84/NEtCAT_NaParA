@@ -56,8 +56,16 @@ ukończonych wyników. [Raport i test ręczny](acceptance-08.md).
 409 testów PASS, mypy PASS, 268 klatek TTMAPP przeliczonych w rzeczywistym GUI.
 **Odbiór ręczny użytkownika 08 potwierdzony 2026-11-03** dla wersji
 `a3a5316` („testy manualne ok”). **Następny rekomendowany ticket: 12.**
-01–03, 05, 05a, 06, 07 i 08 mają status `done`.
-09–10, 12–18 oraz 21–25 mają zakres `ready-for-agent`
+
+**Wykonano [09 — akceptacja klasy](09-tune-class-acceptance.md)** — 2026-11-03,
+`494ab9d`: menu **Analiza → Akceptacja klasy…**, margines i mnożnik promienia,
+przeliczenie przy zachowanym katalogu, porównanie i wartości bazowe.
+**Dane oznaczenia…** rozdzielają klasę wstępną, akceptację, porządek i domenę.
+K1 ma nieaktywny margines. [Raport i test ręczny](acceptance-09.md).
+427 testów PASS, mypy 63 moduły PASS, kod/testy do 544 linii;
+GUI X11 sprawdzone, Standards/Spec bez uwag. **Odbiór użytkownika oczekuje.**
+01–03, 05, 05a i 06–09 mają status `done`.
+10, 12–18 oraz 21–25 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -101,7 +109,7 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [24 — Zapisz korekty i wznów ręczną edycję projektu](24-save-manual-corrections.md) | SD-V4-13, SD-V4-23 | Otwórz zapisane korekty bez źródeł i kontynuuj Cofnij/Ponów. |
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23 | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 
-Po wykonanych 05, 05a i 06–08 następny rekomendowany ticket: **12 — Auto**.
+Po wykonanych 05, 05a i 06–09 następny rekomendowany ticket: **12 — Auto**.
 Jego zależność 07 jest ukończona. Po 05 dostępne są niezależnie 06, 07, 10, 13,
 14 i 16; po 07 także 08, 09, 12 i 15. 08 wymaga wspólnego dopasowania
 z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności od usuniętych 04/11.

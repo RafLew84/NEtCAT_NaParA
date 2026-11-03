@@ -1,5 +1,14 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Wykonano SD-V4-09 — 2026-11-03 (`494ab9d`):**
+**Analiza → Akceptacja klasy…**, progi marginesu i promienia, przeliczenie
+z zachowanym katalogiem i porównanie wyników. Szczegóły molekuły rozdzielają
+klasę, akceptację, porządek i domenę; K1 ma jawny brak marginesu.
+[Raport i test ręczny](interactive-v04/acceptance-09.md).
+427 testów PASS, mypy 63 moduły PASS, 15 plików kodu/testów do 544 linii;
+rzeczywiste GUI PASS, oba przeglądy bez uwag. **Odbiór ręczny użytkownika
+09 oczekuje.** Kolejny rekomendowany ticket pozostaje **12 — Auto**.
+
 **Rozszerzenie planu — 2026-11-03:** dodano
 [SD-V4-21–25 — ręczną edycję klas i domen](interactive-v04/README.md#edycja-ręczna-klas-i-domen).
 21 tworzy i rozszerza domeny z Cofnij/Ponów, 22 dzieli/łączy, 23 dodaje
@@ -45,8 +54,8 @@ oblicza lokalne klasy i końcowe domeny z bieżącego obrazu MPP i oznaczeń
 MolTrack, z kolorami, legendą, odmowami, postępem i anulowaniem.
 [Uruchomienie, sprawdzenia i test ręczny](interactive-v04/acceptance-05.md).
 Ręczny odbiór użytkownika 05 oczekuje. Aktualny plan ma 24 tickety:
-01–03, 05, 05a, 06, 07 i 08 `done`,
-09–10, 12–18 oraz 21–25 `ready-for-agent` po zależnościach, 19–20 `deferred`.
+01–03, 05, 05a i 06–09 `done`,
+10, 12–18 oraz 21–25 `ready-for-agent` po zależnościach, 19–20 `deferred`.
 
 **Wcześniejsza zmiana kierunku — 2026-11-02:** na polecenie użytkownika wycofano
 SD-V4-04 i import jego wyników. Stan aplikacji wrócił wtedy do odebranego 03,

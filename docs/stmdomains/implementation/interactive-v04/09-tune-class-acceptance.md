@@ -6,7 +6,11 @@
 
 **Blocked by:** [07: Wybierz liczbę klas i zakres ich odkrywania](07-fit-shared-classes.md).
 
-**Status:** in_progress — rozpoczęto 2026-11-03 na polecenie użytkownika; baza `b34e862`, gałąź `domains/interactive-v04-ui`.
+**Status:** done — implementacja `494ab9d`, ukończono 2026-11-03; ręczny odbiór użytkownika oczekuje.
+
+[Uruchomienie, wykonane sprawdzenia i test ręczny](acceptance-09.md).
+Baza `b34e862`, gałąź `domains/interactive-v04-ui`, środowisko netcat.
+427 testów PASS, mypy 63 moduły PASS, przegląd Standards/Spec bez uwag.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
@@ -16,14 +20,14 @@ oznaczenia. Testy i uruchomienie w netcat; odbiór użytkownika oddzielnie.
 
 ## Kryteria akceptacji
 
-- [ ] Kontrolki minimalnego marginesu i mnożnika promienia klasy rzeczywiście sterują akceptacją; confidence nie jest przedstawiane jako skalibrowane prawdopodobieństwo.
-- [ ] Słownik, centroidy i wstępna najbliższa klasa pozostają zachowane. Zmiana akceptacji nie jest ukrytym ponownym dopasowaniem.
-- [ ] Słownik pochodzi z wcześniejszego obliczenia w tej aplikacji na jawnym zakresie otwartych danych. Nie wymaga zewnętrznego modelu, etykiet ani wyników paczki v0.4.
-- [ ] UI odróżnia klasę wstępną, akceptację klasy, potwierdzenie porządku i końcową domenę; szczegóły są dostępne po wskazaniu molekuły.
-- [ ] Przy K1 stosuje się jawny właściwy warunek zamiast marginesu dwóch klas. Nowe ustawienia mają walidację i zapis w wyniku.
-- [ ] Kontrolowane testy wykazują wpływ progów i zachowanie tożsamości słownika.
-- [ ] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
-- [ ] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
+- [x] Kontrolki minimalnego marginesu i mnożnika promienia klasy rzeczywiście sterują akceptacją; confidence nie jest przedstawiane jako skalibrowane prawdopodobieństwo.
+- [x] Słownik, centroidy i wstępna najbliższa klasa pozostają zachowane. Zmiana akceptacji nie jest ukrytym ponownym dopasowaniem.
+- [x] Słownik pochodzi z wcześniejszego obliczenia w tej aplikacji na jawnym zakresie otwartych danych. Nie wymaga zewnętrznego modelu, etykiet ani wyników paczki v0.4.
+- [x] UI odróżnia klasę wstępną, akceptację klasy, potwierdzenie porządku i końcową domenę; szczegóły są dostępne po wskazaniu molekuły.
+- [x] Przy K1 stosuje się jawny właściwy warunek zamiast marginesu dwóch klas. Nowe ustawienia mają walidację i zapis w wyniku.
+- [x] Kontrolowane testy wykazują wpływ progów i zachowanie tożsamości słownika.
+- [x] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
+- [x] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
 
 ## Test ręczny użytkownika
 
