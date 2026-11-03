@@ -50,8 +50,14 @@ def _peak_rss_mib() -> float:
         counters = Counters()
         counters.cb = ctypes.sizeof(counters)
         kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+        kernel.GetCurrentProcess.argtypes = ()
         kernel.GetCurrentProcess.restype = wintypes.HANDLE
         psapi = ctypes.WinDLL('psapi', use_last_error=True)
+        # Preserve the pointer-sized (HANDLE)-1 pseudo-handle on 64-bit Windows.
+        psapi.GetProcessMemoryInfo.argtypes = (
+            wintypes.HANDLE, ctypes.POINTER(Counters), wintypes.DWORD,
+        )
+        psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
         if psapi.GetProcessMemoryInfo(kernel.GetCurrentProcess(), ctypes.byref(counters), counters.cb):
             return float(counters.PeakWorkingSetSize / 2 ** 20)
         return 0.

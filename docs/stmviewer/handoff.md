@@ -1,3 +1,40 @@
+# Poprawka RoMa/LightGlue na Windows 64-bit — 2026-11-03
+
+Commit implementacji: **8356ddd53afb8de2d7e565dbaa38d8b6174ef9e8**.
+Zlecenie poza numerowanymi ticketami; diagnoza i instrukcja:
+[odczyt pamięci Windows](registration/roma-windows-memory-fix.md).
+
+Usunięto OverflowError w `_peak_rss_mib` po dopasowaniu pary. Deklaracje
+ctypes zachowują 64-bitowy uchwyt GetCurrentProcess przekazywany do
+GetProcessMemoryInfo. Ten sam kod jest używany przez RoMa i LightGlue.
+Nie zmieniono modeli, rejestracji, środowisk ani wag.
+
+Mała paczka do podmiany istniejącej instalacji:
+`data/distribution/STMViewer-2026-11-03-windows-memory-fix.zip`
+(5864 bajty; poprawiony worker, instrukcja START-TUTAJ.txt i manifest).
+SHA-256: `931a065bca723e5ea3a248aea2fce32556a91946ef589c813811da3e1237f6d8`.
+Sprawdzono CRC, zgodność wszystkich plików i identyczność workera z commitem.
+Pełne ZIP-y z poprzednich zadań pozostają bez zmian i wymagają tej poprawki
+na Windows; dopisano odnośnik w instrukcji dystrybucji. ZIP i suma są lokalne,
+ignorowane przez Git.
+
+Automatycznie wykonano:
+- Windows CPython 3.12.10 amd64 przez izolowane Wine: pierwotna próba i test
+  regresji najpierw odtworzyły dokładnie traceback użytkownika, po poprawce
+  próba zwróciła 42,390625 MiB, a 3 testy przeszły.
+- Linux/netcat: 38 testów pamięci, backendów, procesów i GUI RoMa offscreen.
+- Rzeczywista para na CPU w RoMa i LightGlue: 2 testy, znane przesunięcie OK.
+- Mypy 106 modułów, Ruff F, diff --check; worker 222, test 37 linii.
+
+Ręczna próba na fizycznym Windows 11/CUDA: niewykonana tutaj. Użytkownik
+zamyka program, podmienia `stmviewer/roma_worker.py`, uruchamia go ponownie
+i dopasowuje poprzednio problematyczny film metodą RoMa. Oczekiwane:
+wynik przechodzi odczyt pamięci bez tego wyjątku. Można dodatkowo sprawdzić
+LightGlue. Nie potrzeba reinstalacji bibliotek ani ponownego kopiowania wag.
+
+Brak wspólnych zmian integracyjnych. Statusy ticketów bez zmian.
+Pliki użytkownika proba*.stmtrial.json i sesja.stmsession pozostawiono.
+
 # Automatyczne wykrywanie modeli z paczki — 2026-11-03
 
 Zlecenie użytkownika poza numerowanymi ticketami: po rozpakowaniu paczki,

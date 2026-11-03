@@ -4,6 +4,15 @@ Paczka ZIP zawiera jeden folder **NEtCAT**. Rozpakuj go w wybranej
 lokalizacji, np. `C:\NEtCAT` na Windows lub `~/NEtCAT` na Ubuntu.
 Otwórz **Instrukcja.html**; instalację wykonuj z folderu NEtCAT.
 
+## Poprawka dla wcześniejszych paczek na Windows
+
+Jeśli RoMa lub LightGlue zgłasza po rozpoczęciu dopasowania
+`OverflowError: int too long to convert`, zastosuj
+[poprawkę odczytu pamięci](registration/roma-windows-memory-fix.md).
+Paczka **STMViewer-2026-11-03-windows-memory-fix.zip** zawiera jeden plik
+programu do podmiany i instrukcję. Dotyczy obu pełnych paczek z 3 listopada:
+pierwotnej i **auto-models**. Nie wymaga ponownego przenoszenia wag.
+
 ## Co zawiera ZIP
 
 | Element | Lokalizacja w folderze NEtCAT |
