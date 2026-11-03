@@ -11,6 +11,7 @@ from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.clustering import apply_classes, fit_model, validate_k
 from stmdomains.analysis.config import COLORS, PARAMETERS, model_parameters
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.analysis.preparation import PreparedFrame, prepare_frame
 from stmdomains.analysis.provenance import input_fingerprint
 from stmdomains.analysis.segmentation import segment_domains
@@ -23,6 +24,7 @@ def analyze_frame(
     data: AnalysisInput, *, settings: DomainSettings = DomainSettings(), k: int = 5,
     catalogue: ClassCatalogue | None = None,
     acceptance: ClassAcceptanceSettings = ClassAcceptanceSettings(),
+    order_settings: OrderSettings = OrderSettings(),
     cancelled: Callable[[], bool] = lambda: False,
     progress: Callable[[str], None] = lambda text: None,
 ) -> FrameAnalysis:
@@ -35,7 +37,7 @@ def analyze_frame(
         k = catalogue.k
         validate_catalogue(data, catalogue)
     validate_k(k)
-    prepared = prepare_frame(data, k, settings, check, progress)
+    prepared = prepare_frame(data, k, settings, check, progress, order_settings=order_settings)
     if catalogue is None:
         if isinstance(prepared, FrameAnalysis):
             return prepared

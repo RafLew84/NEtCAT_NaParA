@@ -44,6 +44,7 @@ def analyze_series(
     indices, fit = plan.indices(frame_count), plan.fit_settings(frame_count)
     if fit is not None:
         catalogue = fit_shared_catalogue(read_frame, frame_count=frame_count, settings=fit,
+                                         order_settings=plan.order_settings,
                                          cancelled=cancelled, progress=progress)
     validate_shared_catalogue(catalogue, series_id, plan.k)
     assert catalogue is not None
@@ -61,6 +62,7 @@ def analyze_series(
             if data.series_id != series_id or data.frame.working_index != index:
                 raise ValueError("Dane należą do innej serii lub klatki.")
             result = analyze_frame(data, catalogue=catalogue, settings=plan.domain_settings,
+                                    order_settings=plan.order_settings,
                                     cancelled=cancelled, progress=report)
             result = replace(result, metadata={**result.metadata, "series_analysis": {
                 "run_id": run_id, "working_indices": indices, "fit_source": plan.fit_source}})

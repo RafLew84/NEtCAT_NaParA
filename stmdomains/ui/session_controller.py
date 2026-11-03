@@ -14,10 +14,11 @@ from stmdomains.core.frame_presentation import FramePresenter, PresentedFrame
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.class_catalogue import ClassCatalogue
 from stmdomains.core.series import Series
-from stmdomains.analysis import analyze_frame, recalculate_domains, discover_classes, recalculate_class_acceptance
+from stmdomains.analysis import analyze_frame, recalculate_domains, discover_classes, recalculate_class_acceptance, recalculate_order
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.class_settings import ClassFitSettings
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.analysis.series_settings import SeriesAnalysisPlan
 from stmdomains.analysis.series_analysis import FrameOutcome
 from stmdomains.io.moltrack_import import ImportCandidate, SourceRequest, prepare_import
@@ -134,6 +135,14 @@ class SessionController(QObject):
     def can_tune_acceptance(self) -> bool:
         result = self.result
         return self.can_analyze and result is not None and result.status == "complete" and result.catalogue is not None
+
+    @property
+    def can_tune_order(self) -> bool:
+        return self.can_tune_acceptance
+
+    @property
+    def current_order_settings(self) -> OrderSettings:
+        return OrderSettings.from_parameters(self.result.parameters) if self.result else OrderSettings()
 
     @property
     def can_play(self) -> bool:
@@ -270,11 +279,13 @@ class SessionController(QObject):
         presenter, index = self.presenter, self.current_index
         settings = DomainSettings.from_parameters(self.result.parameters) if self.result else DomainSettings()
         acceptance = ClassAcceptanceSettings.from_parameters(self.result.parameters) if self.result else ClassAcceptanceSettings()
+        order_settings = self.current_order_settings
         active = self.active_catalogue
         catalogue = active if active is not None and active.scope != "current_frame" else None
         k = active.k if active else 5
         self._analysis_token = self._submit(lambda cancelled, report: analyze_frame(
             presenter.analysis_input(index), settings=settings, k=k, catalogue=catalogue, acceptance=acceptance,
+            order_settings=order_settings,
             cancelled=cancelled.is_set, progress=report,
         ))
         self._busy()
@@ -285,9 +296,10 @@ class SessionController(QObject):
             return
         presenter, index, count = self.presenter, self.current_index, self.series.frame_count
         domain_settings = DomainSettings.from_parameters(self.result.parameters) if self.result else DomainSettings()
+        order_settings = self.current_order_settings
         self._analysis_token = self._submit(lambda cancelled, report: discover_classes(
             presenter.analysis_input, frame_count=count, current_index=index, settings=settings,
-            domain_settings=domain_settings, cancelled=cancelled.is_set, progress=report,
+            domain_settings=domain_settings, order_settings=order_settings, cancelled=cancelled.is_set, progress=report,
         ))
         self._busy()
 
@@ -319,6 +331,16 @@ class SessionController(QObject):
             return
         presenter, index, previous = self.presenter, self.current_index, self.result
         self._analysis_token = self._submit(lambda cancelled, report: recalculate_class_acceptance(
+            presenter.analysis_input(index), previous, settings, cancelled=cancelled.is_set, progress=report,
+        ))
+        self._busy()
+
+    def recalculate_order(self, settings: OrderSettings) -> None:
+        self.pause()
+        if not self.can_tune_order or self.presenter is None or self.result is None:
+            return
+        presenter, index, previous = self.presenter, self.current_index, self.result
+        self._analysis_token = self._submit(lambda cancelled, report: recalculate_order(
             presenter.analysis_input(index), previous, settings, cancelled=cancelled.is_set, progress=report,
         ))
         self._busy()

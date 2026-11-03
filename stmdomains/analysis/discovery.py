@@ -9,6 +9,7 @@ from stmdomains.analysis.class_settings import ClassFitSettings
 from stmdomains.analysis.clustering import fit_model
 from stmdomains.analysis.config import model_parameters
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.analysis.pipeline import analyze_frame, apply_prepared
 from stmdomains.analysis.preparation import PreparedFrame, prepare_frame
 from stmdomains.core.analysis_result import AnalysisCancelled, AnalysisInput, FrameAnalysis
@@ -20,6 +21,7 @@ MAX_FIT_SAMPLES = 6000
 def discover_classes(
     read_frame: Callable[[int], AnalysisInput], *, frame_count: int, current_index: int,
     settings: ClassFitSettings, domain_settings: DomainSettings = DomainSettings(),
+    order_settings: OrderSettings = OrderSettings(),
     cancelled: Callable[[], bool] = lambda: False,
     progress: Callable[[str], None] = lambda text: None,
 ) -> FrameAnalysis:
@@ -31,21 +33,23 @@ def discover_classes(
     indices = settings.indices(current_index, frame_count)
     if settings.scope == "current_frame":
         result = analyze_frame(read_frame(current_index), k=settings.k, settings=domain_settings,
-                               cancelled=cancelled, progress=progress)
+                               order_settings=order_settings, cancelled=cancelled, progress=progress)
         if result.catalogue is None:
             raise ValueError(result.message)
         return result
-    catalogue, target = _fit_shared(read_frame, indices, settings, domain_settings, check, progress, current_index)
+    catalogue, target = _fit_shared(read_frame, indices, settings, domain_settings, check, progress,
+                                    current_index, order_settings=order_settings)
     if target is None:
         data = read_frame(current_index)
         if data.series_id != catalogue.series_id or data.frame.working_index != current_index:
             raise ValueError("Bieżąca klatka pochodzi z innej serii.")
-        target = prepare_frame(data, settings.k, domain_settings, check, progress)
+        target = prepare_frame(data, settings.k, domain_settings, check, progress, order_settings=order_settings)
     return apply_prepared(target, catalogue, domain_settings, check, progress)
 
 
 def fit_shared_catalogue(
     read_frame: Callable[[int], AnalysisInput], *, frame_count: int, settings: ClassFitSettings,
+    order_settings: OrderSettings = OrderSettings(),
     cancelled: Callable[[], bool] = lambda: False, progress: Callable[[str], None] = lambda text: None,
 ) -> ClassCatalogue:
     """Discover once without computing domains on any target frame."""
@@ -58,7 +62,7 @@ def fit_shared_catalogue(
 
     check()
     catalogue, _ = _fit_shared(read_frame, settings.indices(0, frame_count), settings,
-                                DomainSettings(), check, progress)
+                                DomainSettings(), check, progress, order_settings=order_settings)
     return catalogue
 
 
@@ -66,6 +70,7 @@ def _fit_shared(
     read_frame: Callable[[int], AnalysisInput], indices: tuple[int, ...], settings: ClassFitSettings,
     domain_settings: DomainSettings, check: Callable[[], None], progress: Callable[[str], None],
     current_index: int | None = None,
+    *, order_settings: OrderSettings = OrderSettings(),
 ) -> tuple[ClassCatalogue, PreparedFrame | FrameAnalysis | None]:
     if len(indices) > MAX_FIT_SAMPLES:
         raise ValueError(f"Wybierz najwyżej {MAX_FIT_SAMPLES} klatek do jednego dopasowania.")
@@ -85,7 +90,7 @@ def _fit_shared(
             progress(f"Odkrywanie klas {ordinal}/{len(indices)} · klatka {index + 1}: {text}")
 
         report("przygotowanie danych…")
-        prepared = prepare_frame(data, settings.k, domain_settings, check, report)
+        prepared = prepare_frame(data, settings.k, domain_settings, check, report, order_settings=order_settings)
         if index == current_index:
             target = prepared
         if isinstance(prepared, FrameAnalysis):

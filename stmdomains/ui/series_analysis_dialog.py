@@ -11,6 +11,7 @@ from stmdomains.analysis.series_analysis import validate_shared_catalogue
 from stmdomains.analysis.series_settings import SeriesAnalysisPlan
 from stmdomains.ui.catalogue_style import catalogue_description
 from stmdomains.ui.domain_fields import DomainSettingsFields
+from stmdomains.ui.order_settings_dialog import order_settings_description
 from stmdomains.ui.session_controller import SessionController
 
 STATUS_TEXT = {"pending": "Oczekuje", "analysing": "Obliczanie", "not_run": "Niewykonana",
@@ -73,6 +74,10 @@ class SeriesAnalysisDialog(QDialog):
         domains_layout.addStretch()
         self.tabs.addTab(domains_page, "Tworzenie domen")
         layout.addWidget(self.tabs)
+        self.order_summary = QLabel()
+        self.order_summary.setWordWrap(True)
+        self.order_summary.setMinimumHeight(self.order_summary.fontMetrics().height() * 3)
+        layout.addWidget(self.order_summary)
         self.validation = QLabel()
         self.validation.setWordWrap(True)
         self.validation.setFixedHeight(self.validation.fontMetrics().height() * 3)
@@ -117,7 +122,8 @@ class SeriesAnalysisDialog(QDialog):
     def _plan(self) -> SeriesAnalysisPlan:
         return SeriesAnalysisPlan(self.start.value() - 1, self.end.value() - 1, self.scope.currentData(),
                                   self.k.value(), self.fit_source.currentData(), self.fit_start.value() - 1,
-                                  self.fit_end.value() - 1, self.domain_fields.settings())
+                                  self.fit_end.value() - 1, self.domain_fields.settings(),
+                                  self.controller.current_order_settings)
 
     def _copy_domains(self) -> None:
         result = self.controller.result
@@ -199,6 +205,10 @@ class SeriesAnalysisDialog(QDialog):
         self.cancel.setEnabled(controller.series_running)
         self.catalogue_label.setText("Wybrany katalog: " + catalogue_description(controller.active_catalogue))
         run = controller.series_run
+        order = run.plan.order_settings if controller.series_running and run else controller.current_order_settings
+        self.order_summary.setText("Test porządku dla całego przebiegu: " + order_settings_description(order)
+                                   + ".\nŹródło przed startem: wyświetlany wynik, a przy jego braku ustawienia bazowe. "
+                                   "Zmiana: Analiza → Test porządku…")
         indices = run.indices if run else ()
         if self._rows != indices:
             self._rows = indices

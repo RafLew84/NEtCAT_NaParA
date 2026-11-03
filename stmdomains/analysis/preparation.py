@@ -11,6 +11,7 @@ from stmdomains.analysis.config import PARAMETERS
 from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.analysis.features import pair_features, prepare_points
 from stmdomains.analysis.order import evaluate_order
+from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.analysis.provenance import input_fingerprint
 from stmdomains.core.analysis_result import AnalysisInput, FrameAnalysis, MoleculeAssignment
 from stmdomains.core.annotations import Detection
@@ -33,6 +34,9 @@ class PreparedFrame:
                 "input_sha256": self.base.metadata["input_sha256"], "spacing_px": self.spacing,
                 "useful_samples": int(self.fit_mask.sum()), "used_samples": len(rows),
                 "sample_detection_ids": [self.active[int(row)].detection_id for row in rows],
+                "order_settings": OrderSettings.from_parameters(self.base.parameters).parameters(),
+                "order_calibration_id": self.base.metadata["order_calibration"]["identifier"],
+                "order_seed": self.base.metadata["order_calibration"]["seed"],
                 "status": "used" if len(rows) else "no_useful_samples"}
 
     def unavailable(self, message: str) -> FrameAnalysis:
@@ -42,10 +46,11 @@ class PreparedFrame:
 def prepare_frame(
     data: AnalysisInput, k: int, settings: DomainSettings,
     check: Callable[[], None], progress: Callable[[str], None],
+    *, order_settings: OrderSettings = OrderSettings(),
 ) -> PreparedFrame | FrameAnalysis:
     image = np.asarray(data.frame.image, dtype=float)
     detections = data.annotations.detections
-    parameters = {**PARAMETERS, **settings.parameters(), "k": k}
+    parameters = {**PARAMETERS, **settings.parameters(), **order_settings.parameters(), "k": k}
     metadata: dict[str, Any] = {
         "fit_scope": "current_frame", "working_index": data.frame.working_index,
         "source_index": data.frame.source_index, "annotation_state": data.annotations.detection_state,
@@ -92,8 +97,15 @@ def prepare_frame(
     progress("Obliczanie opisów otoczeń…")
     features, valid, support = pair_features(points, spacing, check)
     progress("Ocena lokalnego porządku…")
-    order, calibration = evaluate_order(points, spacing, check, progress)
+    order, calibration = evaluate_order(points, spacing, check, progress, settings=order_settings)
     metadata["order_calibration"] = calibration
+    metadata["order_evaluation"] = {
+        "working_index": data.frame.working_index, "source_index": data.frame.source_index,
+        "input_sha256": metadata["input_sha256"], "spacing_px": spacing,
+        "radius_px": order_settings.order_radius_factor * spacing,
+        "sigma_px": order_settings.order_sigma_factor * spacing,
+        "calibration_id": calibration["identifier"],
+    }
     fit_mask = valid & (support["neighbors"] >= 6) & (support["first_shell"] >= 2) & order["supported"]
     metadata["fit_count"] = int(fit_mask.sum())
     metadata["order_supported_count"] = int(order["supported"].sum())

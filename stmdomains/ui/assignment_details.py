@@ -1,6 +1,7 @@
 """Explain independent class, order and domain decisions in user-facing terms."""
 
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
+from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.ui.result_style import assignment_description
 
@@ -36,6 +37,16 @@ def assignment_details(result: FrameAnalysis | None, detection_id: str) -> str:
     else:
         order = "potwierdzony" if data.get("order_supported") else "niepotwierdzony"
     lines.append(f"Porządek lokalny: {order} (test periodyczności metody).")
+    order_settings = OrderSettings.from_parameters(result.parameters)
+    if "local_point_count" in data:
+        lines.append(f"Punkty lokalne: {data['local_point_count']}; wymagane ≥ {order_settings.order_minimum_local_count}.")
+        lines.append(f"Punkty efektywne: {data['effective_point_count']:.3f}; "
+                     f"wymagane ≥ {order_settings.order_minimum_effective_count:g}.")
+        lines.append(f"Koherencja: {data['order_score']:.4f}; wymagane > próg kontroli {data['order_threshold']:.4f} "
+                     f"(kwantyl {order_settings.order_quantile:g}).")
+        lines.append(f"Otoczenie porządku: promień {order_settings.order_radius_factor:g} × d, "
+                     f"sigma {order_settings.order_sigma_factor:.6g} × d; d = {result.parameters['spacing_px']:.3f} px.")
+        lines.append("Kwantyl nie jest pewnością domeny. Jeden kierunek periodyczności nie potwierdza sieci 2D.")
     lines.append(f"Domena końcowa: {member.domain_local_id}" if member.domain_local_id else
                  "Domena końcowa: brak — " + summary)
     score = data.get("class_confidence")

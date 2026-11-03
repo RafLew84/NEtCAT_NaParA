@@ -5,6 +5,7 @@ from typing import Literal
 
 from stmdomains.analysis.class_settings import ClassFitSettings
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.order_settings import OrderSettings
 
 
 @dataclass(frozen=True)
@@ -17,6 +18,7 @@ class SeriesAnalysisPlan:
     fit_start: int = 0
     fit_end: int = 0
     domain_settings: DomainSettings = DomainSettings()
+    order_settings: OrderSettings = OrderSettings()
 
     def indices(self, frame_count: int) -> tuple[int, ...]:
         return ClassFitSettings(self.k, "whole_series" if self.whole_series else "selected_range",

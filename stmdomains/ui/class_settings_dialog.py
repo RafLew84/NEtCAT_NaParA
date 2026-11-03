@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 from stmdomains.analysis.class_settings import ClassFitSettings
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.ui.catalogue_style import catalogue_description
+from stmdomains.ui.order_settings_dialog import order_settings_description
 from stmdomains.ui.session_controller import SessionController
 
 
@@ -44,6 +45,10 @@ class ClassSettingsDialog(QDialog):
                              ("Pierwsza klatka", self.start), ("Ostatnia klatka", self.end)):
             form.addRow(label, field)
         layout.addWidget(self.form_widget)
+        self.order_summary = QLabel()
+        self.order_summary.setWordWrap(True)
+        self.order_summary.setMinimumHeight(self.order_summary.fontMetrics().height() * 3)
+        layout.addWidget(self.order_summary)
         self.validation = QLabel()
         self.validation.setWordWrap(True)
         self.validation.setFixedHeight(self.validation.fontMetrics().height() * 3)
@@ -145,6 +150,8 @@ class ClassSettingsDialog(QDialog):
                 self.end.setValue(controller.current_index + 1)
             self._loading = False
         self.context.setText(f"Wynik dla klatki {controller.current_index + 1}" if series else "Brak serii")
+        self.order_summary.setText("Dobór próbek użyje porządku z wyświetlanego wyniku (lub bazowego, gdy brak wyniku): "
+                                   + order_settings_description(controller.current_order_settings))
         self.form_widget.setEnabled(controller.can_analyze)
         self.cancel.setEnabled(controller.is_busy)
         self.comparison.setEnabled(controller.can_analyze and controller.previous_result is not None)

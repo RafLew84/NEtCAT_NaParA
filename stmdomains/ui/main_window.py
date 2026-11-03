@@ -17,6 +17,7 @@ from stmdomains.ui.annotation_controls import AnnotationControls
 from stmdomains.ui.domain_settings_dialog import DomainSettingsDialog
 from stmdomains.ui.class_settings_dialog import ClassSettingsDialog
 from stmdomains.ui.class_acceptance_dialog import ClassAcceptanceDialog
+from stmdomains.ui.order_settings_dialog import OrderSettingsDialog
 from stmdomains.ui.series_analysis_dialog import SeriesAnalysisDialog, STATUS_TEXT
 from stmdomains.ui.catalogue_style import catalogue_description
 from stmdomains.ui.image_view import ImageView
@@ -188,6 +189,7 @@ class STMDomainsMainWindow(QMainWindow):
         self.class_settings_dialog = ClassSettingsDialog(self.controller, self)
         self.series_analysis_dialog = SeriesAnalysisDialog(self.controller, self)
         self.class_acceptance_dialog = ClassAcceptanceDialog(self.controller, self)
+        self.order_settings_dialog = OrderSettingsDialog(self.controller, self)
         analysis_menu = menu_bar.addMenu("&Analiza") if menu_bar is not None else None
         self.series_analysis_action = analysis_menu.addAction("Analiza serii…") if analysis_menu is not None else None
         if self.series_analysis_action is not None:
@@ -209,6 +211,11 @@ class STMDomainsMainWindow(QMainWindow):
             self.class_acceptance_action.setObjectName("classAcceptanceAction")
             self.class_acceptance_action.setEnabled(False)
             self.class_acceptance_action.triggered.connect(self._show_class_acceptance)
+        self.order_settings_action = analysis_menu.addAction("Test porządku…") if analysis_menu is not None else None
+        if self.order_settings_action is not None:
+            self.order_settings_action.setObjectName("orderSettingsAction")
+            self.order_settings_action.setEnabled(False)
+            self.order_settings_action.triggered.connect(self._show_order_settings)
         app = QCoreApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(self._finish_background_work)
@@ -225,6 +232,13 @@ class STMDomainsMainWindow(QMainWindow):
         self.domain_settings_dialog.show()
         self.domain_settings_dialog.raise_()
         self.domain_settings_dialog.activateWindow()
+
+    def _show_order_settings(self) -> None:
+        self.controller.pause()
+        self.order_settings_dialog.refresh()
+        self.order_settings_dialog.show()
+        self.order_settings_dialog.raise_()
+        self.order_settings_dialog.activateWindow()
 
     def _show_class_acceptance(self) -> None:
         self.controller.pause()
@@ -321,6 +335,8 @@ class STMDomainsMainWindow(QMainWindow):
             self.domain_settings_action.setEnabled(self.controller.series is not None)
         if self.class_acceptance_action is not None:
             self.class_acceptance_action.setEnabled(self.controller.series is not None)
+        if self.order_settings_action is not None:
+            self.order_settings_action.setEnabled(self.controller.series is not None)
         if self.series_analysis_action is not None:
             self.series_analysis_action.setEnabled(self.controller.series is not None)
         self.progress_label.setText(text)
