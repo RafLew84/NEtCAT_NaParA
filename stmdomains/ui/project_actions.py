@@ -29,10 +29,12 @@ class ProjectActions:
         self.controller.project_saved.connect(self._saved)
         self.save_actions = []
         if menu is not None:
+            before = menu.actions()[-1] if menu.actions() else None
             for label, shortcut, save_as in (('Zapisz projekt…', QKeySequence.StandardKey.Save, False),
                                              ('Zapisz projekt jako…', QKeySequence.StandardKey.SaveAs, True)):
                 action = menu.addAction(label)
                 if action is not None:
+                    menu.insertAction(before, action)
                     action.setShortcut(shortcut)
                     action.triggered.connect(lambda checked=False, variant=save_as: self.save(save_as=variant))
                     self.save_actions.append(action)

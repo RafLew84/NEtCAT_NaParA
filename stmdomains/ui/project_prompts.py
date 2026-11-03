@@ -12,12 +12,22 @@ class ProjectPrompts(Protocol):
     def confirm_unsaved(self) -> str: ...
 
 
+class ProjectFileDialog(QFileDialog):
+    def accept(self) -> None:
+        selected = self.selectedFiles()
+        if selected and Path(selected[0]).suffix.lower() != '.stmdomains':
+            self.selectFile(selected[0] + '.stmdomains')
+        # Confirmation refers to the final name, including an appended extension.
+        super().accept()
+
+
 class QtProjectPrompts:
     def __init__(self, parent: QWidget) -> None:
         self.parent = parent
 
     def choose_path(self, suggested: Path) -> Path | None:
-        dialog = QFileDialog(self.parent, 'Zapisz projekt STM Domains', str(suggested))
+        dialog = ProjectFileDialog(self.parent, 'Zapisz projekt STM Domains', str(suggested))
+        dialog.setOption(QFileDialog.Option.DontUseNativeDialog)
         dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
         dialog.setNameFilter('Projekt STM Domains (*.stmdomains)')
         dialog.setDefaultSuffix('stmdomains')

@@ -2,7 +2,7 @@
 
 from collections import OrderedDict
 from collections.abc import Iterator, Mapping
-from dataclasses import asdict
+from dataclasses import asdict, replace
 import io
 from pathlib import Path
 from threading import RLock
@@ -18,6 +18,7 @@ from stmdomains.core.immutable import plain_metadata
 from stmdomains.core.project import ProjectAnalysis
 from stmdomains.core.series import Series
 from stmdomains.analysis.provenance import input_fingerprint
+from stmdomains.io.project_masks import check_labels, load_labels
 from stmdomains.io.project_validation import validate_execution, validate_selection
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.domain_settings import DomainSettings
@@ -39,6 +40,8 @@ def load_catalogue(record: dict, series: Series) -> ClassCatalogue:
                                record['provenance'], record['parameters'])
     if catalogue.identifier != record['identifier'] or type(catalogue.state['k']) is not int or not 1 <= catalogue.k <= 8:
         raise ProjectError('Niezgodna tożsamość lub liczba klas katalogu.')
+    if 'class_selection' in catalogue.state and catalogue.state['class_selection'] is None:
+        raise ProjectError('Brak wymaganej decyzji Auto w katalogu.')
     validate_selection(catalogue.state.get("class_selection"))
     return catalogue
 
@@ -66,6 +69,10 @@ def validate_frame(result: FrameAnalysis, series: Series, presenter: FramePresen
     DomainSettings.from_parameters(result.parameters)
     OrderSettings.from_parameters(result.parameters)
     validate_selection(result.metadata.get("class_selection"))
+    if not isinstance(result.message, str):
+        raise ProjectError('Niepoprawny opis wyniku.')
+    if any(not isinstance(value, str) for item in result.classes for value in (item.class_id, item.color)):
+        raise ProjectError('Niepoprawny opis klasy.')
     index = result.working_index
     if (result.series_id != series.identity or type(index) is not int or not 0 <= index < series.frame_count or
             result.source_index != series.source_frame_indices[index] or
@@ -79,6 +86,9 @@ def validate_frame(result: FrameAnalysis, series: Series, presenter: FramePresen
         raise ProjectError('Niepoprawne ID klas wyniku.')
     domain_classes: dict[int, str] = {}
     for key, item in result.assignments.items():
+        if any(not isinstance(value, str) for value in (item.detection_id, item.class_id,
+                item.provisional_class_id, item.status, item.rejection_reason)):
+            raise ProjectError('Niepoprawny opis przypisania.')
         domain = item.domain_local_id
         if (item.detection_id != key or type(domain) is not int or domain < 0 or
                 (domain and (item.status != 'domain' or item.class_id not in classes)) or
@@ -104,7 +114,7 @@ def validate_frame(result: FrameAnalysis, series: Series, presenter: FramePresen
 
 
 def save_analysis(archive: zipfile.ZipFile, entries: dict, analysis: ProjectAnalysis, series: Series, check) -> dict:
-    if not analysis.identifier or not valid_indices(analysis.indices, series.frame_count):
+    if not isinstance(analysis.identifier, str) or not analysis.identifier or not valid_indices(analysis.indices, series.frame_count):
         raise ProjectError('Niepoprawna tożsamość lub zakres analizy.')
     if set(analysis.statuses) != set(analysis.indices) or not set(analysis.frames) <= set(analysis.indices):
         raise ProjectError('Niepełna lista stanów zakresu analizy.')
@@ -117,7 +127,7 @@ def save_analysis(archive: zipfile.ZipFile, entries: dict, analysis: ProjectAnal
         if index not in analysis.frames and status in ('complete', 'no_annotations', 'insufficient_data'):
             raise ProjectError('Brak wyniku klatki oznaczonej jako wykonana.')
     catalogues = {c.identifier: c for c in analysis.catalogues}
-    presenter = FramePresenter(series)
+    presenter = verification_presenter(series)
     for index in analysis.frames:
         check()
         result = analysis.frames[index]
@@ -144,6 +154,26 @@ def save_analysis(archive: zipfile.ZipFile, entries: dict, analysis: ProjectAnal
             'catalogues': list(catalogues), 'execution': plain_metadata(analysis.execution)}
 
 
+def verification_presenter(series: Series) -> FramePresenter:
+    # Fingerprints use images and detection centres, never input segmentation masks.
+    # Reuse the annotation adapter without decoding those unrelated rasters.
+    payload = {key: value for key, value in series.raw_payload.items() if key != 'molecular_segmentations'}
+    return FramePresenter(replace(series, raw_payload=payload))
+
+
+def read_result(root: Path, index: int, series: Series, catalogues: Mapping[str, ClassCatalogue], *,
+                load_mask: bool) -> FrameAnalysis:
+    record = read_json(root / f'frames/{index}.json')
+    if type(record['domain_labels']) is not bool:
+        raise ProjectError('Niepoprawny stan maski domen.')
+    labels = load_labels(root / f'frames/{index}.npy', series.frame_shape) if load_mask and record['domain_labels'] else None
+    assignments = {key: MoleculeAssignment(**item) for key, item in record['assignments'].items()}
+    catalogue = catalogues[record['catalogue']] if record['catalogue'] is not None else None
+    return FrameAnalysis(series.identity, record['working_index'], record['source_index'], record['status'],
+                         record['message'], assignments, tuple(ResultClass(**item) for item in record['classes']),
+                         record['parameters'], record['metadata'], labels, catalogue)
+
+
 class SavedFrameResults(Mapping[int, FrameAnalysis]):
     """Cache at most three immutable frame results; source files live with the Series."""
 
@@ -151,6 +181,9 @@ class SavedFrameResults(Mapping[int, FrameAnalysis]):
         self.root, self.series, self.indices, self.catalogues = root, series, indices, catalogues
         self._cache: OrderedDict[int, FrameAnalysis] = OrderedDict()
         self._lock = RLock()
+
+    def __contains__(self, index: object) -> bool:
+        return index in self.indices
 
     def __iter__(self) -> Iterator[int]:
         return iter(self.indices)
@@ -163,26 +196,7 @@ class SavedFrameResults(Mapping[int, FrameAnalysis]):
             raise KeyError(index)
         with self._lock:
             if index not in self._cache:
-                record = read_json(self.root / f'frames/{index}.json')
-                labels = None
-                if record['domain_labels']:
-                    with (self.root / f'frames/{index}.npy').open('rb') as stream:
-                        version = np.lib.format.read_magic(stream)
-                        if version != (1, 0):
-                            raise ProjectError('Nieobsługiwany zapis tablicy domen.')
-                        shape, _, dtype = np.lib.format.read_array_header_1_0(stream)
-                        if shape != self.series.frame_shape or dtype != np.dtype('int32'):
-                            raise ProjectError('Niepoprawny nagłówek tablicy domen.')
-                        stream.seek(0)
-                        labels = np.load(stream, allow_pickle=False)
-                    if labels.dtype != np.dtype('int32') or labels.shape != self.series.frame_shape or np.any(labels < 0):
-                        raise ProjectError('Niepoprawna tablica domen.')
-                assignments = {key: MoleculeAssignment(**item) for key, item in record['assignments'].items()}
-                catalogue = self.catalogues[record['catalogue']] if record['catalogue'] is not None else None
-                self._cache[index] = FrameAnalysis(
-                    self.series.identity, record['working_index'], record['source_index'], record['status'],
-                    record['message'], assignments, tuple(ResultClass(**item) for item in record['classes']),
-                    record['parameters'], record['metadata'], labels, catalogue)
+                self._cache[index] = read_result(self.root, index, self.series, self.catalogues, load_mask=True)
             self._cache.move_to_end(index)
             while len(self._cache) > 3:
                 self._cache.popitem(last=False)
@@ -194,7 +208,7 @@ def load_analysis(record: dict | None, root: Path, series: Series, entries: dict
         if any(name.startswith(('frames/', 'catalogues/')) for name in entries):
             raise ProjectError('Projekt bez analizy zawiera niepowiązane wyniki.')
         return None
-    if not record['identifier'] or not valid_indices(record['indices'], series.frame_count):
+    if not isinstance(record['identifier'], str) or not record['identifier'] or not valid_indices(record['indices'], series.frame_count):
         raise ProjectError('Niepoprawny zakres analizy.')
     indices = tuple(record['indices'])
     validate_execution(record['execution'], indices, series.frame_count)
@@ -215,14 +229,16 @@ def load_analysis(record: dict | None, root: Path, series: Series, entries: dict
     if set(statuses) != set(indices):
         raise ProjectError('Brak stanów części klatek analizy.')
     expected_entries = {'source.mpp', 'input.json', 'project.json', *(f'catalogues/{i}.json' for i in catalogues)}
-    presenter = FramePresenter(series)
+    presenter = verification_presenter(series)
     for index in indices:
         check()
+        if not isinstance(statuses[index].get('message', ''), str):
+            raise ProjectError('Niepoprawny opis stanu klatki.')
         status = statuses[index]['status']
         if status not in ('complete', 'no_annotations', 'insufficient_data', 'error', 'not_run', 'unavailable'):
             raise ProjectError('Niepoprawny stan klatki analizy.')
         if index in results:
-            result = results[index]
+            result = read_result(root, index, series, catalogues, load_mask=False)
             validate_frame(result, series, presenter)
             if result.working_index != index or result.status != status:
                 raise ProjectError('Stan lub indeks nie odpowiada wynikowi klatki.')
@@ -230,7 +246,9 @@ def load_analysis(record: dict | None, root: Path, series: Series, entries: dict
                     ('assigned', result.assigned_count), ('active', result.active_count), ('domains', result.domain_count))):
                 raise ProjectError('Liczniki nie odpowiadają przypisaniom klatki.')
             expected_entries.add(f'frames/{index}.json')
-            if result.domain_labels is not None:
+            if read_json(root / f'frames/{index}.json')['domain_labels']:
+                check_labels(root / f'frames/{index}.npy', series.frame_shape,
+                             {item.domain_local_id for item in result.assignments.values()} - {0}, check)
                 expected_entries.add(f'frames/{index}.npy')
         elif status in ('complete', 'no_annotations', 'insufficient_data'):
             raise ProjectError('Brak wymaganego wyniku klatki.')

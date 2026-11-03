@@ -110,3 +110,34 @@ def test_discard_opens_new_work_and_failed_save_keeps_dirty_window(qtbot, tmp_pa
     assert window.controller.series is not previous
     window.close()
     assert not window.isVisible()
+
+
+def test_save_dialog_extension_and_overwrite_confirmation_use_final_filename(qtbot, tmp_path):
+    from PyQt6.QtCore import QTimer
+    from PyQt6.QtWidgets import QWidget, QFileDialog, QMessageBox
+    from stmdomains.ui.project_prompts import QtProjectPrompts
+    parent = QWidget()
+    qtbot.addWidget(parent)
+    prompts = QtProjectPrompts(parent)
+    def accept_filename():
+        dialog = parent.findChild(QFileDialog)
+        dialog.selectFile(str(tmp_path / 'variant.txt'))
+        dialog.accept()
+    QTimer.singleShot(0, accept_filename)
+    path = prompts.choose_path(tmp_path / 'variant.stmdomains')
+    assert path == tmp_path / 'variant.txt.stmdomains'
+    path.write_bytes(b'keep this file')
+    confirmations = []
+    timer = QTimer()
+    def refuse_replace():
+        message = parent.findChild(QMessageBox)
+        if message is not None and message.isVisible():
+            confirmations.append(True)
+            message.button(QMessageBox.StandardButton.No).click()
+            timer.stop()
+            QTimer.singleShot(0, lambda: parent.findChild(QFileDialog).reject())
+    timer.timeout.connect(refuse_replace)
+    timer.start(10)
+    QTimer.singleShot(0, accept_filename)
+    assert prompts.choose_path(path) is None
+    assert confirmations and path.read_bytes() == b'keep this file'

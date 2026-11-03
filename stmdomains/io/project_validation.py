@@ -33,13 +33,20 @@ def validate_project_state(view: Mapping, draft: Mapping, count: int) -> None:
         raise ProjectError('Niepoprawna gamma projektu.')
     if view.get('assignment_mode', 'domains') not in ('domains', 'classes', 'input'):
         raise ProjectError('Nieznana warstwa przypisań.')
-    viewport = view.get('viewport', {})
-    if viewport:
-        if type(viewport['fit']) is not bool or not .0001 <= viewport['scale'] <= 256:
+    if 'viewport' in view:
+        viewport = view['viewport']
+        if not isinstance(viewport, Mapping) or set(viewport) != {'fit', 'scale', 'center'}:
+            raise ProjectError('Niepoprawny stan powiększenia projektu.')
+        scale, center = viewport['scale'], viewport['center']
+        if (type(viewport['fit']) is not bool or type(scale) not in (float, int) or
+                not isfinite(scale) or not .0001 <= scale <= 256):
             raise ProjectError('Niepoprawne powiększenie projektu.')
-        if len(viewport['center']) != 2 or any(not isfinite(v) for v in viewport['center']):
+        if (not isinstance(center, (list, tuple)) or len(center) != 2 or
+                any(type(v) not in (int, float) or not isfinite(v) for v in center)):
             raise ProjectError('Niepoprawne przesunięcie widoku.')
     layers = view.get('layers', {})
+    if not isinstance(layers, Mapping):
+        raise ProjectError('Niepoprawny stan warstw projektu.')
     for name in ('centers', 'boxes', 'masks', 'fill', 'outlines', 'numbers'):
         if name in layers and type(layers[name]) is not bool:
             raise ProjectError('Niepoprawny stan warstw projektu.')

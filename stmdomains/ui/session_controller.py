@@ -571,6 +571,7 @@ class SessionController(QObject):
             if not result.project:
                 self.series.provenance["source_confirmation_accepted"] = bool(candidate.confirmation_reasons)
             self.presenter = result.presenter
+            self.current_index = result.view.frame.working_index
             self._results = {}
             self._run_results = {}
             self.loaded_project = result.project

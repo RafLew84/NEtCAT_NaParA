@@ -86,7 +86,7 @@ class STMDomainsMainWindow(QMainWindow):
         self.registration_label.setWordWrap(True)
         layout.addWidget(self.registration_label)
 
-        self.frame_label = QLabel("Wybierz zapis .moltrack.json; obrazy zostaną odczytane z MPP.")
+        self.frame_label = QLabel("Otwórz projekt .stmdomains lub zapis .moltrack.json z obrazami MPP.")
         layout.addWidget(self.frame_label)
         self.image_view = ImageView(self)
         self.image_view.annotation_selected.connect(self._select_annotation)

@@ -182,9 +182,22 @@ def test_invalid_result_references_and_execution_never_publish_a_project(tmp_pat
     with zipfile.ZipFile(path) as archive:
         frame = json.loads(archive.read('frames/0.json'))
         record = json.loads(archive.read('project.json'))
+    colors = json.loads(json.dumps(frame))
+    colors['classes'][0]['color'] = None
+    rewrite_part(path, 'frames/0.json', json.dumps(colors).encode(), refresh_hash=True)
+    with pytest.raises(ProjectError, match='opis klasy'):
+        open_project(path)
+    path.write_bytes(before)
     frame['assignments'].pop(next(iter(frame['assignments'])))
     rewrite_part(path, 'frames/0.json', json.dumps(frame).encode(), refresh_hash=True)
     with pytest.raises(ProjectError, match='Przypisania'):
+        open_project(path)
+    path.write_bytes(before)
+    import io
+    mask = io.BytesIO()
+    np.save(mask, np.zeros((2, 2), dtype=np.int32), allow_pickle=False)
+    rewrite_part(path, 'frames/0.npy', mask.getvalue(), refresh_hash=True)
+    with pytest.raises(ProjectError, match='nagłówek'):
         open_project(path)
     path.write_bytes(before)
     record['analysis']['execution'] = {'phase': 'analysing'}
@@ -199,3 +212,52 @@ def test_invalid_result_references_and_execution_never_publish_a_project(tmp_pat
     with pytest.raises(ProjectError):
         open_project(path)
     assert not (tmp_path / 'outside.json').exists()
+
+
+def test_empty_or_mistyped_view_records_are_refused_before_commit(tmp_path):
+    import pytest
+    from stmdomains.io.project import ProjectError
+    series = prepare_import(create_analysis_demo(tmp_path / 'input')['single']).series
+    for view in ({'viewport': {}}, {'layers': []}, {'viewport': {'fit': False, 'scale': float('inf'), 'center': [0, 0]}}):
+        with pytest.raises((ProjectError, ValueError)):
+            save_project(tmp_path / 'bad.stmdomains', ProjectSnapshot(series, view))
+
+
+def test_open_validates_masks_streaming_and_materializes_only_requested_result(tmp_path, monkeypatch):
+    from stmdomains.analysis.series_analysis import analyze_series
+    from stmdomains.analysis.series_settings import SeriesAnalysisPlan
+    from stmdomains.core.project import ProjectAnalysis
+    from stmdomains.io import annotations
+    series = prepare_import(create_analysis_demo(tmp_path / 'input')['series']).series
+    import json
+    height, width = series.frame_shape
+    series.raw_payload['molecular_segmentations']['segmentations'] = [
+        {'segmentation_id': f'mask-{i}', 'frame_index': i, 'source_view': 'raw',
+         'prompt_detection_ids': [], 'mask': {'encoding': 'rle', 'shape': [height, width],
+                                            'counts': [0, 4, height * width - 4]}} for i in (0, 1)]
+    series.session_path.write_text(json.dumps(series.raw_payload))
+    series = prepare_import(series.session_path).series
+    assert FramePresenter(series).analysis_input(0).annotations.segmentations[0].mask is not None
+    events = list(analyze_series(FramePresenter(series).analysis_input, frame_count=series.frame_count,
+        series_id=series.identity, plan=SeriesAnalysisPlan(end=1, k=4), run_id='two-frames'))
+    catalogue = events[0]
+    frames = {outcome.index: outcome.result for outcome in events[1:]}
+    analysis = ProjectAnalysis('two-frames', (0, 1), frames,
+        {i: {'status': r.status} for i, r in frames.items()}, (catalogue,))
+    path = tmp_path / 'work.stmdomains'
+    save_project(path, ProjectSnapshot(series, analysis=analysis))
+    def forbid(*args, **kwargs):
+        raise AssertionError('Unrequested masks must not be materialized on open')
+    with monkeypatch.context() as patch:
+        patch.setattr(np, 'load', forbid)
+        patch.setattr(annotations, 'decode_mask', forbid)
+        opened = open_project(path)
+    calls = []
+    original = np.load
+    def observed(*args, **kwargs):
+        calls.append(True)
+        return original(*args, **kwargs)
+    monkeypatch.setattr(np, 'load', observed)
+    assert opened.analysis.frames[0].assignments == frames[0].assignments
+    assert opened.analysis.frames[0].domain_count == frames[0].domain_count
+    assert len(calls) == 1

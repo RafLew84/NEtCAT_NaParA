@@ -38,6 +38,20 @@ def test_controller_restores_selected_run_and_keeps_old_work_on_bad_open(qtbot, 
     qtbot.waitUntil(lambda: not controller.is_busy)
     assert controller.series is old and controller.result is not None
     assert len(errors) == 1
+    import json
+    import zipfile
+    from test_project_storage import rewrite_part
+    original_bytes = path.read_bytes()
+    for invalid_view in ({'viewport': {}}, {'layers': []}):
+        path.write_bytes(original_bytes)
+        with zipfile.ZipFile(path) as archive:
+            record = json.loads(archive.read('project.json'))
+        record['view'] = invalid_view
+        rewrite_part(path, 'project.json', json.dumps(record).encode(), refresh_hash=True)
+        controller.open_session(path)
+        qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
+        assert controller.series is old and controller.result is not None
+    assert len(errors) == 3
     controller.shutdown()
     controller.wait_for_workers()
 

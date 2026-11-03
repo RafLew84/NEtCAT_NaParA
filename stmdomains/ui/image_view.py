@@ -65,7 +65,7 @@ class ImageView(QGraphicsView):
         self._press_position: QPoint | None = None
         self._mode = "raw"
         self._fit_mode = True
-        self._message = QLabel("Otwórz zapis MolTrack, aby przeglądać obrazy.", self.viewport())
+        self._message = QLabel("Otwórz projekt lub zapis MolTrack, aby przeglądać obrazy.", self.viewport())
         self._message.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._message.setWordWrap(True)
         self._message.setStyleSheet("color: white; background: transparent; padding: 20px;")
