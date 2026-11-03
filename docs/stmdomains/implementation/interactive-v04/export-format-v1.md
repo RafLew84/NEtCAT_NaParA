@@ -91,6 +91,11 @@ zwalidowanego obszaru fizycznej domeny.
 
 PNG używa tych samych warstw i kolorów co podgląd: Klasy/Domeny/Wejściowe,
 centra, ramki, dostępne maski molekuł, obszary/obrysy/numery domen i krycie.
+Od SD-V4-15 obejmuje też opcjonalną pomarańczową maskę barier wyświetlanego
+wyniku. Włączona, dostępna maska ma legendę „Bariery [px]”; brak maski
+w starszym wyniku nie jest zastępowany nowym obliczeniem ani pustą maską.
+JSON klatki i metadane wykonania zachowują rzeczywiste parametry opisu/PCA
+oraz barier, a ustawienia widoku — widoczność tej diagnostyki.
 Zachowuje gammę i normalizację z podglądu. Pełny widok surowy to oryginalne
 pole, a wyrównany to płótno z paddingiem i obramowaniem pola pomiaru.
 Wycinek jest opisany współrzędnymi widoku; dla zakresu używa tego samego

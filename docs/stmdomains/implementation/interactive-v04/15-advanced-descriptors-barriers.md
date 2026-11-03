@@ -6,21 +6,24 @@
 
 **Blocked by:** [07: Wybierz liczbę klas i zakres ich odkrywania](07-fit-shared-classes.md).
 
-**Status:** ready-for-agent — plan zaktualizowany na polecenie użytkownika; wykonanie po zależnościach.
+**Status:** done — implementacja `1b0c1de`, poprawki `9fe24a6` i `9bf767a`; odbiór ręczny użytkownika oczekuje.
+
+[Raport i test ręczny](acceptance-15.md), [parametry i znaczenie](advanced-settings.md),
+[przegląd](review-15.md). Zakładka **Zaawansowane** we wspólnym oknie analizy.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 
 ## Kryteria akceptacji
 
-- [ ] Sigma opisu, liczba składowych PCA i obsługiwane parametry histogramu są prawdziwą konfiguracją modelu. Zmiana opisu jawnie wymaga nowych cech i dopasowania.
-- [ ] Parametry barier obejmują progi kontrastu, długość fragmentów, dopuszczalną przerwę, nachylenie i poszerzenie w granicach istniejącej metody. Podgląd barier jest opcjonalną warstwą diagnostyczną.
-- [ ] Zmiana samych barier zachowuje model klas, a zmiana opisu tworzy nową wersję modelu. Cache i wcześniejsze wyniki zachowują poprawne pochodzenie.
-- [ ] Cechy, słownik i bariery są obliczane z otwartych danych. Nazwy klas, skala, parametry PCA ani maski barier nie są pobierane z paczki dawnego eksperymentu; ustawienia bazowe należą do metody zaimplementowanej w aplikacji.
-- [ ] Założenia kierunku i znaku kontrastu detektora są opisane w UI. Suwaki nie udają uniwersalnego detektora tarasów ani tolerancji kąta molekuły.
-- [ ] Nieobsługiwane kombinacje lub zbyt mało danych są odrzucane przed kosztownym przebiegiem. Obliczenia można anulować.
-- [ ] Testy potwierdzają wpływ kontrolek, zgodność wymiarów modelu i właściwy zakres ponownych obliczeń.
-- [ ] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
-- [ ] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
+- [x] Sigma opisu, liczba składowych PCA i obsługiwane parametry histogramu są prawdziwą konfiguracją modelu. Zmiana opisu jawnie wymaga nowych cech i dopasowania.
+- [x] Parametry barier obejmują progi kontrastu, długość fragmentów, dopuszczalną przerwę, nachylenie i poszerzenie w granicach istniejącej metody. Podgląd barier jest opcjonalną warstwą diagnostyczną.
+- [x] Zmiana samych barier zachowuje model klas, a zmiana opisu tworzy nową wersję modelu. Cache i wcześniejsze wyniki zachowują poprawne pochodzenie.
+- [x] Cechy, słownik i bariery są obliczane z otwartych danych. Nazwy klas, skala, parametry PCA ani maski barier nie są pobierane z paczki dawnego eksperymentu; ustawienia bazowe należą do metody zaimplementowanej w aplikacji.
+- [x] Założenia kierunku i znaku kontrastu detektora są opisane w UI. Suwaki nie udają uniwersalnego detektora tarasów ani tolerancji kąta molekuły.
+- [x] Nieobsługiwane kombinacje lub zbyt mało danych są odrzucane przed kosztownym przebiegiem. Obliczenia można anulować.
+- [x] Testy potwierdzają wpływ kontrolek, zgodność wymiarów modelu i właściwy zakres ponownych obliczeń.
+- [x] Działającą funkcję sprawdzono automatycznie i ręcznie zgodnie z zakresem; przekazanie rozróżnia wykonane sprawdzenia od niewykonanych.
+- [x] Sprawdzono długość nowego i zmienianego kodu oraz testów według wspólnej zasady 1000/1500 linii.
 
 ## Test ręczny użytkownika
 

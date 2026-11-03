@@ -1,5 +1,19 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Wykonano SD-V4-15 — opis otoczenia i bariery (`1b0c1de`, poprawki `9fe24a6`, `9bf767a`).**
+**Analiza → Analiza… → Zaawansowane**: sigma, histogram, zakres par i PCA,
+progi/długości/nachylenie/poszerzenie barier oraz pomarańczowy podgląd.
+Zmiana opisu wymaga nowego dopasowania; **Użyj istniejących klas** zachowuje
+model przy zmianie barier. Projekt i PNG zachowują nową diagnostykę.
+[Raport i test ręczny](interactive-v04/acceptance-15.md), [znaczenie parametrów](interactive-v04/advanced-settings.md),
+[przegląd](interactive-v04/review-15.md). GUI X11 TTMAPP i kontrola syntetyczna PASS;
+przywrócenie bazowych parametrów odtwarza dokładnie katalog, przypisania
+oraz maskę. **510 testów PASS**, mypy 92 modułów PASS; maks. 474 linie
+w 32 plikach kodu/testów. Standards/Spec: 0 otwartych uwag.
+Status `done`; **odbiór ręczny użytkownika 15 oczekuje**.
+Następny rekomendowany ticket: **16 — kierunek, rozstaw i jakość geometrii**.
+Poniżej historia wcześniejszych etapów.
+
 **Wykonano SD-V4-14 — eksport PNG i CSV (`a20e14b`, poprawka `361a7d0`).**
 **Plik → Eksportuj PNG/CSV…**: wybrany wynik, klatka lub zakres, pełny obraz
 albo widoczny wycinek, aktualne Klasy/Domeny, gamma i warstwy. CSV zachowuje
@@ -123,8 +137,8 @@ oblicza lokalne klasy i końcowe domeny z bieżącego obrazu MPP i oznaczeń
 MolTrack, z kolorami, legendą, odmowami, postępem i anulowaniem.
 [Uruchomienie, sprawdzenia i test ręczny](interactive-v04/acceptance-05.md).
 Ręczny odbiór użytkownika 05 oczekuje. Aktualny plan ma 26 ticketów:
-01–03, 05, 05a i 06–14 `done`,
-15–18, 21–25 oraz 23a `ready-for-agent` po zależnościach, 19–20 `deferred`.
+01–03, 05, 05a i 06–15 `done`,
+16–18, 21–25 oraz 23a `ready-for-agent` po zależnościach, 19–20 `deferred`.
 
 **Wcześniejsza zmiana kierunku — 2026-11-02:** na polecenie użytkownika wycofano
 SD-V4-04 i import jego wyników. Stan aplikacji wrócił wtedy do odebranego 03,

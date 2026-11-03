@@ -1,3 +1,53 @@
+# STM Domains — wykonany SD-V4-15, oczekuje odbioru użytkownika
+
+Data **2026-11-03**, baza `bc3de1b`, implementacja `1b0c1de`, poprawki
+`9fe24a6` i `9bf767a`. Gałąź `domains/interactive-v04-ui`, worktree
+`/home/rlew/projekty/NEtCAT-domains`. [Ticket 15](implementation/interactive-v04/15-advanced-descriptors-barriers.md),
+[raport i test ręczny](implementation/interactive-v04/acceptance-15.md),
+[parametry](implementation/interactive-v04/advanced-settings.md),
+[przegląd](implementation/interactive-v04/review-15.md).
+Status `done`; **ręczny odbiór użytkownika 15 oczekuje**. Odbiór 14 potwierdzony
+w `bc3de1b`. Następny **16 — kierunek, rozstaw i jakość geometrii na obrazie**.
+
+**Analiza → Analiza… → Zaawansowane** dodaje konfigurację sigma, histogramu,
+zakresu par i maksimum PCA oraz sześć parametrów barier. Obliczenia używają
+otwartych danych; opis należy do ID katalogu, a bariery do wyniku klatki.
+Niezgodny opis przy istniejącym katalogu blokuje analizę. Zmiana barier
+przy **Użyj istniejących klas** nie dopasowuje PCA/KMeans. Opcjonalna maska
+pomarańczowa pokazuje bariery użyte do tworzenia domen, z poprawną geometrią
+raw/aligned, porównaniem i eksportem PNG. Zapis zachowuje maskę i oddzielny
+szkic; wcześniejsze projekty otwierają się bez wymyślania brakujących masek.
+
+Wszystkie próby w `netcat`, bez instalacji i zmian wspólnych. TDD obejmuje
+analizę, formularz, zapis i PNG. **510 testów PASS** w 71 plikach,
+kontrola typów 92 modułów PASS, 32 zmienione pliki kodu/testów do 474 linii.
+Pierwsza pełna regresja wykazała 1 błąd przy 509 PASS: zbyt słabą kontrolę
+opisu przy odtwarzaniu dawnych decyzji domen. `9bf767a` wiąże kontrolę
+z katalogiem; 26 testów obszaru PASS, następnie ponowiono pełny zestaw.
+`9fe24a6` naprawił odrzucanie legalnej granicy odległości 0,2–0,3.
+Standards/Spec: 0 otwartych uwag po recheckach.
+
+Wykonano natywne GUI X11: TTMAPP klatka 259, K5 dopasowane na 259–268.
+Bazowo 105/312, 5 domen, 691 pikseli barier. Sigma 1,7/PCA12: nowy katalog,
+113/312, 6 domen. Zmiana barier zachowała katalog, dała 664 piksele barier.
+Przywrócenie bazowych ustawień dało identyczne przypisania, ID oraz maskę.
+Sprawdzono zapis/otwarcie z innym szkicem, PNG, anulowanie, błędne progi,
+nawigację i zamknięcie. Syntetyczny dodatni skok: maska 29 448 → 0 pikseli,
+przypisania 0/405 → 389/405 przy tym samym katalogu. To sprawdzenie wpływu
+parametrów, nie dowód poprawy jakości. Brak odczytów paczki v0.4;
+źródłowe MPP/JSON niezmienione. Artefakty w `.scratch/stmdomains-ui-15/`.
+
+Nie wykonano nowej analizy wszystkich 268 klatek z niestandardowym opisem
+ani walidacji naukowej względem referencji. Detektor nadal zakłada prawie
+poziome granice jaśniejące w dół obrazu; parametry nie oznaczają kąta molekuły
+ani uniwersalnej detekcji tarasów. Format 1 ma opcjonalny raster barier;
+starsza aplikacja może odrzucić nowy zapis, bieżąca czyta starsze projekty.
+Kontrola 461 lokalnych odnośników/kotwic w 11 dokumentach, 26 ticketów,
+zgodności tabeli zależności i braku cykli PASS. `git diff --check` PASS. Brak potrzeb integracyjnych.
+Commit dokumentacji podany w odpowiedzi końcowej. Poniżej historia.
+
+---
+
 # STM Domains — potwierdzony ręczny odbiór SD-V4-14
 
 Data **2026-11-03**, baza `0288aa7`, implementacja `a20e14b`, poprawka

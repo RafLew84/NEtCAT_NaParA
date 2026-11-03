@@ -1,7 +1,7 @@
 # Samowystarczalny projekt STM Domains — format 1
 
 Wprowadzony w SD-V4-13. Rozszerzenie `.stmdomains`, kontener ZIP/ZIP64,
-UTF-8 JSON i tablice NPY int32 bez pickle. Jeden plik przenosi **cały oryginalny
+UTF-8 JSON i tablice NPY int32/bool bez pickle. Jeden plik przenosi **cały oryginalny
 MPP**, nawet gdy wynik obejmuje jedną klatkę. Nie wymaga zewnętrznego JSON,
 MPP ani paczki v0.4. Jest to zapis pracy; eksport PNG/CSV dodaje ticket 14.
 
@@ -14,6 +14,7 @@ MPP ani paczki v0.4. Jest to zapis pracy; eksport PNG/CSV dodaje ticket 14.
 | `catalogues/<id>.json` | Zakres i indeksy dopasowania, parametry, pochodzenie oraz bezpieczne tablice/liczby stanu PCA/klas/kalibracji. ID jest skrótem treści katalogu. |
 | `frames/<indeks>.json` | Stan klatki, przypisania wszystkich dostępnych oznaczeń, powody odmów, klasy/kolory, parametry i metadane rzeczywistego wykonania, odwołanie do katalogu. |
 | `frames/<indeks>.npy` | Opcjonalna mapa obszarów domen w siatce oryginalnej klatki. Zera oznaczają brak domeny w masce, nie niewykonaną analizę. |
+| `frames/<indeks>.barriers.npy` | Opcjonalna maska bool barier z SD-V4-15, w siatce oryginalnej klatki. Zawiera także faktycznie zastosowane poszerzenie. |
 
 Indeksy w pliku są od zera; UI pokazuje numery od jedynki. Domeny pozostają
 lokalne dla klatki. Tożsamość klasy obejmuje katalog. Kopia tego samego wyniku
@@ -58,6 +59,18 @@ zwalnianym wraz z ostatnim użytkownikiem serii. Wyniki i maski mają cache
 maksymalnie trzech klatek. Walidacja czyta nagłówki i ID masek w blokach
 1 MiB oraz weryfikuje przypisania bez dekodowania wejściowych segmentacji;
 pełne rastry powstają dopiero dla żądanych klatek.
+Od SD-V4-15 dotyczy to także masek barier: sprawdzane są kształt, typ bool,
+wartości 0/1 i zgodność liczby pikseli z metadanymi. Wynik bez maski zachowuje
+brak, a nie fałszywą pustą maskę. Parametry opisu w wyniku muszą zgadzać się
+z katalogiem; zapisany stan PCA/klas musi mieć zgodne wymiary.
 Nie wymagamy wszystkich masek w RAM. Pełna historia wielu analiz, ręczne
 korekty/historia edycji i eksport nie należą do 13. Nie dopisujemy brakujących
 miar fizycznych ani pełnego pokrycia do przybliżonych obszarów domen.
+
+SD-V4-15 rozszerza format 1 o opcjonalną maskę, flagę jej obecności w rekordzie
+klatki, parametry opisu/barier w planie i szkicu oraz warstwę `barriers` w widoku.
+Bieżący czytnik otwiera wcześniejsze projekty wersji 1: brak dodatkowych
+ustawień oznacza dotychczasowe wartości bazowe, brak rastra pozostaje jawny.
+Nie ma automatycznego przeliczania. Starsza aplikacja sprzed 15 może odrzucić
+projekt z nową częścią kontenera; nie deklarujemy zgodności nowszych zapisów
+ze starszymi czytnikami. [Parametry i podgląd](advanced-settings.md).
