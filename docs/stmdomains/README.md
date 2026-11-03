@@ -21,7 +21,7 @@ postęp, tabela klatek i anulowanie. [Raport i test ręczny 11](implementation/i
 TTMAPP 259: 111/312, 8 domen przy parametrach ticketu; identyczny wynik
 osobno i w zakresie 259–268. **456 testów PASS**, GUI X11 i mypy PASS;
 Standards 0 / Spec 0, największy zmieniony plik 575 linii.
-Status `done`; **odbiór ręczny użytkownika oczekuje**.
+Status `done`; **odbiór ręczny użytkownika potwierdzony 2026-11-03 dla wersji `76c8284` („testy manualne 11 ok”)**.
 **Następny: 12 — Auto, nadal niewykonany.** Plan ma 26 ticketów.
 Starsze opisy menu poniżej dokumentują interfejs sprzed wspólnego okna.
 

@@ -1,3 +1,22 @@
+# STM Domains — potwierdzony ręczny odbiór SD-V4-11
+
+Data **2026-11-03**, wersja **`76c8284`**, gałąź `domains/interactive-v04-ui`,
+worktree `/home/rlew/projekty/NEtCAT-domains`.
+Użytkownik potwierdził: **„testy manualne 11 ok”**.
+[Ticket 11](implementation/interactive-v04/11-unified-analysis-window.md)
+jest wykonany i odebrany ręcznie; zaktualizowano
+[raport odbioru](implementation/interactive-v04/acceptance-11.md), indeks,
+mapę, instrukcje startowe i informację o zależności 12.
+
+Następny rekomendowany ticket: **12 — Auto**, nadal niewykonany.
+23a pozostaje zaplanowany po 23; plan ma 26 ticketów.
+Zmiana wyłącznie dokumentacji; wcześniejsze 456 testów PASS i próby GUI
+są zapisane w raporcie. Nie ponawiano testów aplikacji ani GUI.
+`git diff --check` PASS. Commit zapisu potwierdzenia podano w odpowiedzi
+końcowej. Poniżej historyczne przekazania sprzed tego odbioru.
+
+---
+
 # STM Domains — dodano SD-V4-23a: scalanie i dzielenie klas
 
 Data **2026-11-03**, baza **`25c82bd`**, gałąź `domains/interactive-v04-ui`,

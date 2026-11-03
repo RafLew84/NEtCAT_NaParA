@@ -8,7 +8,7 @@
 [11: Ustaw i uruchom pełną analizę w jednym oknie](11-unified-analysis-window.md).
 
 **Status:** ready-for-agent — niewykonany; następny po zaimplementowanym 11
-(`d18048b`, odbiór ręczny użytkownika 11 oczekuje).
+(`d18048b`; ręczny odbiór 11 potwierdzony 2026-11-03 dla wersji `76c8284`).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 

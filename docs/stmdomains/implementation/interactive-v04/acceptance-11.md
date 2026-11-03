@@ -3,7 +3,9 @@
 Data: **2026-11-03**. Gałąź `domains/interactive-v04-ui`, worktree
 `/home/rlew/projekty/NEtCAT-domains`. Baza `c60e7fb`, implementacja `d18048b`.
 [Ticket 11](11-unified-analysis-window.md).
-**Odbiór ręczny użytkownika oczekuje.** Sprawdzenia agenta opisano poniżej.
+**Odbiór ręczny użytkownika potwierdzony 2026-11-03** dla wersji
+**`76c8284`** słowami „testy manualne 11 ok”. Ticket 11 jest wykonany
+i odebrany. Sprawdzenia agenta opisano poniżej.
 
 ## Uruchomienie i obsługa
 

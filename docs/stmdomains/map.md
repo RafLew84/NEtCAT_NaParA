@@ -20,7 +20,7 @@ Zależność 23; nowe operacje z podglądem, zakresem klatek i Cofnij/Ponów.
 Ścieżka ręczna **21 → 22 → 23 → 23a → 24 → 25**. 24/25 wymagają 23a,
 żeby zapisywać/eksportować także te korekty. Plan ma 26 ticketów;
 23a `ready-for-agent`, bez implementacji. Następny etap główny nadal 12;
-odbiór ręczny użytkownika 11 oczekuje. Poniżej historia poprzednich etapów.
+odbiór ręczny użytkownika 11 potwierdzony 2026-11-03 dla wersji `76c8284`. Poniżej historia poprzednich etapów.
 
 **Wykonano SD-V4-11 — 2026-11-03 (`d18048b`):**
 [Wspólne okno analizy](implementation/interactive-v04/11-unified-analysis-window.md)
@@ -28,7 +28,7 @@ zastępuje pięć formularzy. **Analiza → Analiza…**: Zakres, Klasy, Porząd
 Domeny, wspólny szkic i kompletny przebieg klatki/serii. Są porównanie,
 jawne kopiowanie, stany klatek i anulowanie. [Raport i test ręczny](implementation/interactive-v04/acceptance-11.md).
 **456 testów PASS**, GUI X11/mypy PASS, Standards 0 / Spec 0;
-status `done`, odbiór ręczny użytkownika oczekuje.
+status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-03 dla wersji `76c8284` („testy manualne 11 ok”).
 Plan ma 25 ticketów: 01–03, 05, 05a i 06–11 wykonane, następny **12 — Auto**.
 **12 pozostaje niewykonany.** Brak nowej metody, instalacji i zmian wspólnych.
 Poniżej historia wykonanych etapów i ich ówczesnych interfejsów/rekomendacji.

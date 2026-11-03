@@ -12,7 +12,7 @@ statusy klatek i może porównać poprzedni oraz nowy wynik.
 [09: Reguluj akceptację klasy](09-tune-class-acceptance.md),
 [10: Reguluj test porządku](10-tune-order-test.md).
 
-**Status:** done — implementacja `d18048b`; odbiór ręczny użytkownika oczekuje.
+**Status:** done — implementacja `d18048b`; odbiór ręczny użytkownika potwierdzony 2026-11-03 dla wersji `76c8284` („testy manualne 11 ok”).
 [Raport, sprawdzenia i instrukcja ręcznego odbioru](acceptance-11.md).
 
 Decyzja użytkownika **2026-11-03**: osobny ticket o numerze 11.

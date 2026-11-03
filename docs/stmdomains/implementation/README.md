@@ -5,7 +5,7 @@
 po 23, z wyborem zakresu, podglądem i Cofnij/Ponów. 24 i 25 wymagają
 23a i obejmą zapis/eksport nowych operacji. Plan ma 26 ticketów;
 23a `ready-for-agent`, implementacji nie rozpoczęto. Główna kolejność
-pozostaje bez zmian: następny 12, odbiór ręczny 11 oczekuje.
+pozostaje bez zmian: następny 12, odbiór ręczny 11 jest potwierdzony.
 
 **Wykonano SD-V4-11 — 2026-11-03 (`d18048b`):**
 **Analiza → Analiza…** łączy zakres, klasy i akceptację, porządek oraz domeny.
@@ -13,7 +13,7 @@ Szkic pozostaje podczas nawigacji/porównania; **Analizuj** uruchamia jeden
 kompletny przebieg dla klatki, zakresu lub serii. Pięć wcześniejszych
 formularzy zastąpiono tym oknem. [Raport i test ręczny](interactive-v04/acceptance-11.md).
 **456 testów PASS**, GUI X11/mypy PASS, Standards 0 / Spec 0;
-status `done`, **odbiór ręczny użytkownika oczekuje**.
+status `done`, **odbiór ręczny użytkownika potwierdzony 2026-11-03 dla wersji `76c8284` („testy manualne 11 ok”)**.
 Następny **12 — Auto**, nadal niewykonany. Plan ma **26 ticketów**.
 Opisy menu starszych etapów poniżej zachowują historię interfejsu.
 

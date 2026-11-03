@@ -24,7 +24,7 @@ Domeny**. Przycisk przy obrazie otwiera to samo okno dla bieżącej klatki;
 Porównanie i nawigacja zachowują szkic. Jest jawne kopiowanie z wyniku,
 bazowe parametry, stany klatek i anulowanie. [Raport i test ręczny](acceptance-11.md).
 **456 testów PASS**, GUI X11/mypy PASS, Standards 0 / Spec 0.
-Status `done`, **odbiór ręczny użytkownika oczekuje**. Następny **12 — Auto**,
+Status `done`, **odbiór ręczny użytkownika potwierdzony 2026-11-03 dla wersji `76c8284` („testy manualne 11 ok”)**. Następny **12 — Auto**,
 który pozostaje niewykonany i rozszerzy zakładkę Klasy.
 Wpisy o menu w starszych etapach poniżej opisują ich historyczny interfejs.
 
@@ -143,8 +143,7 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23a | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 
 Po wykonanych 05, 05a i 06–11 następny rekomendowany ticket to
-**12 — Auto**. 07 i nowy 11 są zaimplementowane; odbiór ręczny użytkownika
-11 oczekuje. **12 nie jest wykonany.**
+**12 — Auto**. 07 i nowy 11 są zaimplementowane i odebrane ręcznie. **12 nie jest wykonany.**
 13, 14 i 16 są niezależnie dostępne po 05, a 15 po 07. 08 korzysta
 z dopasowania z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności
 od usuniętego 04 ani historycznego, wchłoniętego zakresu 11.
