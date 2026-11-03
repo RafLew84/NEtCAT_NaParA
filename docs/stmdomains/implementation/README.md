@@ -1,5 +1,14 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Rozszerzenie planu — 2026-11-03:** dodano
+[SD-V4-21–25 — ręczną edycję klas i domen](interactive-v04/README.md#edycja-ręczna-klas-i-domen).
+21 tworzy i rozszerza domeny z Cofnij/Ponów, 22 dzieli/łączy, 23 dodaje
+własne klasy, 24 zapisuje korekty i historię, 25 eksportuje poprawiony wynik.
+Każdy etap jest osobno testowalny w aplikacji. Nowe zadania są
+`ready-for-agent` po zależnościach; implementacji nie rozpoczęto.
+Plan ma **24 tickety**. Następny rekomendowany pozostaje **12 — Auto**;
+21 jest niezależnie dostępny po ukończonym 05a.
+
 **Wykonano SD-V4-08 — 2026-11-03 (`1c39ae2`, poprawka `46c274f`):**
 menu **Analiza → Analiza serii…**, wspólne klasy i ustawienia domen,
 wynik każdej klatki, postęp/statusy i anulowanie zachowujące ukończone
@@ -35,9 +44,9 @@ użytkownika 2026-11-02 dla wersji `617b006`.
 oblicza lokalne klasy i końcowe domeny z bieżącego obrazu MPP i oznaczeń
 MolTrack, z kolorami, legendą, odmowami, postępem i anulowaniem.
 [Uruchomienie, sprawdzenia i test ręczny](interactive-v04/acceptance-05.md).
-Ręczny odbiór użytkownika 05 oczekuje. Aktualny plan ma 19 ticketów:
+Ręczny odbiór użytkownika 05 oczekuje. Aktualny plan ma 24 tickety:
 01–03, 05, 05a, 06, 07 i 08 `done`,
-09–10 oraz 12–18 `ready-for-agent` po zależnościach, 19–20 `deferred`.
+09–10, 12–18 oraz 21–25 `ready-for-agent` po zależnościach, 19–20 `deferred`.
 
 **Wcześniejsza zmiana kierunku — 2026-11-02:** na polecenie użytkownika wycofano
 SD-V4-04 i import jego wyników. Stan aplikacji wrócił wtedy do odebranego 03,

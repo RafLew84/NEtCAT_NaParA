@@ -10,7 +10,7 @@ implementujemy w aplikacji i następnie rozszerzamy. Użytkownik otwiera
 obrazy z oznaczeniami, wybiera zakres i ustawienia, klika **Analizuj**.
 Parametry klas powstają wewnętrznie z wybranych danych, bez pliku modelu.
 
-Stan: **19 ticketów w aktualnym planie**. **01–03 są wykonane i odebrane
+Stan: **24 tickety w aktualnym planie**. **01–03 są wykonane i odebrane
 ręcznie**: [obrazy i suwak](acceptance-01.md), [oznaczenia i geometria](acceptance-02.md),
 [miniatury, odtwarzanie i gamma](acceptance-03.md), wraz z poprawkami układu
 `0745e4e` i wyjścia `3dd8b47`. **05 jest zaimplementowany (`fb37431`, `done`),
@@ -57,13 +57,20 @@ ukończonych wyników. [Raport i test ręczny](acceptance-08.md).
 **Odbiór ręczny użytkownika 08 potwierdzony 2026-11-03** dla wersji
 `a3a5316` („testy manualne ok”). **Następny rekomendowany ticket: 12.**
 01–03, 05, 05a, 06, 07 i 08 mają status `done`.
-09–10 oraz 12–18 mają zakres `ready-for-agent`
+09–10, 12–18 oraz 21–25 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
+**Rozszerzenie na polecenie użytkownika — 2026-11-03:** dodano
+**21–25 — ręczną edycję domen i klas, zapis historii oraz eksport korekt**.
+Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
+To plan przyszłych funkcji; implementacji nie rozpoczęto. Następny
+rekomendowany etap głównej ścieżki pozostaje **12 — Auto**; 21 można
+wybrać niezależnie już po wykonanym 05a.
+
 ## Tickety i kolejność
 
-Identyfikatory **SD-V4-01–20 oraz SD-V4-05a** odróżniają tę serię od dawnych ticketów
+Identyfikatory **SD-V4-01–25 oraz SD-V4-05a** odróżniają tę serię od dawnych ticketów
 badawczych 01–26 i implementacyjnych SD-IMPL. Każdy plik zawiera zakres,
 zależności, kryteria akceptacji i instrukcję testu ręcznego.
 
@@ -88,6 +95,11 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [18 — Porównaj otoczenia molekuł metodą freud bez zadawania K](18-compare-freud-environments.md) | SD-V4-06, SD-V4-16 | Przelicz jedną klatkę metodą freud i obejrzyj końcowe przypisania. |
 | [19 — Porównaj domeny z lokalnego FFT i NMF obrazu](19-compare-local-fft-nmf.md) | SD-V4-06, SD-V4-16; warunek wyboru | Zmień okno analizy obrazu i porównaj wynik na molekułach. |
 | [20 — Zachowaj wspólny katalog typów struktury w serii](20-shared-structural-type-catalogue.md) | SD-V4-08, SD-V4-13, SD-V4-16; warunek wyboru | Sprawdź wspólne typy na kolejnych klatkach i po otwarciu zapisanego projektu. |
+| [21 — Twórz domeny ręcznie i zmieniaj ich skład](21-manual-domain-membership.md) | SD-V4-05a | Zaznacz molekuły, utwórz/rozszerz domenę, usuń członka i cofnij zmianę. |
+| [22 — Dziel i łącz domeny na obrazie](22-split-merge-domains.md) | SD-V4-21 | Wydziel część domeny lub połącz sąsiadujące domeny; porównaj i cofnij. |
+| [23 — Twórz klasy ręcznie i poprawiaj ich przypisania](23-manual-classes.md) | SD-V4-07, SD-V4-22 | Dodaj własną klasę, nazwę/kolor oraz przypisz molekuły lub domeny. |
+| [24 — Zapisz korekty i wznów ręczną edycję projektu](24-save-manual-corrections.md) | SD-V4-13, SD-V4-23 | Otwórz zapisane korekty bez źródeł i kontynuuj Cofnij/Ponów. |
+| [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23 | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 
 Po wykonanych 05, 05a i 06–08 następny rekomendowany ticket: **12 — Auto**.
 Jego zależność 07 jest ukończona. Po 05 dostępne są niezależnie 06, 07, 10, 13,
@@ -111,9 +123,56 @@ a nie ukończenie zależności. `deferred` oznacza zachowany dalszy pomysł;
 warunek jego wyboru jest opisany w pliku. `in_progress` i `done` opisują
 wykonanie, przy czym odbiór programu i pozytywny wynik eksperymentu są odrębne.
 
+## Edycja ręczna klas i domen
+
+Użytkownik zlecił dodanie tego zakresu **2026-11-03**, po ręcznym odbiorze 08.
+Każdy z pięciu ticketów kończy się działającą funkcją z testem w GUI.
+Rekomendowana kolejność w tej ścieżce: **21 → 22 → 23 → 24 → 25**.
+Przed 24 potrzebny jest **13 — zapis projektu**, przed 25 **14 — eksport**;
+można je wykonać wcześniej niezależnie. 25 nie jest blokowany przez 24.
+07 i 05a są ukończone. Nie trzeba czekać na Auto, pomiary ani odłożony 20.
+
+Wspólny zakres i zasady:
+
+- Edytujemy członkostwo istniejących oznaczeń MolTrack: kliknięcia/lasso,
+  nowa domena, dodawanie i usuwanie członków, podział/scalenie oraz klasy.
+  Po zmianie aktualizują się obszary, obrysy, kolory i liczniki. Nie jest to
+  dorysowywanie molekuł ani swobodne malowanie granicy pikselowej.
+- Ręczna praca jest możliwa także bez analizy lub przy zerowej detekcji
+  domen. Brak modelu i bazowego wyniku pozostaje jawny; ręczne wskazania
+  nie uzyskują fikcyjnych wyników testu porządku ani ufności modelu.
+- Klasa grupuje wskazania; kilka osobnych domen może mieć tę samą klasę.
+  Przypisanie klasy nieprzypisanej molekule nie tworzy samo domeny.
+  Zmiana klasy części domeny wymaga jawnego podziału z 22, realizowanego
+  razem ze zmianą przypisania w 23. Klasa ręczna nie jest typem struktury
+  zwalidowanym w 20 ani dodatkowym klastrem dopasowanego modelu.
+- Korekty odnoszą się do konkretnego źródła, wyniku, klatki i ID oznaczeń.
+  Wynik automatyczny pozostaje dostępny, a poprawiony ma własną rewizję.
+  Nowa analiza nie dziedziczy korekt po numerach domen i nie nadpisuje
+  poprawionej pracy. Edycja nie zwiększa liczników oryginalnego przebiegu 08.
+- Cofnij/Ponów działa od 21. Historia wybranego poprawionego wyniku zachowuje
+  kolejność operacji także między klatkami; UI wskazuje, którą klatkę lub
+  wspólną listę klas zmieni cofnięcie. Dzięki temu nie usuwa się klasy użytej
+  w późniejszej, jeszcze niecofniętej operacji. Zapis i odtworzenie historii
+  po ponownym uruchomieniu należą do 24.
+- Do wykonania 24/25 zapis/eksport z 13/14 nie może sugerować zachowania
+  korekt, których jeszcze nie obsługuje. UI jawnie wskazuje ograniczenie;
+  ewentualny zapis samego bazowego automatu wymaga świadomego wyboru.
+  Po 24/25 późniejsze prace nad zapisem i eksportem muszą zachować obsługę
+  korekt. Zamknięcie programu nie może bez ostrzeżenia utracić edycji.
+- Ręczna korekta nie trenuje modelu i nie propaguje przypisań na serię.
+  Nowa klasa, jej członkowie i pochodzenie są zapisywane oddzielnie od
+  niezmienionego dopasowania. Uczenie z przykładów wymaga przyszłego
+  osobnego zlecenia; nie jest częścią ticketów 21–25.
+
+Zakres rozszerza wcześniejszy, ograniczony wybór jednej z propozycji przy
+konflikcie domen. Historyczne kontrakty zachowujemy jako zapis tamtych
+decyzji; dla nowych operacji obowiązują 21–25. Nie oznacza to odbioru
+naukowego metody ani uznania ręcznych korekt za niezależną referencję.
+
 ## Rozszerzenia
 
-Rozszerzenia wynikają z zaakceptowanej przez użytkownika rekomendacji:
+Rozszerzenia metod w 16–20 wynikają z zaakceptowanej przez użytkownika rekomendacji:
 najpierw czytelne pomiary geometrii i możliwość strojenia, potem ograniczona
 próba porównania otoczeń. FFT/NMF oraz trwały katalog typów są dalszymi
 krokami. Dla pierwszych prób wystarczą obecne obrazy i oznaczenia TTMAPP.
@@ -139,8 +198,9 @@ szum oraz rzędy bez potwierdzonej sieci 2D. Dla 17 dochodzi stopniowa zmiana
 orientacji, sprawdzająca zgodność całego regionu. Wykonawca dostarcza małe
 przykłady do otwarcia w tym samym UI, z opisanym oczekiwanym wynikiem.
 Na TTMAPP punktem porównania są klatki 259–266 przy identycznych wejściach.
-Nie dodajemy nowych ręcznych etykiet treningowych; istniejące częściowe
-referencje pozostają materiałem oceny, z ich rzeczywistym zakresem.
+W próbach metod 16–20 nie dodajemy nowych ręcznych etykiet treningowych;
+istniejące częściowe referencje pozostają materiałem oceny, z ich
+rzeczywistym zakresem.
 
 **Ocena próby:** przed oceną zapisać ograniczony zestaw ustawień, zakres
 dopasowania i warunki odtwarzania. Raportować błędne scalenia, rozdrobnienie,
@@ -256,6 +316,7 @@ opisuje nowe przekroje prac, a nie deklarację ukończenia starych zadań.
 | SD-IMPL-02 — przeglądanie | 01–03: obraz, oznaczenia, miniatury i odtwarzanie |
 | SD-IMPL-03 — odbiór szkieletu | Sprawdzenia 01–03; całościowy odbiór wymaga osobnego potwierdzenia |
 | Kontrakt 08 — projekt i eksport | 13: samowystarczalny projekt; 14: CSV/PNG |
+| Nowy zakres ręcznych korekt — 2026-11-03 | 21–23: edycja z Cofnij/Ponów; 24: trwałość; 25: CSV/PNG po korektach |
 
 Nie zamykamy nadrzędnych ticketów. W szczególności wdrożenie
 eksperymentalnej ścieżki v0.4 nie zamyka naukowego odbioru metody w 13

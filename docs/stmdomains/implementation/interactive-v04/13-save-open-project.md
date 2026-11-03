@@ -30,3 +30,8 @@ Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 ## Granice zadania
 
 To samowystarczalny projekt STM Domains, nie import historycznych wyników v0.4 ani sam plik parametrów JSON. Trwała historia wielu wyników w jednym projekcie nie jest wymagana przez obecny kontrakt.
+
+Ręczną edycję wprowadza późniejszy zakres 21–23; zapis jej stanów i historii
+dodaje [24](24-save-manual-corrections.md). 13 można wykonać wcześniej.
+Jeśli edycja jest już dostępna, zapis musi jasno komunikować, czy obejmuje
+korekty, zgodnie z [zasadami edycji ręcznej](README.md#edycja-ręczna-klas-i-domen).

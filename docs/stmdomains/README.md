@@ -5,6 +5,15 @@ Katalog aplikacji: `stmdomains/`.
 
 ## Aktualny stan — 2026-11-03
 
+**Dodano do planu SD-V4-21–25 — ręczną edycję klas i domen:**
+21 tworzenie/rozszerzanie domen i Cofnij/Ponów, 22 podział/scalanie,
+23 własne klasy i przypisania, 24 zapis korekt z historią, 25 eksport CSV/PNG.
+[Zakres i kolejność](implementation/interactive-v04/README.md#edycja-ręczna-klas-i-domen).
+Każdy ticket ma test ręczny. Plan ma **24 tickety**; nowe zadania są
+`ready-for-agent` po zależnościach, **bez rozpoczęcia implementacji**.
+21 można wykonać po ukończonym 05a; 24 wymaga również 13, a 25 również 14.
+Następny rekomendowany ticket głównej ścieżki pozostaje **12 — Auto**.
+
 **Wykonano SD-V4-08 (`1c39ae2`, poprawka `46c274f`):** menu
 **Analiza → Analiza serii…** ma zakładki **Zakres i klasy** oraz
 **Tworzenie domen**. Jeden przycisk stosuje wspólne klasy i parametry domen
@@ -42,7 +51,7 @@ Można wyłączyć centra i ramki. Dotychczasowe maski wejściowe mają nazwę
 **Maski molekuł**; ich brak nie blokuje obszarów domen.
 [Raport i test ręczny 05a](implementation/interactive-v04/acceptance-05a.md).
 **Odbiór ręczny 05a potwierdzony przez użytkownika 2026-11-02** dla wersji
-`617b006` („testy manualn ok”). Plan ma **19 ticketów**, następny rekomendowany **12**.
+`617b006` („testy manualn ok”). Plan ma obecnie **24 tickety**, następny rekomendowany **12**.
 
 **Wykonano SD-V4-05 (`fb37431`):** po otwarciu MPP z oznaczeniami MolTrack
 przycisk **Analizuj klatkę · K5** oblicza pięć lokalnych klas i końcowe domeny
@@ -51,7 +60,7 @@ odmów, postęp i anulowanie. Program nie wczytuje modelu ani wyniku v0.4.
 [Uruchomienie, wykonane sprawdzenia i test ręczny 05](implementation/interactive-v04/acceptance-05.md).
 **Odbiór ręczny użytkownika 05 oczekuje.** W aktualnym planie
 01–03, 05, 05a, 06, 07 i 08 mają status `done`,
-09–10 oraz 12–18 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
+09–10, 12–18 oraz 21–25 — `ready-for-agent` po spełnieniu zależności, 19–20 — `deferred`.
 To wdrożenie eksperymentalnej metody, bez potwierdzenia trafności detektora.
 
 **Wcześniejsza zmiana kierunku na polecenie użytkownika:** usunięto ticket SD-V4-04

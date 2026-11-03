@@ -1,3 +1,49 @@
+# STM Domains — plan ręcznej edycji klas i domen: SD-V4-21–25
+
+Data **2026-11-03**, baza **`02a54d4`**, gałąź `domains/interactive-v04-ui`,
+worktree `/home/rlew/projekty/NEtCAT-domains`. Na polecenie użytkownika
+dopisano pięć osobnych zadań do [aktualnego planu](implementation/interactive-v04/README.md#edycja-ręczna-klas-i-domen):
+
+- [21 — tworzenie i rozszerzanie domen](implementation/interactive-v04/21-manual-domain-membership.md),
+  z selekcją kliknięciami/lassem, usuwaniem członków i Cofnij/Ponów;
+- [22 — podział i łączenie domen](implementation/interactive-v04/22-split-merge-domains.md);
+- [23 — własne klasy i ręczne przypisania](implementation/interactive-v04/23-manual-classes.md);
+- [24 — zapis korekt i historii w projekcie](implementation/interactive-v04/24-save-manual-corrections.md);
+- [25 — eksport poprawionego wyniku](implementation/interactive-v04/25-export-manual-corrections.md).
+
+Każdy ticket ma kryteria akceptacji i scenariusz ręcznego testu w działającej
+aplikacji. Statusy `ready-for-agent` oznaczają przygotowany zakres, nie
+ukończone zależności. **Żadnej nowej funkcji nie implementowano.** Plan ma
+**24 tickety**; 01–03, 05, 05a i 06–08 pozostają `done`, 19–20 `deferred`.
+Główna rekomendacja po odebranym 08 pozostaje **12 — Auto**. Edycję można
+zacząć od 21 po wykonanym 05a; dalej 22 → 23, z wykonanym 07 wymaganym
+dla klas. 24 wymaga również 13, a 25 również 14; 25 nie jest blokowany przez 24.
+
+Korekty dotyczą istniejących oznaczeń jednej klatki i konkretnego wyniku.
+Można pracować bez wyniku automatycznego; jego brak pozostaje jawny.
+Klasa może obejmować kilka domen, a ręczne klasy nie zmieniają dopasowanego
+modelu ani nie propagują się automatycznie na serię. Ręczny wariant,
+oryginalny automat i historia są rozróżnione; ponowna analiza nie nadpisuje
+poprawionej pracy. 24 rozszerza trwałość z 13, 25 eksport z 14. Wspólny
+indeks określa zachowanie zapisu/eksportu, gdy edytor jest wdrożony wcześniej.
+Do czasu 24 korekty są tylko w sesji, z ochroną przed ich nieświadomą utratą.
+
+Nowy zakres rozszerza dawne ograniczenie do rozstrzygania konfliktów;
+historycznych ticketów badawczych i ich statusów nie zmieniano. Nie obejmuje
+nowych detekcji molekuł, swobodnego malowania granic, śledzenia ani uczenia
+z przykładów. Limity kodu/testów 1000/1500 linii i środowisko **netcat**
+obowiązują w każdym zadaniu. Nie zmieniono kodu, danych ani środowiska;
+brak nowych potrzeb integracyjnych.
+
+Weryfikacja w netcat: **379 lokalnych odnośników wraz z kotwicami w 12
+zmienionych dokumentach PASS**; **24 unikalne tickety**, zgodność zależności
+w plikach i tabeli oraz brak cykli PASS. Pięć nowych zadań ma kryteria
+akceptacji, test ręczny, netcat i limit 1000/1500. `git diff --check` PASS.
+Nie uruchamiano testów aplikacji ani GUI: zmieniono wyłącznie dokumentację.
+Commit przekazania podano w odpowiedzi końcowej.
+
+---
+
 # STM Domains — wykonano SD-V4-08: domeny na zakresie lub całej serii
 
 Ukończono **2026-11-03**. Baza **`e51b612`**, implementacja **`1c39ae2`**,

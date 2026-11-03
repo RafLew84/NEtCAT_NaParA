@@ -30,3 +30,8 @@ Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru).
 ## Granice zadania
 
 Eksport dotyczy wyników obliczonych przez STM Domains. Nie wymaga importu v0.4, zapisania projektu ani ukończenia analizy całej serii. Działanie metody i trafność domen mają odrębny odbiór.
+
+Eksport ręcznych korekt 21–23 dodaje osobno [25](25-export-manual-corrections.md),
+bez blokowania podstawowego eksportera 14. Jeśli edycja jest już dostępna,
+UI nie może przedstawiać bazowego automatu jako eksportu poprawionego widoku;
+obowiązują [zasady edycji ręcznej](README.md#edycja-ręczna-klas-i-domen).

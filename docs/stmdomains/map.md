@@ -14,6 +14,17 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**Rozszerzenie planu — 2026-11-03, decyzja użytkownika:** dodano
+[SD-V4-21–25](implementation/interactive-v04/README.md#edycja-ręczna-klas-i-domen):
+tworzenie i rozszerzanie domen, podział/scalanie, ręczne klasy, zapis historii
+korekt oraz eksport. Każdy etap ma scenariusz testu ręcznego w aplikacji.
+Plan ma **24 tickety**; nowe zadania `ready-for-agent` po zależnościach,
+bez rozpoczęcia implementacji. 21 wymaga ukończonego 05a; dalej 22 → 23,
+24 z dodatkową zależnością 13 i 25 z 14. 25 nie wymaga 24.
+Następny rekomendowany ticket głównej ścieżki pozostaje **12 — Auto**;
+19–20 nadal odroczone. Korekty nie trenują modelu ani nie propagują się
+automatycznie na pozostałe klatki. Poniżej historia wcześniejszych etapów.
+
 **Wykonano SD-V4-08 — 2026-11-03 (`1c39ae2`, poprawka `46c274f`):**
 menu **Analiza → Analiza serii…** łączy zakres, klasy i parametry domen;
 oblicza domeny każdej wybranej klatki ze wspólnym katalogiem. Postęp,
