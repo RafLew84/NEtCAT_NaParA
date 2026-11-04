@@ -26,6 +26,7 @@ from stmdomains.ui.export_dialog import ExportDialog
 from stmdomains.ui.project_actions import ProjectActions
 from stmdomains.ui.project_prompts import ProjectPrompts, QtProjectPrompts
 from stmdomains.ui.result_controls import ResultControls
+from stmdomains.ui.domain_method_controls import DomainMethodControls
 from stmdomains.ui.result_style import assignment_description
 from stmdomains.ui.assignment_details import assignment_details
 from stmdomains.ui.session_controller import PresentedFrame, SessionController
@@ -93,6 +94,8 @@ class STMDomainsMainWindow(QMainWindow):
         self.image_view = ImageView(self)
         self.geometry_card = GeometryCard(self.controller, self.image_view)
         self.image_view.annotation_selected.connect(self._select_annotation)
+        self.method_controls = DomainMethodControls(self.controller)
+        layout.addWidget(self.method_controls)
         layout.addWidget(self.image_view, 1)
         self.frame_slider = QSlider(Qt.Orientation.Horizontal)
         self.frame_slider.setObjectName("frameSlider")
@@ -336,8 +339,10 @@ class STMDomainsMainWindow(QMainWindow):
             if self.controller.catalogue_status == "earlier":
                 prefix += " · wcześniejszy katalog"
             text = prefix + " · " + catalogue_description(result.catalogue)
+        if self.controller.domain_method == 'geometry' and result is not None:
+            text = 'Geometria · ' + result.message
         run = self.controller.series_run
-        if run is not None and self.controller.current_index in run.frames:
+        if run is not None and self.controller.domain_method == 'baseline' and self.controller.current_index in run.frames:
             text += " · seria: " + STATUS_TEXT[run.frames[self.controller.current_index].status]
             if result is not None and result.metadata.get("series_analysis", {}).get("run_id") != run.identifier:
                 text += " (wyświetlono wynik spoza tego przebiegu)"

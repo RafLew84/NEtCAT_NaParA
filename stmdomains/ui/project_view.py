@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 from PyQt6.QtCore import QSignalBlocker
 
 from stmdomains.io.project_validation import analysis_plan
+from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings
+from stmdomains.analysis.domain_settings import DomainSettings
 
 if TYPE_CHECKING:
     from stmdomains.ui.analysis_dialog import AnalysisDialog
@@ -45,6 +47,9 @@ def restore_view(window: 'STMDomainsMainWindow', view: Mapping[str, Any]) -> Non
 def capture_draft(dialog: 'AnalysisDialog') -> dict:
     classes = dialog.class_fields
     return {'plan': asdict(dialog.plan()), 'scope': dialog.scope_fields.scope.currentData(),
+            'domain_method': dialog.method.currentData(),
+            'geometry_tolerances': asdict(dialog.geometry_fields.settings()),
+            'geometry_constraints': asdict(dialog.geometry_fields.constraints()),
             'scope_start': dialog.scope_fields.start.value() - 1,
             'class_mode': classes.mode.currentData(), 'catalogue_id': classes.catalogue.currentData(),
             'discovery_source': classes.fit_source.currentData()}
@@ -74,5 +79,8 @@ def restore_draft(dialog: 'AnalysisDialog', draft: Mapping[str, Any]) -> None:
     dialog.domain_fields.load(plan.domain_settings)
     dialog.advanced_fields.descriptor.load(plan.descriptor_settings)
     dialog.advanced_fields.barriers.load(plan.barrier_settings)
+    dialog.geometry_fields.load(GeometryDomainSettings(**draft.get('geometry_tolerances', {})),
+                                DomainSettings(**draft.get('geometry_constraints', {})))
+    dialog.method.setCurrentIndex(dialog.method.findData(draft.get('domain_method', 'baseline')))
     del blockers
     dialog.refresh()

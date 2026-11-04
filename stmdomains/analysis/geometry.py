@@ -25,9 +25,11 @@ def measure_geometry(data: AnalysisInput, *, calibration: PixelCalibration = Pix
                for d in data.annotations.detections}
     base = FrameGeometry(data.series_id, data.frame.working_index, data.frame.source_index,
                          calibration, records, settings.parameters(), {})
-    if (data.frame.image.size > 4194304 or len(records) > 3000 or
-            data.annotations.detection_state != 'available'):
+    if data.frame.image.size > 4194304 or len(records) > 3000:
         return replace(base, message='Niedostępne oznaczenia lub przekroczony limit zasobów pomiaru.')
+    if data.annotations.detection_state != 'available':
+        return replace(base, metadata={'input_sha256': input_fingerprint(data), 'spacing': 0.},
+                       message='Niedostępne oznaczenia molekuł; nie wykonano pomiaru.')
     # Duplicate handling must use the same metric as the measurement. Normalize
     # the smaller pixel size to one to avoid unit-dependent epsilon thresholds.
     ratio = np.array((calibration.x, calibration.y)) / min(calibration.x, calibration.y)

@@ -6,7 +6,7 @@
 
 **Blocked by:** [06: Strojenie tworzenia domen i porównanie wyniku](06-tune-domain-formation.md), [16: Zobacz kierunek, rozstaw i jakość geometrii na obrazie](16-inspect-local-geometry.md).
 
-**Status:** ready-for-agent — dodanie rozszerzenia do planu zlecone przez użytkownika; wykonanie po zależnościach.
+**Status:** in-progress — użytkownik zlecił implementację 2026-11-04, wybierając Panel A.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady rozszerzeń](README.md#rozszerzenia).
 
@@ -14,7 +14,7 @@ Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) or
 B (dwa wyniki obok siebie), C (stały panel ustawień).
 [Uruchomienie, porównanie i źródło](prototype-17-layouts.md).
 Źródło pierwotne: `prototype/stmdomains-domain-method-ui`, commit `621ce71`.
-Wybór użytkownika oczekuje. Rekomendacja autora A nie jest decyzją.
+Użytkownik wybrał **A — wspólne okno Analiza** 2026-11-04.
 Nowe przypisania domen w prototypie są demonstracyjne; metoda 17
 pozostaje do implementacji. Karta pomiarów C z 16 dostępna w każdym układzie.
 

@@ -3,6 +3,7 @@
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.core.analysis_result import FrameAnalysis
+from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings, METHOD
 from stmdomains.ui.result_style import assignment_description
 
 
@@ -11,6 +12,19 @@ def assignment_details(result: FrameAnalysis | None, detection_id: str) -> str:
     if result is None or result.status != "complete":
         return summary
     member = result.assignments.get(detection_id)
+    if member is not None and result.parameters.get('domain_method') == METHOD:
+        measured = member.metadata.get('geometry', {})
+        geometric_settings = GeometryDomainSettings.from_parameters(result.parameters)
+        axes = measured.get('axes', ())
+        unit = result.parameters.get('calibration', {}).get('unit', 'px')
+        lines = [summary, f'Użyte limity całego regionu: {geometric_settings.angle_degrees:g}°, {geometric_settings.spacing_percent:g}%.',
+                 f'Minimum koherencji: {geometric_settings.minimum_coherence:g}; lokalnych punktów: {geometric_settings.minimum_local_count}.',
+                 f"Pomiar: {measured.get('status', '—')}; punkty {measured.get('local_count', '—')}; "
+                 f"efektywne {measured.get('effective_count', 0):.2f}."]
+        lines.extend(f"Kierunek {i+1}: {a['row_angle_deg']:.2f}°; rozstaw {a['period']:.3f} {unit}; koherencja {a['coherence']:.3f}."
+                     for i, a in enumerate(axes))
+        lines.append('Typ nieznany. Zgodność fazy nie została sprawdzona. Brak przypisania nie dowodzi fizycznej granicy.')
+        return '\n'.join(lines)
     if member is None or not member.provisional_class_id:
         return summary
     data = member.metadata

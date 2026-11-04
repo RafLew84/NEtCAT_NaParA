@@ -17,6 +17,8 @@ from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.analysis.series_analysis import validate_plan_catalogue
 from stmdomains.analysis.series_settings import SeriesAnalysisPlan
 from stmdomains.ui.auto_ranking_dialog import AutoRankingDialog
+from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings, METHOD
+from stmdomains.ui.geometry_domain_fields import GeometryDomainFields
 from stmdomains.ui.acceptance_fields import AcceptanceFields
 from stmdomains.analysis.descriptor_settings import DescriptorSettings
 from stmdomains.analysis.barrier_settings import BarrierSettings
@@ -42,6 +44,13 @@ class AnalysisDialog(QDialog):
         layout = QVBoxLayout(self)
         self.context = QLabel()
         layout.addWidget(self.context)
+        method_row = QHBoxLayout()
+        method_row.addWidget(QLabel('Metoda domen'))
+        self.method = QComboBox()
+        self.method.addItem('Bazowa — klasy i porządek', 'baseline')
+        self.method.addItem('Geometria — tolerancje (eksperymentalna)', 'geometry')
+        method_row.addWidget(self.method, 1)
+        layout.addLayout(method_row)
         self.tabs = QTabWidget()
         self.scope_fields = AnalysisScopeFields()
         self.class_fields = ClassFields()
@@ -62,6 +71,12 @@ class AnalysisDialog(QDialog):
             scroll.setWidget(fields)
             scroll.setMinimumHeight(150)
             self.tabs.addTab(scroll, title)
+        self.geometry_fields = GeometryDomainFields()
+        geometry_scroll = QScrollArea()
+        geometry_scroll.setWidgetResizable(True)
+        geometry_scroll.setWidget(self.geometry_fields)
+        self.tabs.addTab(geometry_scroll, 'Geometria')
+        self.tabs.setTabVisible(5, False)
         layout.addWidget(self.tabs, 1)
         edits = QHBoxLayout()
         self.copy_result = QPushButton("Z wyświetlanego wyniku")
@@ -98,7 +113,8 @@ class AnalysisDialog(QDialog):
         self.statuses.frame_requested.connect(controller.show_frame)
         layout.addWidget(self.statuses)
         comparison = QHBoxLayout()
-        comparison.addWidget(QLabel("Pokaż na obrazie"))
+        self.comparison_label = QLabel("Pokaż na obrazie")
+        comparison.addWidget(self.comparison_label)
         self.comparison = QComboBox()
         self.comparison.addItem("Nowy wynik", "new")
         self.comparison.addItem("Poprzedni wynik", "previous")
@@ -115,6 +131,8 @@ class AnalysisDialog(QDialog):
         for fields in (self.scope_fields, self.class_fields, self.acceptance_fields,
                        self.order_fields, self.domain_fields, self.advanced_fields):
             fields.changed.connect(self._validate)
+        self.geometry_fields.changed.connect(self._validate)
+        self.method.currentIndexChanged.connect(self._method_changed)
         self.class_fields.mode.currentIndexChanged.connect(self._load_catalogue_descriptor)
         self.class_fields.catalogue.currentIndexChanged.connect(self._load_catalogue_descriptor)
         controller.frame_changed.connect(lambda _: self.refresh())
@@ -154,8 +172,23 @@ class AnalysisDialog(QDialog):
             class_count_mode="auto" if classes.automatic else "manual", auto_max_k=classes.maximum_k,
         )
 
+    def _method_changed(self) -> None:
+        geometric = self.method.currentData() == 'geometry'
+        for index in range(4):
+            self.tabs.setTabVisible(index, not geometric)
+        self.tabs.setTabVisible(5, geometric)
+        self.tabs.setCurrentIndex(5 if geometric else 0)
+        self.advanced_fields.descriptor.setVisible(not geometric)
+        self.auto_summary.setVisible(not geometric)
+        self.auto_details.setVisible(not geometric)
+        self.statuses.setVisible(not geometric)
+        self.comparison.setVisible(not geometric)
+        self.comparison_label.setVisible(not geometric)
+        self._validate()
+
     def _baseline(self) -> None:
         self._loading = True
+        self.geometry_fields.load(GeometryDomainSettings(), DomainSettings())
         self.domain_fields.load(DomainSettings())
         self.acceptance_fields.load(ClassAcceptanceSettings())
         self.order_fields.load(OrderSettings())
@@ -169,6 +202,8 @@ class AnalysisDialog(QDialog):
         if result is None:
             return
         self._loading = True
+        self.method.setCurrentIndex(1 if result.parameters.get('domain_method') == METHOD else 0)
+        self.geometry_fields.load(GeometryDomainSettings.from_parameters(result.parameters), DomainSettings.from_parameters(result.parameters))
         self.domain_fields.load(DomainSettings.from_parameters(result.parameters))
         self.acceptance_fields.load(ClassAcceptanceSettings.from_parameters(result.parameters))
         self.order_fields.load(OrderSettings.from_parameters(result.parameters))
@@ -205,6 +240,15 @@ class AnalysisDialog(QDialog):
             series = self.controller.series
             if series is None:
                 raise ValueError("Najpierw otwórz serię.")
+            if self.method.currentData() == 'geometry':
+                self.geometry_fields.settings()
+                self.geometry_fields.constraints()
+                self.advanced_fields.barriers.settings()
+                self.validation.setText(f'Szkic: geometria na kl. {self.controller.current_index + 1}. Bez katalogu klas.\n'
+                                        'Analizuj zastosuje Geometrię i bariery. Edycja nie zmienia obrazu.')
+                self.validation.setToolTip(self.validation.text())
+                self.calculate.setEnabled(self.controller.can_analyze)
+                return
             plan = self.plan()
             indices, fit = plan.indices(series.frame_count), plan.fit_settings(series.frame_count)
             target = str(indices[0] + 1) if len(indices) == 1 else f"{indices[0] + 1}–{indices[-1] + 1}"
@@ -228,6 +272,11 @@ class AnalysisDialog(QDialog):
 
     def _calculate(self) -> None:
         try:
+            if self.method.currentData() == 'geometry':
+                self.controller.analyze_geometry_domains(self.geometry_fields.settings(),
+                    constraints=self.geometry_fields.constraints(), barrier_settings=self.advanced_fields.barriers.settings())
+                self.close()
+                return
             plan = self.plan()
             self.controller.start_series_analysis(plan, catalogue=self.class_fields.selected_catalogue)
         except ValueError:
@@ -242,6 +291,8 @@ class AnalysisDialog(QDialog):
         if identity != self._series_id:
             self._series_id = identity
             self._seen_catalogue = None
+            self.method.setCurrentIndex(0)
+            self.geometry_fields.load(GeometryDomainSettings(), DomainSettings())
             count, index = (series.frame_count, series.active_frame_index) if series else (1, 0)
             self.scope_fields.reset(count, index)
             self.class_fields.reset(count, index)
@@ -261,13 +312,18 @@ class AnalysisDialog(QDialog):
                 self.class_fields.choose_catalogue(run.catalogue)
         self.context.setText(f"Klatka {controller.current_index + 1} · szkic ustawień tej serii" if series else "Brak serii")
         self.tabs.setEnabled(controller.can_analyze)
+        self.method.setEnabled(controller.can_analyze)
         self.baseline.setEnabled(controller.can_analyze)
         self.copy_result.setEnabled(controller.can_analyze and controller.result is not None)
-        self.cancel.setEnabled(controller.series_running)
+        self.cancel.setEnabled(controller.is_busy)
         self.comparison.setEnabled(controller.can_analyze and controller.previous_result is not None)
         with QSignalBlocker(self.comparison):
             self.comparison.setCurrentIndex(self.comparison.findData(controller.result_version))
         self.progress.setText(run.message if run else "Nie uruchomiono analizy. Nowa seria zaczyna od bazowych ustawień.")
+        if self.method.currentData() == 'geometry':
+            self.progress.setText('Trwa obliczanie — postęp także pod obrazem.' if controller.is_busy else
+                                  'Geometria: wynik dostępny na obrazie.' if controller.geometric_result else
+                                  'Kliknij Analizuj, aby pomierzyć geometrię i utworzyć domeny.')
         self.progress.setToolTip(self.progress.text())
         self.statuses.refresh(run)
         selection, _, context = self._auto_context()
@@ -311,6 +367,16 @@ class AnalysisDialog(QDialog):
         if result is None:
             self.displayed.setText("Brak wyniku na oglądanej klatce.")
             self.displayed.setToolTip("")
+            return
+        if result.parameters.get('domain_method') == METHOD:
+            geometric_settings = GeometryDomainSettings.from_parameters(result.parameters)
+            text = (f'Geometria · kl. {result.working_index+1}: {result.domain_count} domen, '
+                    f'{result.assigned_count}/{result.active_count} molekuł.\n'
+                    f'Użyto: {geometric_settings.angle_degrees:g}°, {geometric_settings.spacing_percent:g}%, '
+                    f'jakość ≥ {geometric_settings.minimum_coherence:g}, lokalnie ≥ {geometric_settings.minimum_local_count}.\n'
+                    'Typ nieznany; granice fazowe niesprawdzane.')
+            self.displayed.setText(text)
+            self.displayed.setToolTip(text + '\n' + result.message)
             return
         name = "Poprzedni" if controller.result_version == "previous" else "Nowy"
         accepted = sum(bool(a.metadata.get("class_reliable")) for a in result.assignments.values())

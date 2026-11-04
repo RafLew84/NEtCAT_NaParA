@@ -5,6 +5,7 @@ from collections import Counter
 from dataclasses import dataclass
 
 from stmdomains.core.analysis_result import FrameAnalysis
+from stmdomains.analysis.geometry_domain_settings import METHOD
 
 INPUT_COLOR = "#46e6be"
 UNASSIGNED_COLOR = "#969696"
@@ -51,10 +52,16 @@ def assignment_description(result: FrameAnalysis | None, detection_id: str) -> s
     if assignment is None:
         return "Brak rekordu przypisania dla tego ID"
     if assignment.status == "domain":
+        if result.parameters.get('domain_method') == METHOD:
+            return f'Domena lokalna: {assignment.domain_local_id} · typ nieznany · zgodność fazy niesprawdzona'
         scope = "wspólna" if result.catalogue is not None and result.catalogue.scope != "current_frame" else "lokalna"
         description = f"Klasa {scope}: {assignment.class_id} · domena lokalna: {assignment.domain_local_id}"
         return description + (f" · katalog {result.catalogue.identifier[:8]}" if result.catalogue else "")
     reasons = {
+        'geometry_not_2d': 'brak dwóch stabilnych kierunków geometrii',
+        'geometry_invalid': 'niepoprawny pomiar geometrii',
+        'geometry_low_support': 'za mało punktów lokalnego pomiaru',
+        'geometry_low_quality': 'koherencja poniżej ustawionego minimum',
         "insufficient_local_support": "niewystarczające otoczenie molekuły",
         "periodicity_not_confirmed": "niepotwierdzona periodyczność",
         "class_ambiguous": "niejednoznaczna klasa",
@@ -102,6 +109,9 @@ def describe_result(result: FrameAnalysis | None, mode: str) -> ResultPresentati
         entries = [LegendEntry("Bez dopasowania", UNASSIGNED_COLOR, result.active_count)]
         entries.extend(_excluded_entries(result))
         return ResultPresentation("Brak dopasowania klas", tuple(entries), result.message)
+    if mode == 'classes' and result.parameters.get('domain_method') == METHOD:
+        return ResultPresentation('Typ nieznany', (LegendEntry('Bez typu', UNASSIGNED_COLOR, result.active_count),),
+                                  'Metoda geometryczna nie dopasowuje klas; wybierz widok Domeny.')
     if mode == "domains":
         counts = Counter(item.domain_local_id for item in result.assignments.values()
                          if item.domain_local_id > 0)

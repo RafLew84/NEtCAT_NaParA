@@ -19,6 +19,9 @@ from stmdomains.core.series import Series
 from stmdomains.core.geometry import FrameGeometry
 from stmdomains.analysis.geometry import measure_geometry
 from stmdomains.analysis.geometry_calibration import calibration_from_header
+from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings, METHOD
+from stmdomains.analysis.geometry_domains import segment_geometry
+from stmdomains.analysis.barrier_settings import BarrierSettings
 from stmdomains.core.result_store import ResultStore
 from stmdomains.core.export import ExportOptions
 from stmdomains.ui.export_runner import ExportRunner
@@ -44,6 +47,12 @@ class PreparedImport:
     presenter: FramePresenter
     view: PresentedFrame
     project: ProjectSnapshot | None = None
+
+
+@dataclass(frozen=True)
+class PreparedGeometryDomains:
+    geometry: FrameGeometry
+    result: FrameAnalysis
 
 
 class SessionController(QObject):
@@ -75,6 +84,8 @@ class SessionController(QObject):
         self._analysis_token: int | None = None
         self._geometry_token: int | None = None
         self._geometries: dict[int, FrameGeometry] = {}
+        self._geometric_results: dict[int, FrameAnalysis] = {}
+        self._selected_methods: dict[int, str] = {}
         self._results: MutableMapping[int, FrameAnalysis] = {}
         self._run_results: dict[int, FrameAnalysis] = {}
         self._save_token: int | None = None
@@ -111,7 +122,34 @@ class SessionController(QObject):
 
     @property
     def result(self) -> FrameAnalysis | None:
-        return self.previous_result if self.result_version == "previous" else self.latest_result
+        return self.geometric_result if self.domain_method == 'geometry' else self.baseline_result
+
+    @property
+    def baseline_result(self) -> FrameAnalysis | None:
+        result = self.previous_result if self.result_version == 'previous' else self.latest_result
+        return result if result is not None and result.parameters.get('domain_method') != METHOD else None
+
+    @property
+    def geometric_result(self) -> FrameAnalysis | None:
+        result = self._geometric_results.get(self.current_index)
+        saved = self.latest_result
+        return result or (saved if saved and saved.parameters.get('domain_method') == METHOD else None)
+
+    @property
+    def domain_method(self) -> str:
+        saved = self.latest_result
+        default = 'geometry' if saved and saved.parameters.get('domain_method') == METHOD else 'baseline'
+        return self._selected_methods.get(self.current_index, default)
+
+    def select_domain_method(self, method: str) -> None:
+        if self.is_busy or self._closed or method not in ('baseline', 'geometry'):
+            return
+        if (self.baseline_result if method == 'baseline' else self.geometric_result) is None:
+            return
+        self.pause()
+        self._selected_methods[self.current_index] = method
+        self._refresh_result()
+        self._busy()
 
     @property
     def latest_result(self) -> FrameAnalysis | None:
@@ -159,6 +197,8 @@ class SessionController(QObject):
         saved = self.loaded_project.analysis if self.loaded_project else None
         if saved is not None and saved.identifier == identifier:
             return saved
+        if selection == 'displayed' and self.domain_method == 'geometry' and self.result is not None:
+            return select_analysis(identifier, {self.current_index: self.result}, {}, None, {})
         return select_analysis(identifier, self._memory_results, self._previous_results, run, self._run_results)
 
     def save_project(self, path: Path, *, view: Mapping[str, Any] | None = None,
@@ -217,6 +257,7 @@ class SessionController(QObject):
             return
         self.pause()
         self._selected_versions[self.current_index] = version
+        self._selected_methods[self.current_index] = 'baseline'
         if self.result is not None and self.result.catalogue is not None:
             self._active_catalogue = self.result.catalogue
         self._refresh_result()
@@ -283,6 +324,9 @@ class SessionController(QObject):
         index = result.working_index
         self._run_results[index] = result
         previous = self._results.get(index)
+        if previous is not None and previous.parameters.get('domain_method') == METHOD:
+            self._geometric_results.setdefault(index, previous)
+            previous = None
         if previous is not None and previous.status == "complete":
             if result.status != "complete":
                 return  # Keep the earlier result; the run table shows this attempt's refusal.
@@ -291,6 +335,7 @@ class SessionController(QObject):
             self._previous_results.pop(index, None)
         self._results[index] = result
         self._selected_versions[index] = "new"
+        self._selected_methods[index] = 'baseline'
         if index == self.current_index and self._frame_token is None:
             self._refresh_result()
 
@@ -400,6 +445,26 @@ class SessionController(QObject):
     def _cancel_geometry(self) -> None:
         self._abandon(self._geometry_token)
         self._geometry_token = None
+
+    def analyze_geometry_domains(self, settings: GeometryDomainSettings, *,
+                                 constraints: DomainSettings = DomainSettings(),
+                                 barrier_settings: BarrierSettings = BarrierSettings()) -> None:
+        self.pause()
+        if not self.can_analyze or self.presenter is None or self.series is None:
+            return
+        presenter, index, cached = self.presenter, self.current_index, self.geometry
+        calibration = calibration_from_header(self.series.raw_header, self.series.frame_shape)
+
+        def calculate(cancelled: Event, report: Callable[[str], None]) -> PreparedGeometryDomains:
+            data = presenter.analysis_input(index)
+            geometry = cached or measure_geometry(data, calibration=calibration,
+                cancelled=cancelled.is_set, progress=report)
+            result = segment_geometry(data, geometry, settings=settings, constraints=constraints,
+                barrier_settings=barrier_settings, cancelled=cancelled.is_set, progress=report)
+            return PreparedGeometryDomains(geometry, result)
+
+        self._analysis_token = self._submit(calculate)
+        self._busy()
 
     def analyze_current_frame(self) -> None:
         self.pause()
@@ -572,6 +637,20 @@ class SessionController(QObject):
     def _receive(self, token: int, result: object) -> None:
         if self._closed:
             return
+        if token == self._analysis_token and isinstance(result, PreparedGeometryDomains):
+            frame_result = result.result
+            if (self.series is not None and frame_result.series_id == self.series.identity
+                    and frame_result.working_index == self.current_index == self._requested_index
+                    and frame_result.source_index == self.series.frame(self.current_index).source_index):
+                self._geometries[self.current_index] = result.geometry
+                self._geometric_results[self.current_index] = replace(frame_result,
+                    metadata={**frame_result.metadata, 'analysis_id': uuid4().hex})
+                self._selected_methods[self.current_index] = 'geometry'
+                if self._published is not None and self._frame_token is None:
+                    self._publish(self._published)
+            self._analysis_token = None
+            self._busy()
+            return
         if token == self._save_token:
             self._save_token = None
             self.project_path = self._saving_path
@@ -594,6 +673,9 @@ class SessionController(QObject):
                 result = replace(result, metadata={**{k: v for k, v in result.metadata.items() if k != "series_analysis"},
                                                    "analysis_id": uuid4().hex})
                 previous = self.latest_result
+                if previous is not None and previous.parameters.get('domain_method') == METHOD:
+                    self._geometric_results.setdefault(self.current_index, previous)
+                    previous = None
                 if previous is not None and previous.status == "complete" and result.status != "complete":
                     self._failed(token, result.message)
                     return
@@ -604,6 +686,7 @@ class SessionController(QObject):
                     self._previous_results.pop(self.current_index, None)
                 self._results[self.current_index] = result
                 self._selected_versions[self.current_index] = "new"
+                self._selected_methods[self.current_index] = 'baseline'
                 if result.catalogue is not None:
                     self._active_catalogue = result.catalogue
                 if self._frame_token is None:
@@ -644,6 +727,8 @@ class SessionController(QObject):
             self.current_index = result.view.frame.working_index
             self._results = {}
             self._geometries.clear()
+            self._geometric_results.clear()
+            self._selected_methods.clear()
             self._run_results = {}
             self.loaded_project = result.project
             self.project_path = candidate.series.session_path if result.project else None
@@ -668,8 +753,8 @@ class SessionController(QObject):
 
     def _publish(self, frame: PresentedFrame) -> None:
         index = frame.frame.working_index
-        result = (self._previous_results.get(index) if self._selected_versions.get(index) == "previous"
-                  else self._results.get(index))
+        self.current_index = index
+        result = self.result
         frame = replace(frame, result=result, geometry=self._geometries.get(index))
         self._published = frame
         self._automatic_token = None

@@ -26,6 +26,7 @@ from stmdomains.analysis.clustering import validate_model_dimensions
 from stmdomains.io.project_validation import validate_execution, validate_selection
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.domain_settings import DomainSettings
+from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings, METHOD
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.io.project_archive import ProjectError, json_bytes, put_bytes, read_json
 
@@ -71,6 +72,11 @@ def frame_record(result: FrameAnalysis) -> dict:
 
 
 def validate_frame(result: FrameAnalysis, series: Series, presenter: FramePresenter) -> None:
+    geometric = result.parameters.get('domain_method') == METHOD
+    if geometric:
+        GeometryDomainSettings.from_parameters(result.parameters)
+        if result.classes or result.catalogue is not None or result.metadata.get('phase_boundary_tested') is not False:
+            raise ProjectError('Sprzeczny opis eksperymentalnej metody geometrycznej.')
     ClassAcceptanceSettings.from_parameters(result.parameters)
     DomainSettings.from_parameters(result.parameters)
     OrderSettings.from_parameters(result.parameters)
@@ -99,7 +105,7 @@ def validate_frame(result: FrameAnalysis, series: Series, presenter: FramePresen
             raise ProjectError('Niepoprawny opis przypisania.')
         domain = item.domain_local_id
         if (item.detection_id != key or type(domain) is not int or domain < 0 or
-                (domain and (item.status != 'domain' or item.class_id not in classes)) or
+                (domain and (item.status != 'domain' or (item.class_id != '' if geometric else item.class_id not in classes))) or
                 (not domain and (item.class_id or item.status == 'domain')) or
                 (item.provisional_class_id and item.provisional_class_id not in classes)):
             raise ProjectError('Sprzeczne przypisanie molekuły do domeny lub klasy.')
