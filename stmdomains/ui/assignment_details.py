@@ -4,6 +4,7 @@ from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings, METHOD
+from stmdomains.analysis.freud_settings import FreudSettings, METHOD as FREUD_METHOD
 from stmdomains.ui.result_style import assignment_description
 
 
@@ -12,7 +13,7 @@ def assignment_details(result: FrameAnalysis | None, detection_id: str) -> str:
     if result is None or result.status != "complete":
         return summary
     member = result.assignments.get(detection_id)
-    if member is not None and result.parameters.get('domain_method') == METHOD:
+    if member is not None and result.parameters.get('domain_method') in (METHOD, FREUD_METHOD):
         measured = member.metadata.get('geometry', {})
         geometric_settings = GeometryDomainSettings.from_parameters(result.parameters)
         axes = measured.get('axes', ())
@@ -23,6 +24,17 @@ def assignment_details(result: FrameAnalysis | None, detection_id: str) -> str:
                  f"efektywne {measured.get('effective_count', 0):.2f}."]
         lines.extend(f"Kierunek {i+1}: {a['row_angle_deg']:.2f}°; rozstaw {a['period']:.3f} {unit}; koherencja {a['coherence']:.3f}."
                      for i, a in enumerate(axes))
+        if result.parameters.get('domain_method') == FREUD_METHOD:
+            env = member.metadata.get('freud_environment', {})
+            freud_settings = FreudSettings.from_parameters(result.parameters)
+            lines.extend([f'Klasa otoczenia freud: {member.provisional_class_id or "brak"}.',
+                f'Tolerancja: {freud_settings.tolerance:g} ×NN; zasięg: {freud_settings.radius_factor:g} ×NN; '
+                f'obrót: {"dopasowany" if freud_settings.registration else "zachowany"}.',
+                f'NN klatki: {result.parameters.get("spacing_metric", 0):.4g} {unit}.',
+                f'Sąsiedzi: {env.get("observed_count", 0)}/{freud_settings.neighbor_count}.',
+                'ID i odległości: ' + ', '.join(f'{identity} ({distance:.3f} ×NN)'
+                    for identity, distance in zip(env.get('neighbor_ids', ()), env.get('distances_nn', ()))),
+                'Klasa opisuje podobne otoczenia. Dopasowanie obrotu nie usuwa warunku zgodnej orientacji domeny.'])
         lines.append('Typ nieznany. Zgodność fazy nie została sprawdzona. Brak przypisania nie dowodzi fizycznej granicy.')
         return '\n'.join(lines)
     if member is None or not member.provisional_class_id:

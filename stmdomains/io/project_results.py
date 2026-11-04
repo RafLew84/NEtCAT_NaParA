@@ -27,6 +27,7 @@ from stmdomains.io.project_validation import validate_execution, validate_select
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings, METHOD
+from stmdomains.analysis.freud_settings import FreudSettings, METHOD as FREUD_METHOD
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.io.project_archive import ProjectError, json_bytes, put_bytes, read_json
 
@@ -73,6 +74,15 @@ def frame_record(result: FrameAnalysis) -> dict:
 
 def validate_frame(result: FrameAnalysis, series: Series, presenter: FramePresenter) -> None:
     geometric = result.parameters.get('domain_method') == METHOD
+    if result.parameters.get('domain_method') == FREUD_METHOD:
+        FreudSettings.from_parameters(result.parameters)
+        GeometryDomainSettings.from_parameters(result.parameters)
+        if result.catalogue is not None or result.metadata.get('phase_boundary_tested') is not False:
+            raise ProjectError('Sprzeczny opis eksperymentalnej metody freud.')
+        if result.status == 'complete':
+            description = result.metadata.get('environment_clustering', {})
+            if description.get('periodic') is not False or description.get('engine') != 'freud.EnvironmentCluster':
+                raise ProjectError('Brak opisu porównania otoczeń freud.')
     if geometric:
         GeometryDomainSettings.from_parameters(result.parameters)
         if result.classes or result.catalogue is not None or result.metadata.get('phase_boundary_tested') is not False:

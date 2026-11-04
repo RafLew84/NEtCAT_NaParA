@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.analysis.geometry_domain_settings import METHOD
+from stmdomains.analysis.freud_settings import METHOD as FREUD_METHOD
 
 INPUT_COLOR = "#46e6be"
 UNASSIGNED_COLOR = "#969696"
@@ -31,6 +32,10 @@ def assignment_color(result: FrameAnalysis | None, detection_id: str, mode: str)
     if result is None or mode == "input":
         return INPUT_COLOR
     assignment = result.assignments.get(detection_id)
+    if (mode == 'classes' and result.status == 'complete' and assignment is not None
+            and result.parameters.get('domain_method') == FREUD_METHOD):
+        return next((item.color for item in result.classes if item.class_id == assignment.provisional_class_id),
+                    UNASSIGNED_COLOR)
     if result.status != "complete" or assignment is None or assignment.status != "domain":
         return UNASSIGNED_COLOR
     if mode == "domains":
@@ -58,6 +63,9 @@ def assignment_description(result: FrameAnalysis | None, detection_id: str) -> s
         description = f"Klasa {scope}: {assignment.class_id} · domena lokalna: {assignment.domain_local_id}"
         return description + (f" · katalog {result.catalogue.identifier[:8]}" if result.catalogue else "")
     reasons = {
+        'freud_incomplete': 'za mało sąsiadów w dozwolonym zasięgu',
+        'freud_edge': 'otoczenie ucięte przez brzeg pola',
+        'freud_ambiguous_shell': 'remis odległości na granicy wyboru sąsiadów',
         'geometry_not_2d': 'brak dwóch stabilnych kierunków geometrii',
         'geometry_invalid': 'niepoprawny pomiar geometrii',
         'geometry_low_support': 'za mało punktów lokalnego pomiaru',
@@ -75,7 +83,9 @@ def assignment_description(result: FrameAnalysis | None, detection_id: str) -> s
     reason = reasons.get(assignment.rejection_reason, assignment.rejection_reason or "brak przyczyny")
     description = f"Nieprzypisana · {reason}"
     if assignment.provisional_class_id:
-        description += f" · etykieta wstępna: {assignment.provisional_class_id} (nie jest przypisaniem)"
+        description += (f' · klasa otoczenia: {assignment.provisional_class_id} (bez domeny)'
+                        if result.parameters.get('domain_method') == FREUD_METHOD else
+                        f" · etykieta wstępna: {assignment.provisional_class_id} (nie jest przypisaniem)")
     return description
 
 
@@ -112,6 +122,16 @@ def describe_result(result: FrameAnalysis | None, mode: str) -> ResultPresentati
     if mode == 'classes' and result.parameters.get('domain_method') == METHOD:
         return ResultPresentation('Typ nieznany', (LegendEntry('Bez typu', UNASSIGNED_COLOR, result.active_count),),
                                   'Metoda geometryczna nie dopasowuje klas; wybierz widok Domeny.')
+    if mode == 'classes' and result.parameters.get('domain_method') == FREUD_METHOD:
+        environment_counts = Counter(m.provisional_class_id for m in result.assignments.values() if m.provisional_class_id)
+        entries = [LegendEntry(f'Klasa {item.class_id}', item.color, environment_counts[item.class_id]) for item in result.classes]
+        compared = sum(environment_counts.values())
+        if result.active_count > compared:
+            entries.append(LegendEntry('Nieporównane otoczenia', UNASSIGNED_COLOR, result.active_count-compared))
+        entries.extend(_excluded_entries(result))
+        return ResultPresentation(f'Klasy otoczeń: {len(environment_counts)} · porównano {compared}/{result.active_count}',
+            tuple(entries), 'freud: podobieństwo otoczeń, nie typ struktury. Klasy lokalne dla wyniku. '
+            'Obszary pokazują wyłącznie końcowe domeny. Kliknij molekułę, aby zobaczyć sąsiadów.')
     if mode == "domains":
         counts = Counter(item.domain_local_id for item in result.assignments.values()
                          if item.domain_local_id > 0)

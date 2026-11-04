@@ -6,7 +6,7 @@
 
 **Blocked by:** [06: Strojenie tworzenia domen i porównanie wyniku](06-tune-domain-formation.md), [16: Zobacz kierunek, rozstaw i jakość geometrii na obrazie](16-inspect-local-geometry.md).
 
-**Status:** ready-for-agent — dodanie ograniczonej próby do planu zlecone przez użytkownika; wykonanie po zależnościach.
+**Status:** in_progress — użytkownik zlecił implementację 18 z Panelem A, 2026-11-04; baza `e4fb4aa`.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady rozszerzeń](README.md#rozszerzenia).
 
@@ -18,8 +18,8 @@ A — wspólne okno Analiza, B — porównanie obok siebie, C — stały panel o
 `stmdomains/ui/prototype_freud/`. Lokalny podgląd:
 `python .scratch/stmdomains-freud-ui/serve.py` w netcat.
 
-Pytanie dotyczy miejsca ustawień i porównania klas/domen. Rekomendacja A
-rozwija wybrane UI 17; **wybór użytkownika pozostaje otwarty**.
+Pytanie dotyczy miejsca ustawień i porównania klas/domen. **Użytkownik wybrał
+Panel A i zlecił implementację 2026-11-04.** Rozwijamy wspólne okno Analiza z 17.
 Wyniki freud i parametry są symulacją, nie implementacją metody ani ustaleniem
 jej skali. Po wyborze przepisać właściwy wariant w Qt; nie scalać kodu demo.
 

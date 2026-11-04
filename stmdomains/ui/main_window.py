@@ -341,6 +341,8 @@ class STMDomainsMainWindow(QMainWindow):
             text = prefix + " · " + catalogue_description(result.catalogue)
         if self.controller.domain_method == 'geometry' and result is not None:
             text = 'Geometria · ' + result.message
+        if self.controller.domain_method == 'freud' and result is not None:
+            text = 'freud · klasy otoczeń i spójne domeny; etykiety lokalne dla tego wyniku'
         run = self.controller.series_run
         if run is not None and self.controller.domain_method == 'baseline' and self.controller.current_index in run.frames:
             text += " · seria: " + STATUS_TEXT[run.frames[self.controller.current_index].status]

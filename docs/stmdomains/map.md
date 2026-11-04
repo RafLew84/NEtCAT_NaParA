@@ -14,13 +14,15 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
-**2026-11-04 — prototyp UI SD-V4-18:**
-[Trzy układy freud](implementation/interactive-v04/prototype-18-layouts.md)
-obejmują ustawienia otoczeń, Klasy/Domeny, porównanie z Bazową/Geometrią
-i podgląd sąsiadów. Nowe wyniki są symulowane. Wybór otwarty;
-rekomendacja A nie jest decyzją użytkownika. Źródło `d962b7d` na
-`prototype/stmdomains-freud-ui`; na gałęzi aplikacji tylko dokumentacja.
-Status 18 i kolejność pozostałych ticketów bez zmian.
+**2026-11-04 — SD-V4-18, wybrany Panel A: implementacja gotowa do końcowego przeglądu.**
+Analiza → Analiza… → freud: tolerancja, sąsiedzi, zasięg i obrót; bez K.
+Przełącznik Bazowa / Geometria / freud, Klasy/Domeny i podgląd sąsiadów.
+[Raport i test ręczny](implementation/interactive-v04/acceptance-18.md),
+[protokół](implementation/interactive-v04/experiment-18.md). W netcat dodano freud-analysis 3.6.1.
+TTMAPP259–266: 0–25 przypisań do domen; brak wykazanej poprawy detekcji.
+Natywne GUI X11 PASS; odbiór ręczny użytkownika pozostaje do wykonania.
+Dalsza dostępna ścieżka: 21 → 22 → 23 → 23a → 24 → 25 → 26;
+19–20 nadal odłożone. Poniżej historia wcześniejszych prac.
 
 **2026-11-04 — użytkownik zlecił dopisanie próby Fedkiwa:**
 [SD-V4-26](implementation/interactive-v04/26-compare-fedkiw-level-set.md)

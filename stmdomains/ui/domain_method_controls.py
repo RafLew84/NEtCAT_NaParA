@@ -15,7 +15,8 @@ class DomainMethodControls(QWidget):
         row.addWidget(QLabel('Wynik:'))
         self.baseline = QPushButton('Bazowa')
         self.geometric = QPushButton('Geometria')
-        for button, method in ((self.baseline, 'baseline'), (self.geometric, 'geometry')):
+        self.freud = QPushButton('freud')
+        for button, method in ((self.baseline, 'baseline'), (self.geometric, 'geometry'), (self.freud, 'freud')):
             button.setCheckable(True)
             button.setAutoDefault(False)
             button.clicked.connect(lambda checked, value=method: controller.select_domain_method(value))
@@ -31,13 +32,14 @@ class DomainMethodControls(QWidget):
     def refresh(self):
         controller = self.controller
         for button, method, result in ((self.baseline, 'baseline', controller.baseline_result),
-                                        (self.geometric, 'geometry', controller.geometric_result)):
+                                        (self.geometric, 'geometry', controller.geometric_result),
+                                        (self.freud, 'freud', controller.freud_result)):
             with QSignalBlocker(button):
                 button.setChecked(controller.domain_method == method and result is not None)
             button.setEnabled(controller.can_analyze and result is not None)
             button.setToolTip('Pokaż zachowane przypisania bez przeliczania.' if result else
                               'Brak wyniku tej metody na klatce. Oblicz w oknie Analiza.')
-        geometric = controller.domain_method == 'geometry'
+        geometric = controller.domain_method in ('geometry', 'freud')
         text = 'Eksperymentalna · bez testu fazy · typ nieznany' if geometric else 'Analiza → wybierz metodę i oblicz wynik'
         self.note.setText(text)
         self.note.setToolTip(text)

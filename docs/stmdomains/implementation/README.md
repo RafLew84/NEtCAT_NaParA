@@ -1,5 +1,15 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**2026-11-04 — SD-V4-18, wybrany Panel A: implementacja gotowa do końcowego przeglądu.**
+Analiza → Analiza… → freud: tolerancja, sąsiedzi, zasięg i obrót; bez K.
+Przełącznik Bazowa / Geometria / freud, Klasy/Domeny i podgląd sąsiadów.
+[Raport i test ręczny](interactive-v04/acceptance-18.md),
+[protokół](interactive-v04/experiment-18.md). W netcat dodano freud-analysis 3.6.1.
+TTMAPP259–266: 0–25 przypisań do domen; brak wykazanej poprawy detekcji.
+Natywne GUI X11 PASS; odbiór ręczny użytkownika pozostaje do wykonania.
+Dalsza dostępna ścieżka: 21 → 22 → 23 → 23a → 24 → 25 → 26;
+19–20 nadal odłożone. Poniżej historia wcześniejszych prac.
+
 **Wykonano SD-V4-17 — domeny geometryczne, wybrany Panel A (`25252b2`, poprawki `4c3f3c8`).**
 **Analiza → Analiza… → Metoda domen → Geometria**: kąt, rozstaw,
 koherencja i wsparcie w bieżącej klatce; bez dopasowania klas.

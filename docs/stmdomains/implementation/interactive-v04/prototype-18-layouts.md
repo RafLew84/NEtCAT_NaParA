@@ -5,10 +5,9 @@ porównanie lokalnych otoczeń i jak oglądać klasy oraz domeny obok
 dotychczasowego wyniku?** Trzy układy osadzono w kontekście przeglądarki
 STM, z obrazem, oznaczeniami, suwakiem klatek i istniejącymi metodami.
 
-**Wybór użytkownika pozostaje otwarty.** Rekomendacja autora: A, jako
-rozszerzenie wspólnego okna Analiza wybranego w 17. Nie jest to wdrożenie
-freud; [ticket 18](18-compare-freud-environments.md) nadal `ready-for-agent`.
-Prototyp nie zmienia odebranego Panelu A z 17 ani karty C z 16.
+**Użytkownik wybrał Panel A i zlecił implementację 2026-11-04.**
+[Właściwe UI Qt i wyniki obliczeń](acceptance-18.md). Poniższy prototyp
+pozostaje historyczną demonstracją, jego kod i symulacje nie zostały scalone.
 
 ## Uruchomienie
 

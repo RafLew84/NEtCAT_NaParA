@@ -1,11 +1,14 @@
 # STM Domains
 
-**2026-11-04 — prototyp UI ticketu 18:** A — wspólne okno Analiza,
-B — porównanie obok siebie, C — stały panel otoczeń.
-[Podgląd i instrukcja uruchomienia](implementation/interactive-v04/prototype-18-layouts.md).
-Wyniki freud są symulowane; wybór układu pozostaje otwarty.
-Źródło: `prototype/stmdomains-freud-ui`, `d962b7d`. Ticket 18 nadal
-`ready-for-agent`; 17 odebrany, 26 pozostaje na końcu planu.
+**2026-11-04 — SD-V4-18, wybrany Panel A: implementacja gotowa do końcowego przeglądu.**
+Analiza → Analiza… → freud: tolerancja, sąsiedzi, zasięg i obrót; bez K.
+Przełącznik Bazowa / Geometria / freud, Klasy/Domeny i podgląd sąsiadów.
+[Raport i test ręczny](implementation/interactive-v04/acceptance-18.md),
+[protokół](implementation/interactive-v04/experiment-18.md). W netcat dodano freud-analysis 3.6.1.
+TTMAPP259–266: 0–25 przypisań do domen; brak wykazanej poprawy detekcji.
+Natywne GUI X11 PASS; odbiór ręczny użytkownika pozostaje do wykonania.
+Dalsza dostępna ścieżka: 21 → 22 → 23 → 23a → 24 → 25 → 26;
+19–20 nadal odłożone. Poniżej historia wcześniejszych prac.
 
 **2026-11-04 — dodano [SD-V4-26: próbę level-set Gibou–Fedkiwa](implementation/interactive-v04/26-compare-fedkiw-level-set.md)**
 na końcu [planu UI](implementation/interactive-v04/README.md#tickety-i-kolejność),

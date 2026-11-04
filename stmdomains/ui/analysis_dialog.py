@@ -19,6 +19,8 @@ from stmdomains.analysis.series_settings import SeriesAnalysisPlan
 from stmdomains.ui.auto_ranking_dialog import AutoRankingDialog
 from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings, METHOD
 from stmdomains.ui.geometry_domain_fields import GeometryDomainFields
+from stmdomains.analysis.freud_settings import FreudSettings, METHOD as FREUD_METHOD
+from stmdomains.ui.freud_fields import FreudFields
 from stmdomains.ui.acceptance_fields import AcceptanceFields
 from stmdomains.analysis.descriptor_settings import DescriptorSettings
 from stmdomains.analysis.barrier_settings import BarrierSettings
@@ -49,6 +51,7 @@ class AnalysisDialog(QDialog):
         self.method = QComboBox()
         self.method.addItem('Bazowa — klasy i porządek', 'baseline')
         self.method.addItem('Geometria — tolerancje (eksperymentalna)', 'geometry')
+        self.method.addItem('freud — podobieństwo otoczeń (eksperymentalna)', 'freud')
         method_row.addWidget(self.method, 1)
         layout.addLayout(method_row)
         self.tabs = QTabWidget()
@@ -77,6 +80,12 @@ class AnalysisDialog(QDialog):
         geometry_scroll.setWidget(self.geometry_fields)
         self.tabs.addTab(geometry_scroll, 'Geometria')
         self.tabs.setTabVisible(5, False)
+        self.freud_fields = FreudFields()
+        freud_scroll = QScrollArea()
+        freud_scroll.setWidgetResizable(True)
+        freud_scroll.setWidget(self.freud_fields)
+        self.tabs.addTab(freud_scroll, 'Otoczenia freud')
+        self.tabs.setTabVisible(6, False)
         layout.addWidget(self.tabs, 1)
         edits = QHBoxLayout()
         self.copy_result = QPushButton("Z wyświetlanego wyniku")
@@ -132,6 +141,7 @@ class AnalysisDialog(QDialog):
                        self.order_fields, self.domain_fields, self.advanced_fields):
             fields.changed.connect(self._validate)
         self.geometry_fields.changed.connect(self._validate)
+        self.freud_fields.changed.connect(self._validate)
         self.method.currentIndexChanged.connect(self._method_changed)
         self.class_fields.mode.currentIndexChanged.connect(self._load_catalogue_descriptor)
         self.class_fields.catalogue.currentIndexChanged.connect(self._load_catalogue_descriptor)
@@ -173,22 +183,25 @@ class AnalysisDialog(QDialog):
         )
 
     def _method_changed(self) -> None:
-        geometric = self.method.currentData() == 'geometry'
+        geometric = self.method.currentData() in ('geometry', 'freud')
+        freud = self.method.currentData() == 'freud'
         for index in range(4):
             self.tabs.setTabVisible(index, not geometric)
         self.tabs.setTabVisible(5, geometric)
-        self.tabs.setCurrentIndex(5 if geometric else 0)
+        self.tabs.setTabVisible(6, freud)
+        self.tabs.setCurrentIndex(6 if freud else 5 if geometric else 0)
         self.advanced_fields.descriptor.setVisible(not geometric)
         self.auto_summary.setVisible(not geometric)
         self.auto_details.setVisible(not geometric)
         self.statuses.setVisible(not geometric)
         self.comparison.setVisible(not geometric)
         self.comparison_label.setVisible(not geometric)
-        self._validate()
+        self.refresh()
 
     def _baseline(self) -> None:
         self._loading = True
         self.geometry_fields.load(GeometryDomainSettings(), DomainSettings())
+        self.freud_fields.load(FreudSettings())
         self.domain_fields.load(DomainSettings())
         self.acceptance_fields.load(ClassAcceptanceSettings())
         self.order_fields.load(OrderSettings())
@@ -202,7 +215,8 @@ class AnalysisDialog(QDialog):
         if result is None:
             return
         self._loading = True
-        self.method.setCurrentIndex(1 if result.parameters.get('domain_method') == METHOD else 0)
+        self.method.setCurrentIndex({METHOD: 1, FREUD_METHOD: 2}.get(result.parameters.get('domain_method', ''), 0))
+        self.freud_fields.load(FreudSettings.from_parameters(result.parameters))
         self.geometry_fields.load(GeometryDomainSettings.from_parameters(result.parameters), DomainSettings.from_parameters(result.parameters))
         self.domain_fields.load(DomainSettings.from_parameters(result.parameters))
         self.acceptance_fields.load(ClassAcceptanceSettings.from_parameters(result.parameters))
@@ -240,12 +254,17 @@ class AnalysisDialog(QDialog):
             series = self.controller.series
             if series is None:
                 raise ValueError("Najpierw otwórz serię.")
-            if self.method.currentData() == 'geometry':
+            if self.method.currentData() in ('geometry', 'freud'):
                 self.geometry_fields.settings()
                 self.geometry_fields.constraints()
                 self.advanced_fields.barriers.settings()
-                self.validation.setText(f'Szkic: geometria na kl. {self.controller.current_index + 1}. Bez katalogu klas.\n'
-                                        'Analizuj zastosuje Geometrię i bariery. Edycja nie zmienia obrazu.')
+                if self.method.currentData() == 'freud':
+                    self.freud_fields.settings()
+                    from stmdomains.analysis.freud_adapter import require_freud
+                    require_freud()
+                name = 'freud + geometria + bariery' if self.method.currentData() == 'freud' else 'geometria + bariery'
+                self.validation.setText(f'Szkic: {name} · kl. {self.controller.current_index + 1}.\n'
+                                        'Analizuj zastosuje ustawienia. Edycja nie zmienia obrazu.')
                 self.validation.setToolTip(self.validation.text())
                 self.calculate.setEnabled(self.controller.can_analyze)
                 return
@@ -272,6 +291,12 @@ class AnalysisDialog(QDialog):
 
     def _calculate(self) -> None:
         try:
+            if self.method.currentData() == 'freud':
+                self.controller.analyze_freud_domains(self.freud_fields.settings(),
+                    geometry_settings=self.geometry_fields.settings(), constraints=self.geometry_fields.constraints(),
+                    barrier_settings=self.advanced_fields.barriers.settings())
+                self.close()
+                return
             if self.method.currentData() == 'geometry':
                 self.controller.analyze_geometry_domains(self.geometry_fields.settings(),
                     constraints=self.geometry_fields.constraints(), barrier_settings=self.advanced_fields.barriers.settings())
@@ -293,6 +318,7 @@ class AnalysisDialog(QDialog):
             self._seen_catalogue = None
             self.method.setCurrentIndex(0)
             self.geometry_fields.load(GeometryDomainSettings(), DomainSettings())
+            self.freud_fields.load(FreudSettings())
             count, index = (series.frame_count, series.active_frame_index) if series else (1, 0)
             self.scope_fields.reset(count, index)
             self.class_fields.reset(count, index)
@@ -320,10 +346,11 @@ class AnalysisDialog(QDialog):
         with QSignalBlocker(self.comparison):
             self.comparison.setCurrentIndex(self.comparison.findData(controller.result_version))
         self.progress.setText(run.message if run else "Nie uruchomiono analizy. Nowa seria zaczyna od bazowych ustawień.")
-        if self.method.currentData() == 'geometry':
+        if self.method.currentData() in ('geometry', 'freud'):
+            method = self.method.currentData()
             self.progress.setText('Trwa obliczanie — postęp także pod obrazem.' if controller.is_busy else
-                                  'Geometria: wynik dostępny na obrazie.' if controller.geometric_result else
-                                  'Kliknij Analizuj, aby pomierzyć geometrię i utworzyć domeny.')
+                                  f'{method}: wynik dostępny na obrazie.' if controller.result_for_method(method) else
+                                  'Kliknij Analizuj, aby obliczyć wybraną metodę.')
         self.progress.setToolTip(self.progress.text())
         self.statuses.refresh(run)
         selection, _, context = self._auto_context()
@@ -368,6 +395,16 @@ class AnalysisDialog(QDialog):
             self.displayed.setText("Brak wyniku na oglądanej klatce.")
             self.displayed.setToolTip("")
             return
+        if result.parameters.get('domain_method') == FREUD_METHOD:
+            settings = FreudSettings.from_parameters(result.parameters)
+            text = (f'freud · kl. {result.working_index+1}: {len(result.classes)} klas otoczeń, '
+                    f'{result.domain_count} domen, {result.assigned_count}/{result.active_count} w domenach.\n'
+                    f'Użyto: tolerancja {settings.tolerance:g} ×NN, sąsiedzi {settings.neighbor_count}, '
+                    f'zasięg {settings.radius_factor:g} ×NN, obrót {"dopasowany" if settings.registration else "zachowany"}.\n'
+                    'Klasy lokalne; pełne parametry: Dane… przy legendzie.')
+            self.displayed.setText(text)
+            self.displayed.setToolTip(text + '\n' + result.message)
+            return
         if result.parameters.get('domain_method') == METHOD:
             geometric_settings = GeometryDomainSettings.from_parameters(result.parameters)
             text = (f'Geometria · kl. {result.working_index+1}: {result.domain_count} domen, '
@@ -390,7 +427,7 @@ class AnalysisDialog(QDialog):
         if run and result.metadata.get("series_analysis", {}).get("run_id") != run.identifier:
             text += "\nWyświetlono wynik spoza tego przebiegu."
         self.displayed.setText(text)
-        settings = ClassAcceptanceSettings.from_parameters(result.parameters)
-        self.displayed.setToolTip(text + f"\nUżyto marginesu {settings.class_margin:g}, mnożnika {settings.class_radius_multiplier:g}.\n"
+        acceptance = ClassAcceptanceSettings.from_parameters(result.parameters)
+        self.displayed.setToolTip(text + f"\nUżyto marginesu {acceptance.class_margin:g}, mnożnika {acceptance.class_radius_multiplier:g}.\n"
                                  + order_settings_description(OrderSettings.from_parameters(result.parameters))
                                  + "\nPełne parametry: Dane… przy legendzie obrazu.")

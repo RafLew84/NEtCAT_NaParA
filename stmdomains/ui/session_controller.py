@@ -21,6 +21,8 @@ from stmdomains.analysis.geometry import measure_geometry
 from stmdomains.analysis.geometry_calibration import calibration_from_header
 from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings, METHOD
 from stmdomains.analysis.geometry_domains import segment_geometry
+from stmdomains.analysis.freud_settings import FreudSettings, METHOD as FREUD_METHOD
+from stmdomains.analysis.freud_domains import segment_freud
 from stmdomains.analysis.barrier_settings import BarrierSettings
 from stmdomains.core.result_store import ResultStore
 from stmdomains.core.export import ExportOptions
@@ -50,7 +52,7 @@ class PreparedImport:
 
 
 @dataclass(frozen=True)
-class PreparedGeometryDomains:
+class PreparedMeasuredDomains:
     geometry: FrameGeometry
     result: FrameAnalysis
 
@@ -85,6 +87,7 @@ class SessionController(QObject):
         self._geometry_token: int | None = None
         self._geometries: dict[int, FrameGeometry] = {}
         self._geometric_results: dict[int, FrameAnalysis] = {}
+        self._freud_results: dict[int, FrameAnalysis] = {}
         self._selected_methods: dict[int, str] = {}
         self._results: MutableMapping[int, FrameAnalysis] = {}
         self._run_results: dict[int, FrameAnalysis] = {}
@@ -122,12 +125,17 @@ class SessionController(QObject):
 
     @property
     def result(self) -> FrameAnalysis | None:
-        return self.geometric_result if self.domain_method == 'geometry' else self.baseline_result
+        return self.result_for_method(self.domain_method)
+
+    def result_for_method(self, method: str) -> FrameAnalysis | None:
+        if method == 'freud':
+            return self.freud_result
+        return self.geometric_result if method == 'geometry' else self.baseline_result
 
     @property
     def baseline_result(self) -> FrameAnalysis | None:
         result = self.previous_result if self.result_version == 'previous' else self.latest_result
-        return result if result is not None and result.parameters.get('domain_method') != METHOD else None
+        return result if result is not None and result.parameters.get('domain_method') not in (METHOD, FREUD_METHOD) else None
 
     @property
     def geometric_result(self) -> FrameAnalysis | None:
@@ -136,15 +144,33 @@ class SessionController(QObject):
         return result or (saved if saved and saved.parameters.get('domain_method') == METHOD else None)
 
     @property
+    def freud_result(self) -> FrameAnalysis | None:
+        result = self._freud_results.get(self.current_index)
+        saved = self.latest_result
+        return result or (saved if saved and saved.parameters.get('domain_method') == FREUD_METHOD else None)
+
+    @property
     def domain_method(self) -> str:
         saved = self.latest_result
-        default = 'geometry' if saved and saved.parameters.get('domain_method') == METHOD else 'baseline'
+        default = self._method_name(saved)
         return self._selected_methods.get(self.current_index, default)
 
+    @staticmethod
+    def _method_name(result: FrameAnalysis | None) -> str:
+        return {METHOD: 'geometry', FREUD_METHOD: 'freud'}.get(result.parameters.get('domain_method', ''), 'baseline') if result else 'baseline'
+
+    def _preserve_alternative(self, index: int, result: FrameAnalysis | None) -> bool:
+        method = self._method_name(result)
+        if method == 'baseline' or result is None:
+            return False
+        store = self._freud_results if method == 'freud' else self._geometric_results
+        store.setdefault(index, result)
+        return True
+
     def select_domain_method(self, method: str) -> None:
-        if self.is_busy or self._closed or method not in ('baseline', 'geometry'):
+        if self.is_busy or self._closed or method not in ('baseline', 'geometry', 'freud'):
             return
-        if (self.baseline_result if method == 'baseline' else self.geometric_result) is None:
+        if self.result_for_method(method) is None:
             return
         self.pause()
         self._selected_methods[self.current_index] = method
@@ -197,7 +223,7 @@ class SessionController(QObject):
         saved = self.loaded_project.analysis if self.loaded_project else None
         if saved is not None and saved.identifier == identifier:
             return saved
-        if selection == 'displayed' and self.domain_method == 'geometry' and self.result is not None:
+        if selection == 'displayed' and self.domain_method in ('geometry', 'freud') and self.result is not None:
             return select_analysis(identifier, {self.current_index: self.result}, {}, None, {})
         return select_analysis(identifier, self._memory_results, self._previous_results, run, self._run_results)
 
@@ -324,8 +350,7 @@ class SessionController(QObject):
         index = result.working_index
         self._run_results[index] = result
         previous = self._results.get(index)
-        if previous is not None and previous.parameters.get('domain_method') == METHOD:
-            self._geometric_results.setdefault(index, previous)
+        if self._preserve_alternative(index, previous):
             previous = None
         if previous is not None and previous.status == "complete":
             if result.status != "complete":
@@ -449,19 +474,33 @@ class SessionController(QObject):
     def analyze_geometry_domains(self, settings: GeometryDomainSettings, *,
                                  constraints: DomainSettings = DomainSettings(),
                                  barrier_settings: BarrierSettings = BarrierSettings()) -> None:
+        self._analyze_measured_domains(settings, constraints, barrier_settings)
+
+    def analyze_freud_domains(self, settings: FreudSettings, *,
+                              geometry_settings: GeometryDomainSettings = GeometryDomainSettings(),
+                              constraints: DomainSettings = DomainSettings(),
+                              barrier_settings: BarrierSettings = BarrierSettings()) -> None:
+        self._analyze_measured_domains(geometry_settings, constraints, barrier_settings, settings)
+
+    def _analyze_measured_domains(self, settings: GeometryDomainSettings, constraints: DomainSettings,
+                                  barrier_settings: BarrierSettings, freud_settings: FreudSettings | None = None) -> None:
         self.pause()
         if not self.can_analyze or self.presenter is None or self.series is None:
             return
         presenter, index, cached = self.presenter, self.current_index, self.geometry
         calibration = calibration_from_header(self.series.raw_header, self.series.frame_shape)
 
-        def calculate(cancelled: Event, report: Callable[[str], None]) -> PreparedGeometryDomains:
+        def calculate(cancelled: Event, report: Callable[[str], None]) -> PreparedMeasuredDomains:
             data = presenter.analysis_input(index)
             geometry = cached or measure_geometry(data, calibration=calibration,
                 cancelled=cancelled.is_set, progress=report)
-            result = segment_geometry(data, geometry, settings=settings, constraints=constraints,
-                barrier_settings=barrier_settings, cancelled=cancelled.is_set, progress=report)
-            return PreparedGeometryDomains(geometry, result)
+            if freud_settings is not None:
+                result = segment_freud(data, geometry, settings=freud_settings, geometry_settings=settings,
+                    constraints=constraints, barrier_settings=barrier_settings, cancelled=cancelled.is_set, progress=report)
+            else:
+                result = segment_geometry(data, geometry, settings=settings, constraints=constraints,
+                    barrier_settings=barrier_settings, cancelled=cancelled.is_set, progress=report)
+            return PreparedMeasuredDomains(geometry, result)
 
         self._analysis_token = self._submit(calculate)
         self._busy()
@@ -637,15 +676,17 @@ class SessionController(QObject):
     def _receive(self, token: int, result: object) -> None:
         if self._closed:
             return
-        if token == self._analysis_token and isinstance(result, PreparedGeometryDomains):
+        if token == self._analysis_token and isinstance(result, PreparedMeasuredDomains):
             frame_result = result.result
             if (self.series is not None and frame_result.series_id == self.series.identity
                     and frame_result.working_index == self.current_index == self._requested_index
                     and frame_result.source_index == self.series.frame(self.current_index).source_index):
                 self._geometries[self.current_index] = result.geometry
-                self._geometric_results[self.current_index] = replace(frame_result,
+                method = self._method_name(frame_result)
+                store = self._freud_results if method == 'freud' else self._geometric_results
+                store[self.current_index] = replace(frame_result,
                     metadata={**frame_result.metadata, 'analysis_id': uuid4().hex})
-                self._selected_methods[self.current_index] = 'geometry'
+                self._selected_methods[self.current_index] = method
                 if self._published is not None and self._frame_token is None:
                     self._publish(self._published)
             self._analysis_token = None
@@ -673,8 +714,7 @@ class SessionController(QObject):
                 result = replace(result, metadata={**{k: v for k, v in result.metadata.items() if k != "series_analysis"},
                                                    "analysis_id": uuid4().hex})
                 previous = self.latest_result
-                if previous is not None and previous.parameters.get('domain_method') == METHOD:
-                    self._geometric_results.setdefault(self.current_index, previous)
+                if self._preserve_alternative(self.current_index, previous):
                     previous = None
                 if previous is not None and previous.status == "complete" and result.status != "complete":
                     self._failed(token, result.message)
@@ -728,6 +768,7 @@ class SessionController(QObject):
             self._results = {}
             self._geometries.clear()
             self._geometric_results.clear()
+            self._freud_results.clear()
             self._selected_methods.clear()
             self._run_results = {}
             self.loaded_project = result.project

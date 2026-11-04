@@ -7,6 +7,7 @@ from typing import Any
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings
+from stmdomains.analysis.freud_settings import FreudSettings
 from stmdomains.analysis.descriptor_settings import DescriptorSettings
 from stmdomains.analysis.barrier_settings import BarrierSettings
 from stmdomains.analysis.order_settings import OrderSettings
@@ -27,10 +28,11 @@ def analysis_plan(record: Mapping[str, Any]) -> SeriesAnalysisPlan:
 def validate_project_state(view: Mapping, draft: Mapping, count: int) -> None:
     if not isinstance(view, Mapping) or not isinstance(draft, Mapping):
         raise ProjectError('Niepoprawny stan widoku lub parametrów.')
-    if draft.get('domain_method', 'baseline') not in ('baseline', 'geometry'):
+    if draft.get('domain_method', 'baseline') not in ('baseline', 'geometry', 'freud'):
         raise ProjectError('Nieznana metoda domen w szkicu.')
     validate_inactive_baseline(draft.get('inactive_baseline', {}))
     GeometryDomainSettings(**draft.get('geometry_tolerances', {}))
+    FreudSettings(**draft.get('freud_settings', {}))
     DomainSettings(**draft.get('geometry_constraints', {}))
     index = view.get('current_index', 0)
     if type(index) is not int or not 0 <= index < count:

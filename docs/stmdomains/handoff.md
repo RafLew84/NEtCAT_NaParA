@@ -1,3 +1,35 @@
+# STM Domains — SD-V4-18, Panel A
+
+2026-11-04, gałąź `domains/interactive-v04-ui`, poprawny worktree
+`/home/rlew/projekty/NEtCAT-domains`, baza zadania `e4fb4aa`.
+Implementacja gotowa, trwa końcowy przegląd i pełna regresja.
+[Raport i test ręczny](implementation/interactive-v04/acceptance-18.md),
+[protokół](implementation/interactive-v04/experiment-18.md).
+
+Rzeczywisty EnvironmentCluster, osobny anulowalny proces, bez K i treningu.
+Panel A w Analizie; ustawienia NN, sąsiedzi, obrót; Klasy i Domeny mają różne
+mianowniki. Podgląd sąsiadów po kliknięciu, przełączanie trzech zachowanych
+wyników, zapis/eksport jednego wyniku i oddzielnego szkicu. Wspólne pomiary
+17/18 wydzielone; żadnych nowych modeli lub zmian w paczce v0.4.
+
+Wykonano kontrole 1–9 oraz TTMAPP259–266 z trzema zamrożonymi tolerancjami;
+natywne GUI X11/netcat, raw/aligned, okno 1024×768, eksport PNG, zapis/odczyt,
+anulowanie i zamknięcie podczas pracy PASS. Źródła pozostały niezmienione.
+To automatyzowane sprawdzenie GUI, **nie odbiór ręczny użytkownika**.
+Wynik próby: brak wykazanej poprawy; domyślnie 173–196 klas i 0–25 molekuł
+w domenach na TTMAPP. Skok fazy, braki i bariery pozostają problemem.
+Lokalne artefakty: `.scratch/stmdomains-ui-18/`.
+
+Środowisko **netcat**: dodano `freud-analysis==3.6.1`, `rowan==1.3.2`,
+`parsnip-cif==1.0.0`, `more-itertools==11.2.1`; istniejące NumPy/SciPy bez zmiany.
+**Potrzeba integracyjna:** odnotować opcjonalne freud-analysis w zarządzaniu
+zależnościami STM Domains. Wspólnej konfiguracji tej sesji nie zmieniono.
+Brak biblioteki nie blokuje pozostałych metod ani oglądania zapisanego wyniku.
+Dalsza dostępna ścieżka: 21 → 22 → 23 → 23a → 24 → 25 → 26; 19–20 odłożone.
+Commit i końcowe liczniki sprawdzeń zostaną uzupełnione przed przekazaniem.
+
+---
+
 # STM Domains — propozycje UI SD-V4-18
 
 2026-11-04. Użytkownik zlecił `prototype` dla metody freud.
