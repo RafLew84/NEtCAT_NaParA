@@ -27,7 +27,7 @@ bez referencji nie oznacza to poprawy. Kontrole wykazały nadmierne
 podziały i nierozstrzygnięty skok fazy. Metoda pozostaje eksperymentalna.
 **543 testy PASS**, mypy 109 modułów PASS, natywne GUI X11 PASS,
 Standards/Spec 0 otwartych uwag; kod maks. 821 linii.
-**Odbiór ręczny użytkownika oczekuje.** Następny rekomendowany ticket: **18**;
+**Odbiór ręczny użytkownika 17 potwierdzony 2026-11-04 dla wersji `b58e69d` („testy manualn ok”).** Następny rekomendowany ticket: **18**;
 21 (edycja ręczna) jest również dostępny po swoich zależnościach.
 Poniżej historia wcześniejszych etapów.
 

@@ -6,7 +6,7 @@
 
 **Blocked by:** [06: Strojenie tworzenia domen i porównanie wyniku](06-tune-domain-formation.md), [16: Zobacz kierunek, rozstaw i jakość geometrii na obrazie](16-inspect-local-geometry.md).
 
-**Status:** done — implementacja Panelu A `25252b2`, poprawki `4c3f3c8`; odbiór ręczny użytkownika oczekuje.
+**Status:** done — implementacja Panelu A `25252b2`, poprawki `4c3f3c8`; odbiór ręczny użytkownika potwierdzony 2026-11-04 dla wersji `b58e69d` („testy manualn ok”).
 
 [Raport i test ręczny](acceptance-17.md), [zamrożony protokół](experiment-17.md), [przegląd](review-17.md).
 

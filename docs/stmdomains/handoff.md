@@ -3,7 +3,8 @@
 2026-11-04. Użytkownik wybrał Panel A i zlecił `implement 17`.
 Implementacja `25252b2`, poprawki `4c3f3c8`, na `domains/interactive-v04-ui`, worktree
 `/home/rlew/projekty/NEtCAT-domains`; baza `7cf0922`. Status `done`,
-**odbiór ręczny użytkownika oczekuje**. Brak potrzebnych zmian wspólnych.
+**odbiór ręczny użytkownika 17 potwierdzony 2026-11-04 dla wersji `b58e69d`
+(„testy manualn ok”)**. Brak potrzebnych zmian wspólnych.
 
 Wspólne **Analiza → Metoda domen → Geometria** oblicza domeny bieżącej
 klatki z pomiarów 16. Cztery parametry pomiarowe, odległość, wielkość
@@ -44,7 +45,8 @@ nie blokują zapisu geometrii, a po powrocie blokują tylko bazowe obliczenia.
 Start: `python -m stmdomains.main`. Kontrole do otwarcia:
 `.scratch/stmdomains-ui-17/demo/domain-geometry.moltrack.json`.
 Następny rekomendowany ticket 18; ręczna edycja 21 dostępna niezależnie.
-Nie kontynuowano innych ticketów. Poniżej historia.
+Potwierdzenie odbioru zapisano wyłącznie w dokumentacji; bez zmian kodu
+i ponownego uruchamiania testów obliczeń. Nie kontynuowano innych ticketów. Poniżej historia.
 
 ---
 

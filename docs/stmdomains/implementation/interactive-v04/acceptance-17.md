@@ -1,6 +1,6 @@
 # 17 — domeny geometryczne, Panel A
 
-Implementacja 2026-11-04. Wybrany przez użytkownika wariant A: wspólne okno Analiza i przełącznik nad obrazem. Odbiór ręczny użytkownika oczekuje.
+Implementacja 2026-11-04. Wybrany przez użytkownika wariant A: wspólne okno Analiza i przełącznik nad obrazem. **Odbiór ręczny użytkownika 17 potwierdzony 2026-11-04 dla wersji `b58e69d` („testy manualn ok”).**
 
 ## Działanie
 
@@ -59,7 +59,7 @@ Raport liczy domeny zawierające >1 region referencji, regiony rozdzielone na >1
 
 ## Sprawdzenia
 
-Testy publicznych obliczeń, parametrów, całego regionu, symetrii, barier, braków, powtarzalności, anulowania i zapisu/odczytu; regresje okna Analiza i karty C. **543 testy PASS** po poprawkach przeglądu, w dwóch rozłącznych grupach 78 plików: 298 / 134,85 s oraz 245 / 103,75 s. Pierwszy przebieg przed przeglądem: 542 PASS; ponowienie uzasadnione poprawką zapisu i wydzieleniem wspólnego rastra. Regresja nieaktywnego szkicu RED→GREEN, 37 testów celowanych PASS. Mypy: **109 modułów PASS**. Wszystkie 22 zmienionych plików kodu/testów mają <1000 linii, maksimum **821** (`session_controller.py`); twardy limit 1500 zachowany. [Przegląd Standards/Spec](review-17.md): 0 otwartych uwag w obu osiach. Linki dokumentacji i graf 26 ticketów sprawdzone.
+Testy publicznych obliczeń, parametrów, całego regionu, symetrii, barier, braków, powtarzalności, anulowania i zapisu/odczytu; regresje okna Analiza i karty C. **543 testy PASS** po poprawkach przeglądu, w dwóch rozłącznych grupach 78 plików: 298 / 134,85 s oraz 245 / 103,75 s. Pierwszy przebieg przed przeglądem: 542 PASS; ponowienie uzasadnione poprawką zapisu i wydzieleniem wspólnego rastra. Regresja nieaktywnego szkicu RED→GREEN, 37 testów celowanych PASS. Mypy: **109 modułów PASS**. Wszystkie 22 zmienione pliki kodu/testów mają <1000 linii, maksimum **821** (`session_controller.py`); twardy limit 1500 zachowany. [Przegląd Standards/Spec](review-17.md): 0 otwartych uwag w obu osiach. Linki dokumentacji i graf 26 ticketów sprawdzone.
 
 Natywne GUI X11 w netcat: kontrole 1–9 i TTMAPP259–266, rzeczywiste wyniki obu metod, przełączanie z niezmiennym zoomem, raw/aligned, karta C, okno 1024×768, anulowanie, zapis/otwarcie i zamknięcie w trakcie pracy. Artefakty: `.scratch/stmdomains-ui-17/` (raport, log, PNG, projekt, skrypty). To wykonane sprawdzenie automatyczne GUI; nie jest odbiorem użytkownika.
 
