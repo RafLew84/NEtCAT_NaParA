@@ -1,12 +1,13 @@
 # Interaktywne STM Domains — obliczenia z danych
 
-**2026-11-04 — SD-V4-18, wybrany Panel A: implementacja gotowa do końcowego przeglądu.**
+**2026-11-04 — Wykonano SD-V4-18, wybrany Panel A (`85a90e0`, poprawki `d7ea7b2`).**
 Analiza → Analiza… → freud: tolerancja, sąsiedzi, zasięg i obrót; bez K.
 Przełącznik Bazowa / Geometria / freud, Klasy/Domeny i podgląd sąsiadów.
 [Raport i test ręczny](acceptance-18.md),
 [protokół](experiment-18.md). W netcat dodano freud-analysis 3.6.1.
 TTMAPP259–266: 0–25 przypisań do domen; brak wykazanej poprawy detekcji.
-Natywne GUI X11 PASS; odbiór ręczny użytkownika pozostaje do wykonania.
+557 testów pełnej regresji PASS, 28 testów po poprawkach PASS, mypy 105 modułów PASS.
+Natywne GUI X11 PASS; **odbiór ręczny użytkownika pozostaje do wykonania**.
 Dalsza dostępna ścieżka: 21 → 22 → 23 → 23a → 24 → 25 → 26;
 19–20 nadal odłożone. Poniżej historia wcześniejszych prac.
 
@@ -207,7 +208,7 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 **Ręczny odbiór użytkownika 10 potwierdzony 2026-11-03** dla wersji
 `4b55727` („testy manualne ok”). Później wykonano 11–15; obecnie następny **16**.
 
-01–03, 05, 05a i 06–17 mają status `done`. 18 jest `in_progress` (końcowy przegląd).
+01–03, 05, 05a i 06–18 mają status `done`; odbiór ręczny 18 oczekuje na użytkownika.
 21–26 oraz 23a mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.

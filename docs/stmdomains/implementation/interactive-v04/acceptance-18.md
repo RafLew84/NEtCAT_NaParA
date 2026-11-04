@@ -124,7 +124,12 @@ Mypy: 105 modułów core/ui/io/analysis PASS.
 Pełna regresja **557 testów PASS / 256,20 s** na `85a90e0`. Po przeglądzie
 dodano test symetrii rejestracji, doprecyzowano UI/metadane, zachowano podgląd
 sąsiadów przy zmianie raw/aligned i wydzielono wspólne pochodzenie wyników 17/18.
-Końcowe sprawdzenia tych zmian są w toku.
+**28 testów celowanych PASS / 27,84 s**, mypy ponownie **105 modułów PASS**.
+Ponowny natywny przebieg klatki 259 po poprawkach **PASS**.
+[Przegląd Standards/Spec](review-18.md): wszystkie uwagi zamknięte.
+23 zmienione pliki kodu/testów mają mniej niż 1000 linii; maksimum **862**
+(`session_controller.py`), twardy limit 1500 zachowany. Sprawdzono lokalne
+odnośniki i zgodność zależności 27 ticketów planu.
 
 Natywne GUI X11/netcat: kontrole 1–9 i TTMAPP259–266, rzeczywiste wyniki
 trzech metod, Klasy/Domeny, raw/aligned, sąsiedzi, karta C, niezmienny zoom,

@@ -6,7 +6,9 @@
 
 **Blocked by:** [06: Strojenie tworzenia domen i porównanie wyniku](06-tune-domain-formation.md), [16: Zobacz kierunek, rozstaw i jakość geometrii na obrazie](16-inspect-local-geometry.md).
 
-**Status:** in_progress — użytkownik zlecił implementację 18 z Panelem A, 2026-11-04; baza `e4fb4aa`.
+**Status:** done — 2026-11-04, Panel A, `85a90e0` i `d7ea7b2`. Odbiór ręczny użytkownika do wykonania.
+
+[Raport i test ręczny](acceptance-18.md) · [protokół](experiment-18.md) · [przegląd](review-18.md).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady rozszerzeń](README.md#rozszerzenia).
 
@@ -20,19 +22,19 @@ A — wspólne okno Analiza, B — porównanie obok siebie, C — stały panel o
 
 Pytanie dotyczy miejsca ustawień i porównania klas/domen. **Użytkownik wybrał
 Panel A i zlecił implementację 2026-11-04.** Rozwijamy wspólne okno Analiza z 17.
-Wyniki freud i parametry są symulacją, nie implementacją metody ani ustaleniem
-jej skali. Po wyborze przepisać właściwy wariant w Qt; nie scalać kodu demo.
+W historycznym prototypie wyniki i parametry były symulacją. Właściwe UI
+Qt korzysta teraz z rzeczywistego freud; kodu demo nie scalono.
 
 ## Kryteria akceptacji
 
-- [ ] Jeden wariant EnvironmentCluster działa od ustawienia w UI do wyniku na rzeczywistych oznaczeniach. Liczba klas wynika z tolerancji; nie jest po drodze wymuszana przez KMeans ani Auto z 12. Nową hipotezą jest porównanie otoczeń tą metodą, nie samo zastąpienie obliczeń NumPy biblioteką.
-- [ ] Wybór sąsiadów, zasięg i jednostki tolerancji są jawne. Przeciwległe brzegi obrazu STM nie są łączone przez okresowe warunki brzegowe. Nie dobiera się dowolnie dalekich punktów tylko po to, aby uzupełnić liczbę sąsiadów.
-- [ ] Wymóg jednakowej liczby sąsiadów jest obsłużony jawnie: nieporównywalne lub niepełne otoczenie dostaje status i powód odmowy. Brzegi oraz brakujące detekcje mają oddzielne sprawdzenie; stała liczba najbliższych sąsiadów nie ukrywa braków.
-- [ ] Jawnie wybrano i zapisano sposób traktowania obrotu. Orientacja jest osobnym pomiarem; klasa zależna od obrotu nie jest nazywana typem struktury. Jeżeli dopasowanie usuwa obrót, tworzenie domen nadal uwzględnia różnice orientacji z 16.
-- [ ] Klaster podobnych otoczeń nie staje się automatycznie jedną domeną. Osobny etap zachowuje spójność przestrzenną, przerwy/bariery i lokalne identyfikatory domen. Widok Klasy/Domeny wyraźnie pokazuje różnicę; porównywane warianty mają opisane różnice etapów.
-- [ ] Zakres próby jest ograniczony do bieżącej klatki, małego zapisanego zestawu tolerancji, wspólnych kontroli i TTMAPP259–266. Te same ustawienia oraz powtarzalne warunki są użyte do oceny; raport pokazuje także porażki na przesunięciu sieci, szumie i brakujących centrach.
-- [ ] Zmiana tolerancji, postęp i anulowanie działają w aplikacji. Użytkownik wraca do identycznego, zachowanego wyniku metody bazowej, wcześniej obliczonego z tych samych wejść. Żaden wariant nie wymaga gotowych modeli lub przypisań v0.4. Raport porównuje trafność podziału i odmowy, oddzielnie od samej liczby klas i pokolorowanych molekuł.
-- [ ] Wykonawca sprawdza dostępność i wersję zależności w środowisku lokalnym, bez zmiany wspólnej konfiguracji poza sesją integracyjną. Brak opcjonalnej biblioteki nie blokuje dotychczasowego UI. Raport testów i limit 1000/1500 linii obowiązują również adapter i testy tej metody.
+- [x] Jeden wariant EnvironmentCluster działa od ustawienia w UI do wyniku na rzeczywistych oznaczeniach. Liczba klas wynika z tolerancji; nie jest po drodze wymuszana przez KMeans ani Auto z 12. Nową hipotezą jest porównanie otoczeń tą metodą, nie samo zastąpienie obliczeń NumPy biblioteką.
+- [x] Wybór sąsiadów, zasięg i jednostki tolerancji są jawne. Przeciwległe brzegi obrazu STM nie są łączone przez okresowe warunki brzegowe. Nie dobiera się dowolnie dalekich punktów tylko po to, aby uzupełnić liczbę sąsiadów.
+- [x] Wymóg jednakowej liczby sąsiadów jest obsłużony jawnie: nieporównywalne lub niepełne otoczenie dostaje status i powód odmowy. Brzegi oraz brakujące detekcje mają oddzielne sprawdzenie; stała liczba najbliższych sąsiadów nie ukrywa braków.
+- [x] Jawnie wybrano i zapisano sposób traktowania obrotu. Orientacja jest osobnym pomiarem; klasa zależna od obrotu nie jest nazywana typem struktury. Jeżeli dopasowanie usuwa obrót, tworzenie domen nadal uwzględnia różnice orientacji z 16.
+- [x] Klaster podobnych otoczeń nie staje się automatycznie jedną domeną. Osobny etap zachowuje spójność przestrzenną, przerwy/bariery i lokalne identyfikatory domen. Widok Klasy/Domeny wyraźnie pokazuje różnicę; porównywane warianty mają opisane różnice etapów.
+- [x] Zakres próby jest ograniczony do bieżącej klatki, małego zapisanego zestawu tolerancji, wspólnych kontroli i TTMAPP259–266. Te same ustawienia oraz powtarzalne warunki są użyte do oceny; raport pokazuje także porażki na przesunięciu sieci, szumie i brakujących centrach.
+- [x] Zmiana tolerancji, postęp i anulowanie działają w aplikacji. Użytkownik wraca do identycznego, zachowanego wyniku metody bazowej, wcześniej obliczonego z tych samych wejść. Żaden wariant nie wymaga gotowych modeli lub przypisań v0.4. Raport porównuje trafność podziału i odmowy, oddzielnie od samej liczby klas i pokolorowanych molekuł.
+- [x] Wykonawca sprawdza dostępność i wersję zależności w środowisku lokalnym, bez zmiany wspólnej konfiguracji poza sesją integracyjną. Brak opcjonalnej biblioteki nie blokuje dotychczasowego UI. Raport testów i limit 1000/1500 linii obowiązują również adapter i testy tej metody.
 
 ## Test ręczny użytkownika
 

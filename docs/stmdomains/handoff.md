@@ -2,7 +2,7 @@
 
 2026-11-04, gałąź `domains/interactive-v04-ui`, poprawny worktree
 `/home/rlew/projekty/NEtCAT-domains`, baza zadania `e4fb4aa`.
-Implementacja gotowa, trwa końcowy przegląd i pełna regresja.
+**Wykonano: `85a90e0`, poprawki `d7ea7b2`; status `done`, odbiór ręczny użytkownika do wykonania.**
 [Raport i test ręczny](implementation/interactive-v04/acceptance-18.md),
 [protokół](implementation/interactive-v04/experiment-18.md).
 
@@ -26,7 +26,17 @@ Lokalne artefakty: `.scratch/stmdomains-ui-18/`.
 zależnościami STM Domains. Wspólnej konfiguracji tej sesji nie zmieniono.
 Brak biblioteki nie blokuje pozostałych metod ani oglądania zapisanego wyniku.
 Dalsza dostępna ścieżka: 21 → 22 → 23 → 23a → 24 → 25 → 26; 19–20 odłożone.
-Commit i końcowe liczniki sprawdzeń zostaną uzupełnione przed przekazaniem.
+Sprawdzenia: **557 testów PASS / 256,20 s** na `85a90e0`, po poprawkach
+**28 testów celowanych PASS / 27,84 s**, mypy **105 modułów PASS**.
+Natywne GUI po poprawkach na klatce 259 ponownie PASS. Maksymalny plik
+862 linie; wszystkie 23 zmienione pliki kodu/testów <1000, brak wyjątków.
+[Przegląd](implementation/interactive-v04/review-18.md): doprecyzowano,
+że rejestracja 3D freud dopuszcza obrót i **odbicie lustrzane** płaskich
+otoczeń; test prawdziwej biblioteki potwierdza to przy progu 0,01.
+Wydzielono wspólne pochodzenie wyników 17/18 i poprawiono utrzymanie
+podglądu sąsiadów przy zmianie raw/aligned. Domyślne wyniki bez rejestracji
+nie zmieniły się. Sprawdzenie linków i grafu 27 ticketów PASS.
+Commit końcowej dokumentacji jest podany w odpowiedzi końcowej.
 
 ---
 
