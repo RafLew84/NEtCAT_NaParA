@@ -86,3 +86,15 @@ def test_small_card_scrolls_all_measurement_details_without_moving_image(qtbot, 
     card.body_scroll.verticalScrollBar().setValue(card.body_scroll.verticalScrollBar().maximum())
     qtbot.wait(20)
     assert card.body_scroll.viewport().rect().contains(card.data_button.mapTo(card.body_scroll.viewport(), card.data_button.rect().center()))
+
+
+def test_neighborhood_can_stay_visible_without_directions(qtbot, opened):
+    opened.geometry_action.trigger()
+    card = opened.geometry_card
+    card.neighborhood.setChecked(True)
+    card.directions.setChecked(False)
+    overlay = opened.image_view.geometry_overlay
+    assert overlay.isVisible() and overlay.show_neighborhood
+    assert not overlay.show_directions
+    card.neighborhood.setChecked(False)
+    assert not overlay.isVisible()

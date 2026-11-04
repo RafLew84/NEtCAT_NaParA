@@ -28,6 +28,7 @@ class GeometryOverlay(QGraphicsObject):
         self.view: PresentedFrame | None = None
         self.selected_id: str | None = None
         self.show_all = False
+        self.show_directions = True
         self.show_neighborhood = True
         self.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
         self.setVisible(False)
@@ -57,7 +58,8 @@ class GeometryOverlay(QGraphicsObject):
             pen = QPen()
             pen.setCosmetic(True)
             pen.setWidthF(2.5 if selected else 1.4)
-            for index, line in enumerate(row_segments(record, geometry.calibration, origin)):
+            segments = row_segments(record, geometry.calibration, origin) if self.show_directions else []
+            for index, line in enumerate(segments):
                 pen.setColor(QColor('#5cf1ed' if index == 0 else '#ffca78'))
                 painter.setPen(pen)
                 painter.drawLine(line)

@@ -32,17 +32,33 @@ class GeometrySettings:
                 'maximum_input_detections': 3000, 'maximum_image_pixels': 4194304}
 
 
+@dataclass(frozen=True)
+class SpectrumAxis:
+    normal_angle_deg: float
+    frequency_cycles_per_spacing: float
+    coherence: float
+
+
+@dataclass(frozen=True)
+class NeighborhoodMeasurement:
+    axes: tuple[SpectrumAxis, ...]
+    count: int
+    effective_count: float
+    reason: str = ''
+
+
 def axial_difference(a: float, b: float) -> float:
     return abs((a - b + 90.) % 180. - 90.)
 
 
-def spectrum_axes(offsets: np.ndarray, settings: GeometrySettings, check: Callable[[], None]):
+def spectrum_axes(offsets: np.ndarray, settings: GeometrySettings,
+                  check: Callable[[], None]) -> NeighborhoodMeasurement:
     """Offsets use NN-normalized metric coordinates, with Y pointing upwards."""
     weights = np.exp(-np.sum(offsets**2, axis=1) / (2 * settings.sigma_factor**2))
     weight_sum, self_power = float(weights.sum()), float(weights @ weights)
     effective = weight_sum**2 / max(self_power, 1e-12)
     if len(offsets) < settings.minimum_count or effective < settings.minimum_effective_count:
-        return [], effective, 'insufficient_support'
+        return NeighborhoodMeasurement((), len(offsets), effective, 'insufficient_support')
     frequencies = np.linspace(settings.frequency_minimum, settings.frequency_maximum, settings.frequency_steps)
     angles = np.linspace(0, np.pi, settings.angle_steps, endpoint=False)
     aa, ff = np.meshgrid(angles, frequencies)
@@ -59,7 +75,7 @@ def spectrum_axes(offsets: np.ndarray, settings: GeometrySettings, check: Callab
     def objective(q: NDArray[np.float64], *args, **kwargs) -> float:
         return -float(scores(q)[0])
 
-    found: list[dict[str, float]] = []
+    found: list[SpectrumAxis] = []
     for index in candidates:
         check()
         q0 = waves[index]
@@ -79,9 +95,9 @@ def spectrum_axes(offsets: np.ndarray, settings: GeometrySettings, check: Callab
         if np.ptp(projected) < 1.8 or len(np.unique(planes)) < 3:
             continue
         normal = float(np.rad2deg(np.arctan2(q[1], q[0])) % 180)
-        if any(axial_difference(normal, axis['normal']) < settings.minimum_axis_separation_deg for axis in found):
+        if any(axial_difference(normal, axis.normal_angle_deg) < settings.minimum_axis_separation_deg for axis in found):
             continue
-        found.append({'normal': normal, 'frequency': frequency, 'coherence': coherence})
+        found.append(SpectrumAxis(normal, frequency, coherence))
         if len(found) == 2:
             break
-    return found, effective, '' if found else 'no_resolved_peak'
+    return NeighborhoodMeasurement(tuple(found), len(offsets), effective, '' if found else 'no_resolved_peak')

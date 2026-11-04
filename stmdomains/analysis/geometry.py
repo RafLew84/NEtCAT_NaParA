@@ -60,36 +60,35 @@ def measure_geometry(data: AnalysisInput, *, calibration: PixelCalibration = Pix
             for factor in (1., 1-settings.radius_variation_fraction, 1+settings.radius_variation_fraction):
                 ids = tree.query_ball_point(center, settings.radius_factor*factor)
                 offsets = normalized[ids]-center
-                axes, effective, reason = spectrum_axes(offsets, settings, check)
-                samples.append((axes, len(ids), effective, reason))
-            axes, count, effective, reason = samples[0]
+                samples.append(spectrum_axes(offsets, settings, check))
+            central = samples[0]
             stable: list[RowAxis] = []
             angle_changes: list[float] = []
             period_changes: list[float] = []
-            for axis in axes:
+            for axis in central.axes:
                 matched = []
-                for alternatives, _, _, _ in samples[1:]:
-                    close = [candidate for candidate in alternatives
-                             if axial_difference(axis['normal'], candidate['normal']) <= settings.maximum_angle_change_deg
-                             and abs(axis['frequency']/candidate['frequency']-1) <= settings.maximum_period_change_fraction]
+                for alternative in samples[1:]:
+                    close = [candidate for candidate in alternative.axes
+                             if axial_difference(axis.normal_angle_deg, candidate.normal_angle_deg) <= settings.maximum_angle_change_deg
+                             and abs(axis.frequency_cycles_per_spacing/candidate.frequency_cycles_per_spacing-1) <= settings.maximum_period_change_fraction]
                     if close:
-                        matched.append(min(close, key=lambda a: axial_difference(axis['normal'], a['normal'])))
+                        matched.append(min(close, key=lambda a: axial_difference(axis.normal_angle_deg, a.normal_angle_deg)))
                 if len(matched) == 2:
-                    stable.append(RowAxis((axis['normal']+90)%180, axis['normal'], spacing/axis['frequency'], axis['coherence']))
-                    angle_changes.extend(axial_difference(axis['normal'], a['normal']) for a in matched)
-                    period_changes.extend(abs(axis['frequency']/a['frequency']-1) for a in matched)
+                    stable.append(RowAxis((axis.normal_angle_deg+90)%180, axis.normal_angle_deg, spacing/axis.frequency_cycles_per_spacing, axis.coherence))
+                    angle_changes.extend(axial_difference(axis.normal_angle_deg, a.normal_angle_deg) for a in matched)
+                    period_changes.extend(abs(axis.frequency_cycles_per_spacing/a.frequency_cycles_per_spacing-1) for a in matched)
             stable.sort(key=lambda axis: (-round(axis.period, 3), axis.row_angle_deg))
             radius = settings.radius_factor*spacing
             x, y = detection.center_xy
             edge = min(x*calibration.x, (w-x)*calibration.x, y*calibration.y, (h-y)*calibration.y) < radius*1.1
             status = 'lattice_2d' if len(stable) == 2 else 'rows_1d' if stable else (
-                'insufficient' if reason == 'insufficient_support' else 'unresolved')
+                'insufficient' if central.reason == 'insufficient_support' else 'unresolved')
             message = ('Za małe wsparcie pomiaru.' if status == 'insufficient' else
                        'Brak stabilnego kierunku w badanym zakresie częstości.' if status == 'unresolved' else
                        'Potwierdzono jeden kierunek; drugi nie został potwierdzony.' if status == 'rows_1d' else
                        'Dwa niezależne, stabilne kierunki periodyczności w tym otoczeniu.')
             records[detection.detection_id] = MoleculeGeometry(detection.detection_id, detection.center_xy,
-                status, message, tuple(stable), count, effective, radius,
+                status, message, tuple(stable), central.count, central.effective_count, radius,
                 max(angle_changes) if angle_changes else None, max(period_changes) if period_changes else None, edge)
     check()
     return replace(base, molecules=records, metadata=metadata, message='Pomiar geometrii zakończony.')

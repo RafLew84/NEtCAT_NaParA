@@ -133,8 +133,9 @@ class GeometryCard(QFrame):
         overlay = self.image_view.geometry_overlay
         overlay.selected_id = self.selected_id
         overlay.show_all = self.all_points.isChecked()
+        overlay.show_directions = self.directions.isChecked()
         overlay.show_neighborhood = self.neighborhood.isChecked()
-        overlay.setVisible(self.isVisible() and self.directions.isChecked())
+        overlay.setVisible(self.isVisible() and (overlay.show_directions or overlay.show_neighborhood))
         overlay.update()
 
     def _show_data(self) -> None:
