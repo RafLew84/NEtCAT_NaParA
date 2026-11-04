@@ -14,6 +14,11 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**2026-11-04 — prototyp UI dla SD-V4-16:** trzy układy A/B/C gotowe do
+porównania. [Uruchomienie i źródło](implementation/interactive-v04/prototype-16-layouts.md).
+Gałąź `prototype/stmdomains-geometry-layouts`, commit `2a31997`; wybór
+użytkownika oczekuje. Ticket 16 pozostaje `ready-for-agent`, kolejność bez zmian.
+
 **Wykonano SD-V4-15 — opis otoczenia i bariery (`1b0c1de`, poprawki `9fe24a6`, `9bf767a`).**
 **Analiza → Analiza… → Zaawansowane**: sigma, histogram, zakres par i PCA,
 progi/długości/nachylenie/poszerzenie barier oraz pomarańczowy podgląd.

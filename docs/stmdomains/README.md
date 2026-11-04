@@ -1,5 +1,10 @@
 # STM Domains
 
+**2026-11-04 — propozycje układu ticketu 16:** gotowy interaktywny prototyp
+A/B/C: panel boczny, tabela pod obrazem i pływająca karta.
+[Otwieranie i porównanie](implementation/interactive-v04/prototype-16-layouts.md).
+Geometria jest demonstracyjna; wybór układu oczekuje, 16 nadal do implementacji.
+
 **Wykonano SD-V4-15 — opis otoczenia i bariery (`1b0c1de`, poprawki `9fe24a6`, `9bf767a`).**
 **Analiza → Analiza… → Zaawansowane**: sigma, histogram, zakres par i PCA,
 progi/długości/nachylenie/poszerzenie barier oraz pomarańczowy podgląd.

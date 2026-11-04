@@ -10,6 +10,12 @@
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady rozszerzeń](README.md#rozszerzenia).
 
+**Prototyp układów — 2026-11-04:** przygotowano A (panel boczny), B (tabela
+pod obrazem), C (pływająca karta). [Uruchomienie, porównanie i źródło](prototype-16-layouts.md).
+Źródło pierwotne: gałąź `prototype/stmdomains-geometry-layouts`, commit `2a31997`.
+Wybór użytkownika oczekuje; A jest wstępną rekomendacją agenta. Pomiary
+w prototypie są demonstracyjne. Nie jest to wykonanie ticketu 16.
+
 ## Kryteria akceptacji
 
 - [ ] Przycisk pomiaru liczy dane dla aktualnej klatki poza GUI, z postępem i anulowaniem. Wykorzystuje procedury pomiaru wzorowane na kodzie v0.4 i wcześniejszych próbach; wartości oblicza z otwartego obrazu i oznaczeń, bez odczytu historycznych wyników lub modeli.

@@ -1,3 +1,35 @@
+# STM Domains — propozycje układu ticketu 16
+
+Data **2026-11-04**. Użytkownik zlecił `prototype` dla sposobu pokazywania
+pomiarów geometrii. Przygotowano A — panel boczny, B — tabelę pod obrazem,
+C — pływającą kartę. [Opis i uruchomienie](implementation/interactive-v04/prototype-16-layouts.md),
+[ticket 16](implementation/interactive-v04/16-inspect-local-geometry.md).
+**Wybór układu oczekuje; 16 nadal `ready-for-agent`.** Rekomendacja agenta A
+nie jest decyzją użytkownika. Nie rozpoczęto implementacji pomiarów.
+
+Źródło pierwotne prototypu: `prototype/stmdomains-geometry-layouts`, commit
+`2a31997`, katalog `stmdomains/ui/prototype_geometry/`, baza `41cc9e3`.
+Po zapisaniu prototypu wrócono do `domains/interactive-v04-ui` w tym samym
+worktree. Na gałęzi implementacji zmienia się tylko dokumentacja.
+Lokalna kopia i samowystarczalny HTML: `.scratch/stmdomains-geometry-layouts/`.
+Uruchomienie w `netcat`: `python .scratch/stmdomains-geometry-layouts/serve.py`.
+Adres `http://127.0.0.1:8876/?variant=A`, warianty B/C na tej samej stronie.
+HTML można też otworzyć bez serwera. Kod nie trafia do produkcyjnego UI.
+
+Rzeczywiste obrazy/centra TTMAPP 258–260 i wynik domen 259 z projektu 13;
+wszystkie wartości geometrii są jawnie demonstracyjne. Brak zapisu projektu,
+treningu i wysyłania danych. Sprawdzono w QtWebEngine/X11 w `netcat` warianty
+1440×1000 i 1024×768, interakcje, nierozstrzygnięcie, nawigację, raw/aligned,
+zoom, kartę, przełącznik klawiatury i stan. Końcowy podgląd bez błędów JS;
+zrzuty obejrzano. Nie pisano testów jednorazowego prototypu ani nie ponawiano
+testów produkcyjnej aplikacji. Maksymalny plik kodu prototypu: 199 linii.
+Sprawdzono dokumenty i `git diff --check`. Brak nowych zależności i potrzeb
+integracyjnych. Commit aktualizacji dokumentacji podany w odpowiedzi końcowej.
+Po wyborze należy zapisać decyzję w 16 i wdrożyć ją jako właściwe UI Qt.
+Poniżej historia zakończonych implementacji i ich odbioru.
+
+---
+
 # STM Domains — potwierdzony ręczny odbiór SD-V4-15
 
 Data **2026-11-03**, baza `bc3de1b`, implementacja `1b0c1de`, poprawki
