@@ -11,7 +11,7 @@ pomiary nie zmieniają klas/domen. Dane są sesyjne, poza zapisem/eksportem
 **530 testów PASS**, mypy 101 modułów PASS, natywne GUI X11 na kontrolach
 i TTMAPP 259–266 PASS; maksymalny zmieniony kod/test 736 linii.
 Standards/Spec: 0 otwartych uwag. Status `done`, **odbiór ręczny użytkownika
-16 oczekuje**. Następny rekomendowany: **17 — domeny według tolerancji**;
+16 potwierdzony 2026-11-04 dla wersji `420f196` („testy manualne ok”)**. Następny rekomendowany: **17 — domeny według tolerancji**;
 18 jest niezależnie dostępny. Poniżej historia poprzednich etapów.
 
 **Wykonano SD-V4-15 — opis otoczenia i bariery (`1b0c1de`, poprawki `9fe24a6`, `9bf767a`).**

@@ -1,10 +1,14 @@
-# STM Domains — wykonany SD-V4-16, karta C
+# STM Domains — potwierdzony ręczny odbiór SD-V4-16, karta C
 
 2026-11-04. Baza `901e8d3`, implementacja `c4b6c70`, poprawki `009f38f`, `97988c2`.
 Gałąź `domains/interactive-v04-ui`, worktree `/home/rlew/projekty/NEtCAT-domains`.
 Użytkownik wybrał C; właściwe pomiary wdrożono w Qt, bez kodu ani
 wartości demonstracyjnych z prototypu. Status `done`; **ręczny odbiór
-użytkownika 16 oczekuje**. Następny rekomendowany 17; 18 dostępny niezależnie.
+użytkownika 16 potwierdzony 2026-11-04 dla wersji `420f196` („testy manualne ok”)**. Następny rekomendowany 17; 18 dostępny niezależnie.
+
+Zapis potwierdzenia zmienia tylko dokumentację. Nie ponawiano testów
+aplikacji ani GUI; poniżej zachowano wyniki weryfikacji implementacji.
+Sprawdzono spójność planu, lokalne odnośniki i `git diff --check`.
 
 **Analiza → Geometria… → Pomierz geometrię**. Karta na obrazie, ⇄,
 Zwiń/Rozwiń, Molekuła/Domena, przewijanie i niezależne warstwy. Obliczenia

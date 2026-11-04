@@ -7,7 +7,7 @@
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md).
 
 **Status:** done — 2026-11-04, `c4b6c70`, poprawki `009f38f`, `97988c2`; wybrany wariant C.
-**Odbiór ręczny użytkownika oczekuje.** [Raport i instrukcja](acceptance-16.md),
+**Odbiór ręczny użytkownika potwierdzony 2026-11-04 dla wersji `420f196` („testy manualne ok”).** [Raport i instrukcja](acceptance-16.md),
 [protokół](geometry-method-v1.md), [przegląd](review-16.md).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady rozszerzeń](README.md#rozszerzenia).

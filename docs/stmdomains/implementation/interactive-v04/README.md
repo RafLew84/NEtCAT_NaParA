@@ -11,7 +11,7 @@ pomiary nie zmieniają klas/domen. Dane są sesyjne, poza zapisem/eksportem
 **530 testów PASS**, mypy 101 modułów PASS, natywne GUI X11 na kontrolach
 i TTMAPP 259–266 PASS; maksymalny zmieniony kod/test 736 linii.
 Standards/Spec: 0 otwartych uwag. Status `done`, **odbiór ręczny użytkownika
-16 oczekuje**. Następny rekomendowany: **17 — domeny według tolerancji**;
+16 potwierdzony 2026-11-04 dla wersji `420f196` („testy manualne ok”)**. Następny rekomendowany: **17 — domeny według tolerancji**;
 18 jest niezależnie dostępny. Poniżej historia poprzednich etapów.
 
 **Wykonano SD-V4-15 — opis otoczenia i bariery (`1b0c1de`, poprawki `9fe24a6`, `9bf767a`).**
@@ -213,7 +213,7 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23a | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 
 Po wykonanych 05, 05a i 06–16 następny rekomendowany ticket to
-**17 — domeny według tolerancji**. Odbiór użytkownika 16 oczekuje; 15 potwierdzono dla `f129ac2`.
+**17 — domeny według tolerancji**. Odbiór użytkownika 16 potwierdzono dla `420f196`; 15 dla `f129ac2`.
 Odbiór użytkownika 13 jest potwierdzony, a 14 potwierdzono dla `4e9f1d9`. 13/14 wykonano po 05;
 16 jest niezależnie dostępny po 05, a 15 po 07. 08 korzysta
 z dopasowania z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności

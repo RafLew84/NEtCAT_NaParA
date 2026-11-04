@@ -55,7 +55,7 @@ Nie trzeba instalować zależności. Użyty interpreter:
 
 Kontrole są gotowe lokalnie. Można je odtworzyć w `netcat` poleceniem
 `python -m stmdomains.tools.geometry_demo`; nie zawierają gotowych wyników
-ani modeli. Odbiór ręczny użytkownika 16 **oczekuje**.
+ani modeli. Odbiór ręczny użytkownika 16 **potwierdzony 2026-11-04 dla wersji `420f196` („testy manualne ok”)**.
 
 ## Wykonane sprawdzenia
 
@@ -145,3 +145,10 @@ Wymiary canvasu wyrównanego 480×408 nie służą do kalibracji.
 źródła lub zamknięcie programu usuwa je. Zapis projektu i eksport domen
 z 13/14 nie obejmują tej diagnostyki; karta mówi o tym wprost. Ustawienia
 pomiaru w 16 są stałe; 17 będzie odrębną metodą domen z tolerancjami.
+
+## Potwierdzenie użytkownika
+
+2026-11-04 użytkownik potwierdził odbiór wersji `420f196`: „testy manualne ok”.
+Zapis potwierdzenia zmienia tylko dokumentację. Nie ponawiano testów aplikacji
+ani GUI; powyższe wyniki odnoszą się do weryfikacji implementacji. Sprawdzono
+spójność planu, lokalne odnośniki i `git diff --check`.
