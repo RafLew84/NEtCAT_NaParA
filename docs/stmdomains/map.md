@@ -14,6 +14,14 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**2026-11-04 — prototyp UI ticketu 17:** A — wspólne okno Analiza,
+B — dwa wyniki obok siebie, C — stały panel ustawień.
+[Uruchomienie i źródło](implementation/interactive-v04/prototype-17-layouts.md).
+Gałąź `prototype/stmdomains-domain-method-ui`, commit `621ce71`.
+Wyboru użytkownika jeszcze nie ma; rekomendacja A nie jest decyzją.
+17 nadal `ready-for-agent`; nowe domeny prototypu są demonstracyjne.
+Odbiór użytkownika 16 pozostaje potwierdzony.
+
 **Wykonano SD-V4-16 — geometria w wybranej karcie C (`c4b6c70`, poprawki `009f38f`, `97988c2`).**
 **Analiza → Geometria… → Pomierz geometrię** oblicza bieżącą klatkę w tle.
 Karta pokazuje kierunki rzędów, rozstaw, wsparcie i stabilność, a zakładka

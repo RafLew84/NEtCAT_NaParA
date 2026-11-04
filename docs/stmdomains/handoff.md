@@ -1,3 +1,40 @@
+# STM Domains — propozycje UI SD-V4-17
+
+2026-11-04. Użytkownik zlecił `prototype` po omówieniu metody 17.
+Trzy warianty: A — wspólne okno Analiza, B — dwa obrazy obok siebie,
+C — stały panel parametrów. [Otwieranie i porównanie](implementation/interactive-v04/prototype-17-layouts.md),
+[ticket 17](implementation/interactive-v04/17-segment-geometric-tolerances.md).
+**Wybór użytkownika oczekuje; 17 nadal `ready-for-agent`.** Rekomendacja A
+nie jest decyzją. Nie rozpoczęto implementacji nowego algorytmu domen.
+Pływająca karta C z odebranego 16 pozostaje dostępna w każdym wariancie.
+
+Źródło pierwotne: gałąź `prototype/stmdomains-domain-method-ui`, commit
+`621ce71`, baza `e5ba84b`, katalog `stmdomains/ui/prototype_domain_method/`.
+Po zapisaniu źródła wrócono do `domains/interactive-v04-ui` w tym samym
+worktree `/home/rlew/projekty/NEtCAT-domains`; na gałęzi implementacji
+zmienia się tylko dokumentacja. Lokalna kopia i samowystarczalny HTML:
+`.scratch/stmdomains-domain-method-ui/`. W netcat:
+`python .scratch/stmdomains-domain-method-ui/serve.py`.
+Adres `http://127.0.0.1:8877/?variant=A`; B/C na tej samej stronie.
+
+Rzeczywiste obrazy i centra TTMAPP 258–260, bazowy zapis 259 z własnego
+projektu 13 i pomiary 16. **Nowe przypisania geometryczne, powody decyzji
+oraz obliczenia 17 są symulacją UI** — nie oceniać ich jakości naukowej.
+Nie zapisuje projektów ani danych, nie trenuje, nie wysyła pomiarów.
+Sprawdzono w QtWebEngine/X11 w netcat A/B/C przy 1440×1000 i 1024×768,
+przepływ formularza i wyniku, anulowanie, stany klatek, zero/brak wyniku,
+wybór molekuły, zoom, raw/aligned, kartę 16, klawiaturę i pełny stan.
+Końcowo brak błędów JS; zrzuty obejrzano. Nie pisano testów prototypu
+ani nie ponawiano regresji produkcyjnej aplikacji. Maksymalny plik kodu:
+814 linii CSS. Sprawdzono odnośniki i `git diff --check`. Brak nowych
+zależności, zmian współdzielonych i potrzeb integracyjnych.
+
+Po wyborze zapisać decyzję w 17 i wdrożyć właściwe UI Qt wraz z metodą.
+Commit aktualizacji dokumentacji podany w odpowiedzi końcowej.
+Poniżej wcześniejszy odbiór 16 i historia etapów.
+
+---
+
 # STM Domains — potwierdzony ręczny odbiór SD-V4-16, karta C
 
 2026-11-04. Baza `901e8d3`, implementacja `c4b6c70`, poprawki `009f38f`, `97988c2`.

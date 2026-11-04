@@ -10,6 +10,14 @@
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady rozszerzeń](README.md#rozszerzenia).
 
+**Prototyp UI — 2026-11-04:** przygotowano A (wspólne okno Analiza),
+B (dwa wyniki obok siebie), C (stały panel ustawień).
+[Uruchomienie, porównanie i źródło](prototype-17-layouts.md).
+Źródło pierwotne: `prototype/stmdomains-domain-method-ui`, commit `621ce71`.
+Wybór użytkownika oczekuje. Rekomendacja autora A nie jest decyzją.
+Nowe przypisania domen w prototypie są demonstracyjne; metoda 17
+pozostaje do implementacji. Karta pomiarów C z 16 dostępna w każdym układzie.
+
 ## Kryteria akceptacji
 
 - [ ] Alternatywny tryb tworzy konkretne, przestrzennie spójne domeny z poprawnych pomiarów 16. Nie wymaga ustalenia liczby domen ani bezwarunkowej zgodności wstępnych etykiet KMeans. Nieznany typ może pozostać nieznany.
