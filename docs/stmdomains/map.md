@@ -14,10 +14,19 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
-**2026-11-04 — prototyp UI dla SD-V4-16:** trzy układy A/B/C gotowe do
-porównania. [Uruchomienie i źródło](implementation/interactive-v04/prototype-16-layouts.md).
-Gałąź `prototype/stmdomains-geometry-layouts`, commit `2a31997`; wybór
-użytkownika oczekuje. Ticket 16 pozostaje `ready-for-agent`, kolejność bez zmian.
+**Wykonano SD-V4-16 — geometria w wybranej karcie C (`c4b6c70`, poprawki `009f38f`, `97988c2`).**
+**Analiza → Geometria… → Pomierz geometrię** oblicza bieżącą klatkę w tle.
+Karta pokazuje kierunki rzędów, rozstaw, wsparcie i stabilność, a zakładka
+Domena — podsumowanie osiowe. Nakładka respektuje X/Y i raw/aligned;
+pomiary nie zmieniają klas/domen. Dane są sesyjne, poza zapisem/eksportem
+13/14. [Raport i test ręczny](implementation/interactive-v04/acceptance-16.md),
+[protokół](implementation/interactive-v04/geometry-method-v1.md),
+[przegląd](implementation/interactive-v04/review-16.md).
+**530 testów PASS**, mypy 101 modułów PASS, natywne GUI X11 na kontrolach
+i TTMAPP 259–266 PASS; maksymalny zmieniony kod/test 736 linii.
+Standards/Spec: 0 otwartych uwag. Status `done`, **odbiór ręczny użytkownika
+16 oczekuje**. Następny rekomendowany: **17 — domeny według tolerancji**;
+18 jest niezależnie dostępny. Poniżej historia poprzednich etapów.
 
 **Wykonano SD-V4-15 — opis otoczenia i bariery (`1b0c1de`, poprawki `9fe24a6`, `9bf767a`).**
 **Analiza → Analiza… → Zaawansowane**: sigma, histogram, zakres par i PCA,

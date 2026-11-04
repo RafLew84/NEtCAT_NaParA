@@ -1,5 +1,19 @@
 # Interaktywne STM Domains — obliczenia z danych
 
+**Wykonano SD-V4-16 — geometria w wybranej karcie C (`c4b6c70`, poprawki `009f38f`, `97988c2`).**
+**Analiza → Geometria… → Pomierz geometrię** oblicza bieżącą klatkę w tle.
+Karta pokazuje kierunki rzędów, rozstaw, wsparcie i stabilność, a zakładka
+Domena — podsumowanie osiowe. Nakładka respektuje X/Y i raw/aligned;
+pomiary nie zmieniają klas/domen. Dane są sesyjne, poza zapisem/eksportem
+13/14. [Raport i test ręczny](acceptance-16.md),
+[protokół](geometry-method-v1.md),
+[przegląd](review-16.md).
+**530 testów PASS**, mypy 101 modułów PASS, natywne GUI X11 na kontrolach
+i TTMAPP 259–266 PASS; maksymalny zmieniony kod/test 736 linii.
+Standards/Spec: 0 otwartych uwag. Status `done`, **odbiór ręczny użytkownika
+16 oczekuje**. Następny rekomendowany: **17 — domeny według tolerancji**;
+18 jest niezależnie dostępny. Poniżej historia poprzednich etapów.
+
 **Wykonano SD-V4-15 — opis otoczenia i bariery (`1b0c1de`, poprawki `9fe24a6`, `9bf767a`).**
 **Analiza → Analiza… → Zaawansowane**: sigma, histogram, zakres par i PCA,
 progi/długości/nachylenie/poszerzenie barier oraz pomarańczowy podgląd.
@@ -151,8 +165,8 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 **Ręczny odbiór użytkownika 10 potwierdzony 2026-11-03** dla wersji
 `4b55727` („testy manualne ok”). Później wykonano 11–15; obecnie następny **16**.
 
-01–03, 05, 05a i 06–15 mają status `done`.
-16–18, 21–25 oraz 23a mają zakres `ready-for-agent`
+01–03, 05, 05a i 06–16 mają status `done`.
+17–18, 21–25 oraz 23a mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -160,7 +174,7 @@ wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 **21–25 — ręczną edycję domen i klas, zapis historii oraz eksport korekt**.
 Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
 To plan przyszłych funkcji; implementacji nie rozpoczęto. Następny
-rekomendowany etap głównej ścieżki to teraz **16 — kierunek, rozstaw i jakość geometrii**; 21 można
+rekomendowany etap głównej ścieżki to teraz **17 — domeny według tolerancji**; 21 można
 wybrać niezależnie już po wykonanym 05a.
 
 ## Tickety i kolejność
@@ -198,8 +212,8 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [24 — Zapisz korekty i wznów ręczną edycję projektu](24-save-manual-corrections.md) | SD-V4-13, SD-V4-23a | Otwórz zapisane korekty bez źródeł i kontynuuj Cofnij/Ponów. |
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23a | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 
-Po wykonanych 05, 05a i 06–15 następny rekomendowany ticket to
-**16 — kierunek, rozstaw i jakość geometrii**. Odbiór użytkownika 15 potwierdzono dla `f129ac2`.
+Po wykonanych 05, 05a i 06–16 następny rekomendowany ticket to
+**17 — domeny według tolerancji**. Odbiór użytkownika 16 oczekuje; 15 potwierdzono dla `f129ac2`.
 Odbiór użytkownika 13 jest potwierdzony, a 14 potwierdzono dla `4e9f1d9`. 13/14 wykonano po 05;
 16 jest niezależnie dostępny po 05, a 15 po 07. 08 korzysta
 z dopasowania z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności

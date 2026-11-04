@@ -2,7 +2,8 @@
 
 Data: **2026-11-04**. Pytanie użytkownika: jak pokazywać informacje
 o geometrii przy oglądaniu kolejnych obrazów? Wykorzystano skill `prototype`,
-gałąź UI. [Ticket 16](16-inspect-local-geometry.md) pozostaje `ready-for-agent`.
+gałąź UI. [Ticket 16](16-inspect-local-geometry.md) został później wykonany;
+[raport implementacji](acceptance-16.md).
 **Użytkownik wybrał wariant C 2026-11-04 i zlecił implementację ticketu 16.**
 Prototyp pozostaje źródłem decyzji; jego demonstracyjne pomiary nie przechodzą do aplikacji.
 

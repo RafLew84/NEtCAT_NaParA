@@ -6,7 +6,9 @@
 
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md).
 
-**Status:** in-progress — implementacja zlecona 2026-11-04; wybrany wariant C.
+**Status:** done — 2026-11-04, `c4b6c70`, poprawki `009f38f`, `97988c2`; wybrany wariant C.
+**Odbiór ręczny użytkownika oczekuje.** [Raport i instrukcja](acceptance-16.md),
+[protokół](geometry-method-v1.md), [przegląd](review-16.md).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady rozszerzeń](README.md#rozszerzenia).
 
@@ -19,14 +21,14 @@ wybrana. Pomiary prototypu są demonstracyjne; implementacja 16 oblicza je z dan
 
 ## Kryteria akceptacji
 
-- [ ] Przycisk pomiaru liczy dane dla aktualnej klatki poza GUI, z postępem i anulowaniem. Wykorzystuje procedury pomiaru wzorowane na kodzie v0.4 i wcześniejszych próbach; wartości oblicza z otwartego obrazu i oznaczeń, bez odczytu historycznych wyników lub modeli.
-- [ ] Szczegóły molekuły pokazują kierunek wyróżnionych rzędów, rozstaw poprzeczny, miarę zgodności, liczbę wspierających punktów i rzeczywisty zasięg pomiaru. Rozstaw wzdłuż rzędów jest podawany tylko, gdy został osobno wiarygodnie wyznaczony; brak pomiaru nie staje się zerem.
-- [ ] Kierunek rzędów jest odróżniony od prostopadłego wektora częstości. Okres jest przeliczany zgodnie z konwencją częstości źródłowego algorytmu. Skala X/Y i transformacje raw/aligned są uwzględnione; nm pojawia się wyłącznie przy dostępnej kalibracji.
-- [ ] Wynik rozróżnia porządek w jednym kierunku, potwierdzoną sieć 2D i niewystarczające dane. Jeden silny pik nie potwierdza dwóch niezależnych kierunków; parametr symetrii nie jest liczbą klas.
-- [ ] Niepewność lub stabilność względem małej, zapisanej zmiany sąsiedztwa ma jawną definicję. Sama koherencja nie jest prawdopodobieństwem poprawności. Przy niejednoznaczności UI pokazuje nierozstrzygnięcie i nie rysuje pozornie pewnego kierunku.
-- [ ] Podsumowanie domeny uwzględnia symetrię kąta, rozrzut i liczbę poprawnych pomiarów. Nie uśrednia liniowo kątów po przeciwnych stronach zakresu ani nie utożsamia orientacji z typem.
-- [ ] Włączenie pomiarów i nakładek nie zmienia istniejących przypisań obliczonych metodą bazową aplikacji. Wyniki zachowują ustawienia, jednostki i identyfikację źródła.
-- [ ] Testy sprawdzają znany kierunek i okres, obrót, skalę anizotropową, raw/aligned, słabe wsparcie i brak kalibracji. Raport odróżnia wykonany test GUI od automatycznych sprawdzeń oraz potwierdza zasadę 1000/1500 linii.
+- [x] Przycisk pomiaru liczy dane dla aktualnej klatki poza GUI, z postępem i anulowaniem. Wykorzystuje procedury pomiaru wzorowane na kodzie v0.4 i wcześniejszych próbach; wartości oblicza z otwartego obrazu i oznaczeń, bez odczytu historycznych wyników lub modeli.
+- [x] Szczegóły molekuły pokazują kierunek wyróżnionych rzędów, rozstaw poprzeczny, miarę zgodności, liczbę wspierających punktów i rzeczywisty zasięg pomiaru. Rozstaw wzdłuż rzędów jest podawany tylko, gdy został osobno wiarygodnie wyznaczony; brak pomiaru nie staje się zerem.
+- [x] Kierunek rzędów jest odróżniony od prostopadłego wektora częstości. Okres jest przeliczany zgodnie z konwencją częstości źródłowego algorytmu. Skala X/Y i transformacje raw/aligned są uwzględnione; nm pojawia się wyłącznie przy dostępnej kalibracji.
+- [x] Wynik rozróżnia porządek w jednym kierunku, potwierdzoną sieć 2D i niewystarczające dane. Jeden silny pik nie potwierdza dwóch niezależnych kierunków; parametr symetrii nie jest liczbą klas.
+- [x] Niepewność lub stabilność względem małej, zapisanej zmiany sąsiedztwa ma jawną definicję. Sama koherencja nie jest prawdopodobieństwem poprawności. Przy niejednoznaczności UI pokazuje nierozstrzygnięcie i nie rysuje pozornie pewnego kierunku.
+- [x] Podsumowanie domeny uwzględnia symetrię kąta, rozrzut i liczbę poprawnych pomiarów. Nie uśrednia liniowo kątów po przeciwnych stronach zakresu ani nie utożsamia orientacji z typem.
+- [x] Włączenie pomiarów i nakładek nie zmienia istniejących przypisań obliczonych metodą bazową aplikacji. Wyniki zachowują ustawienia, jednostki i identyfikację źródła.
+- [x] Testy sprawdzają znany kierunek i okres, obrót, skalę anizotropową, raw/aligned, słabe wsparcie i brak kalibracji. Raport odróżnia wykonany test GUI od automatycznych sprawdzeń oraz potwierdza zasadę 1000/1500 linii.
 
 ## Test ręczny użytkownika
 

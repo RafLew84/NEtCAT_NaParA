@@ -1,11 +1,60 @@
+# STM Domains — wykonany SD-V4-16, karta C
+
+2026-11-04. Baza `901e8d3`, implementacja `c4b6c70`, poprawki `009f38f`, `97988c2`.
+Gałąź `domains/interactive-v04-ui`, worktree `/home/rlew/projekty/NEtCAT-domains`.
+Użytkownik wybrał C; właściwe pomiary wdrożono w Qt, bez kodu ani
+wartości demonstracyjnych z prototypu. Status `done`; **ręczny odbiór
+użytkownika 16 oczekuje**. Następny rekomendowany 17; 18 dostępny niezależnie.
+
+**Analiza → Geometria… → Pomierz geometrię**. Karta na obrazie, ⇄,
+Zwiń/Rozwiń, Molekuła/Domena, przewijanie i niezależne warstwy. Obliczenia
+bieżącej klatki w tle, anulowanie, ochrona przed spóźnionym wynikiem.
+Normalna/rzędy, 1/f, osobne skale X/Y, stabilność R±10%, osiowe podsumowanie
+z rozrzutem i wsparciem. Bez osobnego pomiaru wzdłuż rzędów; brak ≠ 0.
+Pomiary nie modyfikują przypisań domen. **Są sesyjne**; format projektu
+oraz eksport 13/14 ich nie obejmują, co jest jawne w karcie.
+
+[Raport i kroki ręczne](implementation/interactive-v04/acceptance-16.md),
+[zamrożony protokół](implementation/interactive-v04/geometry-method-v1.md),
+[przegląd Standards/Spec](implementation/interactive-v04/review-16.md).
+Uruchomienie: `conda activate netcat`, `python -m stmdomains.main`.
+Gotowe kontrole: `.scratch/stmdomains-ui-16/demo/geometry.moltrack.json`
+oraz `anisotropic.moltrack.json`, z README. Generator:
+`python -m stmdomains.tools.geometry_demo`. Bez nowych zależności.
+
+**530 testów PASS** w 76 plikach (dwie rozłączne grupy 288/242),
+mypy **101 modułów PASS**, wszystkie 18 zmienionych plików kodu/testów
+poniżej 1000 linii (maks. 736). Natywne GUI X11 w netcat: dziewięć kontroli,
+anizotropia, TTMAPP 259–266, oba widoki, zoom, zwijanie/przenoszenie,
+małe okno, przewijanie, anulowanie i zamknięcie. Zrzuty obejrzane.
+Wykryte przycięcie opisu poprawione; przełączniki kierunku i otoczenia
+rozdzielone po review. Natywne sprawdzenie ujawniło też blokadę skanowania
+bibliotek w threadpoolctl; `97988c2` zastępuje małe kontrakcje przez einsum
+bez skanowania/pul BLAS. Test regresji i ponowione GUI PASS; matematyka
+zweryfikowana w dodatkowym review. Standards/Spec: **0 otwartych uwag**.
+
+TTMAPP259: 40 molekuł z dwoma stabilnymi kierunkami, 29 z jednym,
+221 nierozstrzygniętych, 22 ze słabym wsparciem/pominiętych. Bazowe 105/312,
+5 domen zachowane. Pozostałe 259–266 również bez zmiany przypisań;
+nie jest to ocena poprawy detektora ani accuracy. Skala z nagłówka MPP:
+3,90625 nm/px w obu osiach, bez walidacji metrologicznej. Nie wyciągać
+wniosku o fizycznym rozmiarze molekuły bez potwierdzenia nagłówka.
+
+Artefakty `.scratch/stmdomains-ui-16/` (report, logi, zrzuty, harnessy)
+pozostają lokalne. Źródła MPP/JSON niezmienione, guard odczytów v0.4 czysty.
+Brak zmian współdzielonych i potrzeb integracyjnych. Commit końcowej
+aktualizacji dokumentacji podany w odpowiedzi końcowej.
+
+---
+
 # STM Domains — propozycje układu ticketu 16
 
 Data **2026-11-04**. Użytkownik zlecił `prototype` dla sposobu pokazywania
 pomiarów geometrii. Przygotowano A — panel boczny, B — tabelę pod obrazem,
 C — pływającą kartę. [Opis i uruchomienie](implementation/interactive-v04/prototype-16-layouts.md),
 [ticket 16](implementation/interactive-v04/16-inspect-local-geometry.md).
-**Wybór układu oczekuje; 16 nadal `ready-for-agent`.** Rekomendacja agenta A
-nie jest decyzją użytkownika. Nie rozpoczęto implementacji pomiarów.
+Historyczny stan po prototypie: wybór wtedy oczekiwał. Użytkownik później
+wybrał C; aktualna implementacja i odbiór opisane powyżej.
 
 Źródło pierwotne prototypu: `prototype/stmdomains-geometry-layouts`, commit
 `2a31997`, katalog `stmdomains/ui/prototype_geometry/`, baza `41cc9e3`.
