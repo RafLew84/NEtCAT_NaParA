@@ -100,6 +100,9 @@ def test_neighbour_overlay_follows_aligned_image_and_clears_on_frame_change(qtbo
         controller.set_view_mode(mode)
         qtbot.waitUntil(lambda: not controller.is_busy, timeout=10000)
         detection = next(d for d in opened._presented.annotations.detections if d.detection_id == identity)
+        if mode == 'expanded_aligned':
+            assert len(image.freud_overlay.segments()) == 4
+            assert image.freud_overlay.segments()[0].p1() == QPointF(*detection.center_xy)
         point = image.mapFromScene(QPointF(*detection.center_xy))
         qtbot.mouseClick(image.viewport(), Qt.MouseButton.LeftButton, pos=point)
         lines = image.freud_overlay.segments()

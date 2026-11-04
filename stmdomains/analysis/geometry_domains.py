@@ -11,7 +11,7 @@ from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings
 from stmdomains.analysis.geometry_regions import geometry_regions
 from stmdomains.analysis.geometry_spectrum import axial_difference
-from stmdomains.analysis.domain_measurements import measurement_refusal, validate_measurement
+from stmdomains.analysis.domain_measurements import measured_domain_provenance, measurement_refusal, validate_measurement
 from stmdomains.core.analysis_result import AnalysisCancelled, AnalysisInput, FrameAnalysis, MoleculeAssignment
 from stmdomains.core.geometry import FrameGeometry, MoleculeGeometry
 
@@ -38,13 +38,7 @@ def segment_geometry(data: AnalysisInput, geometry: FrameGeometry, *,
             raise AnalysisCancelled()
     check()
     fingerprint = validate_measurement(data, geometry)
-    parameters = {**settings.parameters(), **barrier_settings.parameters(),
-                  'minimum_domain_size': constraints.minimum_domain_size,
-                  'edge_distance_factor': constraints.edge_distance_factor,
-                  'raster_radius_factor': constraints.raster_radius_factor,
-                  'measurement_parameters': geometry.parameters, 'calibration': asdict(geometry.calibration)}
-    metadata = {'input_sha256': fingerprint, 'phase_boundary_tested': False, 'structural_type': 'unknown',
-                'measurement_message': geometry.message}
+    parameters, metadata = measured_domain_provenance(geometry, fingerprint, settings, constraints, barrier_settings)
     records = sorted(geometry.molecules.values(), key=lambda r: (*r.center_xy[::-1], r.detection_id))
     reasons = {r.detection_id: measurement_refusal(r, settings) for r in records}
     active = [r for r in records if reasons[r.detection_id] not in ('outside_field', 'suppressed_duplicate')]

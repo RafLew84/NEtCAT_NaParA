@@ -387,6 +387,7 @@ class STMDomainsMainWindow(QMainWindow):
     def _select_annotation(self, selected: Detection | Segmentation | None) -> None:
         self._selected = selected
         self.geometry_card.select(selected)
+        self.image_view.freud_overlay.select(getattr(selected, 'detection_id', None))
         self.metadata_button.setEnabled(selected is not None)
         if selected is None:
             self.selection_label.setText("Kliknij oznaczenie, aby zobaczyć jego dane.")

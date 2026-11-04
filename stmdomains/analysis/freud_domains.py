@@ -16,7 +16,7 @@ from stmdomains.analysis.freud_settings import FreudSettings
 from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings
 from stmdomains.analysis.geometry_domains import geometry_distance
 from stmdomains.analysis.geometry_regions import geometry_regions
-from stmdomains.analysis.domain_measurements import measurement_refusal, validate_measurement
+from stmdomains.analysis.domain_measurements import measured_domain_provenance, measurement_refusal, validate_measurement
 from stmdomains.core.analysis_result import AnalysisCancelled, AnalysisInput, FrameAnalysis, MoleculeAssignment, ResultClass
 from stmdomains.core.geometry import FrameGeometry
 
@@ -40,13 +40,8 @@ def segment_freud(data: AnalysisInput, geometry: FrameGeometry, *, settings: Fre
     check()
     require_freud()
     fingerprint = validate_measurement(data, geometry)
-    parameters = {**geometry_settings.parameters(), **settings.parameters(), **barrier_settings.parameters(),
-                  'minimum_domain_size': constraints.minimum_domain_size,
-                  'edge_distance_factor': constraints.edge_distance_factor,
-                  'raster_radius_factor': constraints.raster_radius_factor,
-                  'measurement_parameters': geometry.parameters, 'calibration': asdict(geometry.calibration)}
-    metadata = {'input_sha256': fingerprint, 'phase_boundary_tested': False, 'structural_type': 'unknown',
-                'measurement_message': geometry.message}
+    parameters, metadata = measured_domain_provenance(geometry, fingerprint, geometry_settings, constraints, barrier_settings)
+    parameters.update(settings.parameters())
     records = sorted(geometry.molecules.values(), key=lambda r: (*r.center_xy[::-1], r.detection_id))
     active = [r for r in records if r.reason not in ('outside_field', 'suppressed_duplicate')]
     if len(active) > MAX_POINTS:
@@ -88,5 +83,6 @@ def segment_freud(data: AnalysisInput, geometry: FrameGeometry, *, settings: Fre
          'environment_clustering': {'engine': 'freud.EnvironmentCluster', 'version': version, 'periodic': False,
             'units': 'frame_median_nearest_neighbor', 'complete_environments': len(environments.eligible),
             'environment_classes': len(classes), 'pair_scope': 'all_complete_environments',
-            'registration': settings.registration, 'time_limit_seconds': TIME_LIMIT_SECONDS}},
+            'registration': settings.registration, 'registration_transform': settings.registration_transform,
+            'time_limit_seconds': TIME_LIMIT_SECONDS}},
         domain_labels=regions, barrier_mask=barrier)

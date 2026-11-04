@@ -14,6 +14,7 @@ def test_regular_lattice_is_clustered_without_k_or_a_trained_catalogue():
     assert len({m.class_id for m in result.assignments.values() if m.domain_local_id}) == 1
     assert result.metadata['environment_clustering']['engine'] == 'freud.EnvironmentCluster'
     assert result.metadata['environment_clustering']['periodic'] is False
+    assert result.metadata['environment_clustering']['registration_transform'] == 'none'
     assert result.domain_labels is not None
 
 
@@ -62,7 +63,7 @@ def test_same_environment_class_can_have_two_disconnected_domains():
     assert len({m.class_id for m in result.assignments.values() if m.domain_local_id}) == 1
 
 
-def test_order_and_ids_do_not_change_class_partition_and_stale_measurement_is_rejected():
+def test_order_does_not_change_class_partition_and_stale_measurement_is_rejected():
     from dataclasses import replace
     import numpy as np
     import pytest
@@ -78,7 +79,6 @@ def test_order_and_ids_do_not_change_class_partition_and_stale_measurement_is_re
 
 
 def test_field_edges_are_refused_without_wrapping_and_xy_calibration_preserves_classes():
-    from dataclasses import replace
     import numpy as np
     from stmdomains.analysis.freud_domains import segment_freud
     from stmdomains.core.geometry import PixelCalibration

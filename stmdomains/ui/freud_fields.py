@@ -23,10 +23,10 @@ class FreudFields(QWidget):
         self.neighbors = QSpinBox()
         self.neighbors.setRange(3, 8)
         self.radius = number(.5, 10., .1, ' × NN')
-        self.rotation = QCheckBox('Dopasuj obrót otoczeń (wolniej)')
+        self.rotation = QCheckBox('Dopasuj obrót lub odbicie otoczeń (wolniej)')
         self.tolerance.setToolTip('Maksymalna różnica dopasowanych wektorów. Wspólna skala NN klatki; nie prawdopodobieństwo. Klasy mogą łączyć się przez pośrednie podobieństwa.')
         self.neighbors.setToolTip('Najbliższe n centrów w zadanym zasięgu. Brak n punktów, ucięcie pola lub remis na granicy wyboru oznacza odmowę.')
-        self.rotation.setToolTip('Wyłączone: orientacja wpływa na klasę. Włączone: freud dopasowuje obrót; domeny nadal wymagają zgodności kierunków z pomiaru geometrii.')
+        self.rotation.setToolTip('Wyłączone: orientacja wpływa na klasę. Włączone: dopasowanie 3D freud dopuszcza też odbicia lustrzane płaskich otoczeń. Domeny nadal wymagają zgodnych kierunków z pomiaru geometrii.')
         for title, widget in (('Tolerancja otoczenia', self.tolerance), ('Liczba sąsiadów', self.neighbors),
                                ('Maksymalny zasięg', self.radius)):
             form.addRow(title, widget)

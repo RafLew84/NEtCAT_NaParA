@@ -52,7 +52,7 @@ def compare_environments(environments: Environments, settings: FreudSettings,
                         raise AnalysisCancelled()
                     if time.monotonic()-started > time_limit:
                         raise ValueError(f'Freud przekroczył limit {time_limit:g} s. Zmniejsz liczbę sąsiadów '
-                                         'lub wyłącz dopasowanie obrotu. Poprzedni wynik jest zachowany.')
+                                         'lub wyłącz dopasowanie obrotu/odbicia. Poprzedni wynik jest zachowany.')
                     time.sleep(.05)
                 if cancelled():
                     raise AnalysisCancelled()

@@ -400,7 +400,7 @@ class AnalysisDialog(QDialog):
             text = (f'freud · kl. {result.working_index+1}: {len(result.classes)} klas otoczeń, '
                     f'{result.domain_count} domen, {result.assigned_count}/{result.active_count} w domenach.\n'
                     f'Użyto: tolerancja {settings.tolerance:g} ×NN, sąsiedzi {settings.neighbor_count}, '
-                    f'zasięg {settings.radius_factor:g} ×NN, obrót {"dopasowany" if settings.registration else "zachowany"}.\n'
+                    f'zasięg {settings.radius_factor:g} ×NN, rejestracja {"obrót/odbicie" if settings.registration else "wyłączona"}.\n'
                     'Klasy lokalne; pełne parametry: Dane… przy legendzie.')
             self.displayed.setText(text)
             self.displayed.setToolTip(text + '\n' + result.message)

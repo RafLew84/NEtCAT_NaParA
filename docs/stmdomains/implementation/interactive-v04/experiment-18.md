@@ -63,3 +63,14 @@ Kosztowna natywna rejestracja działa w osobnym procesie tego samego
 interpretera, z anulowaniem i limitem czasu. Timeout jest błędem obliczeń,
 nie wynikiem zerowym. Wcześniejszy wynik pozostaje dostępny. Przed
 porównaniem nie dobieramy ustawień na podstawie TTMAPP.
+
+## Uściślenie rejestracji po przeglądzie implementacji
+
+2026-11-04: test asymetrycznego otoczenia wykazał, że rejestracja 3D freud
+łączy też **odbicia lustrzane otoczeń płaskich**, mimo `Box.is2D=True`.
+Opcja w UI nazywa się „Dopasuj obrót lub odbicie otoczeń”. W wyniku zapisujemy
+`registration_transform=proper_3d_rotation_including_planar_reflection`
+albo `none`. Jest to doprecyzowanie rzeczywistej symetrii biblioteki;
+ustawienia porównań i wcześniejsze wyniki pozostają te same. W szczególności
+wszystkie TTMAPP policzono bez rejestracji. Nie wnioskujemy z tych klas
+o rozróżnianiu struktur lustrzanych ani o typie struktury.

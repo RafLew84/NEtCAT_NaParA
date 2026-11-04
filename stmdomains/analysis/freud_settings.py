@@ -23,7 +23,13 @@ class FreudSettings:
         if type(self.neighbor_count) is not int or not 3 <= self.neighbor_count <= 8:
             raise ValueError('Liczba sąsiadów: liczba całkowita 3–8.')
         if type(self.registration) is not bool:
-            raise ValueError('Dopasowanie obrotu musi być wartością logiczną.')
+            raise ValueError('Dopasowanie obrotu/odbicia musi być wartością logiczną.')
+
+    @property
+    def registration_transform(self) -> str:
+        # freud performs SO(3) registration: on planar data this can also
+        # reflect within the plane by reversing the out-of-plane normal.
+        return 'proper_3d_rotation_including_planar_reflection' if self.registration else 'none'
 
     def parameters(self) -> dict[str, Any]:
         return {'domain_method': METHOD, 'freud_settings': asdict(self)}

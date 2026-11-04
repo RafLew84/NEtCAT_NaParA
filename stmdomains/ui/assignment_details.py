@@ -29,7 +29,7 @@ def assignment_details(result: FrameAnalysis | None, detection_id: str) -> str:
             freud_settings = FreudSettings.from_parameters(result.parameters)
             lines.extend([f'Klasa otoczenia freud: {member.provisional_class_id or "brak"}.',
                 f'Tolerancja: {freud_settings.tolerance:g} ×NN; zasięg: {freud_settings.radius_factor:g} ×NN; '
-                f'obrót: {"dopasowany" if freud_settings.registration else "zachowany"}.',
+                f'rejestracja: {"obrót lub odbicie płaskiego otoczenia" if freud_settings.registration else "wyłączona"}.',
                 f'NN klatki: {result.parameters.get("spacing_metric", 0):.4g} {unit}.',
                 f'Sąsiedzi: {env.get("observed_count", 0)}/{freud_settings.neighbor_count}.',
                 'ID i odległości: ' + ', '.join(f'{identity} ({distance:.3f} ×NN)'

@@ -7,7 +7,7 @@ Odbiór ręczny użytkownika pozostaje do wykonania.
 ## Działanie i interpretacja
 
 Bieżąca klatka. Parametry: tolerancja, liczba sąsiadów (3–8), zasięg,
-dopasowanie obrotu. Edycja jest szkicem; Analizuj liczy w tle i zamyka okno.
+dopasowanie obrotu lub odbicia. Edycja jest szkicem; Analizuj liczy w tle i zamyka okno.
 Zakładka Geometria określa dodatkowe warunki domen, Zaawansowane — bariery.
 Przełącznik Bazowa / Geometria / freud zachowuje ostatni wynik każdej metody
 w sesji oraz zoom. Kliknięcie molekuły pokazuje rzeczywistych wybranych
@@ -19,6 +19,9 @@ Maski i obrysy zawsze dotyczą końcowych domen. Kolory/numery klas są lokalne
 dla wyniku; podobna klasa może obejmować wiele osobnych domen. Klasa nie jest
 nazwą struktury ani dowodem periodyczności. Bez dopasowania obrotu zależy
 również od orientacji; po jego włączeniu orientacja nadal ogranicza domeny.
+Rejestracja 3D biblioteki dopuszcza także **odbicia lustrzane w płaszczyźnie**;
+UI i metadane mówią o obrocie/odbiciu. Potwierdza to test asymetrycznego
+otoczenia przy tolerancji 0,01. Klasy z tą opcją nie rozróżniają lustrzanych struktur.
 Grupowanie freud może przechodzić przez pośrednie podobieństwa; tolerancja
 nie jest gwarancją średnicy całej klasy. Geometria domen ma limit całego regionu.
 
@@ -118,8 +121,18 @@ freud, anulowania/timeout i zwolnienia procesu, opcjonalnej zależności,
 Panelu A, przełączania wyników, projektu, eksportu oraz współrzędnych nakładki.
 Przebiegi TDD: publiczne API, panel i zapis projektu RED→GREEN.
 Mypy: 105 modułów core/ui/io/analysis PASS.
-Pełna regresja, natywny podgląd i przegląd są finalizowane; podsumowanie
-zostanie uzupełnione przed przekazaniem.
+Pełna regresja **557 testów PASS / 256,20 s** na `85a90e0`. Po przeglądzie
+dodano test symetrii rejestracji, doprecyzowano UI/metadane, zachowano podgląd
+sąsiadów przy zmianie raw/aligned i wydzielono wspólne pochodzenie wyników 17/18.
+Końcowe sprawdzenia tych zmian są w toku.
+
+Natywne GUI X11/netcat: kontrole 1–9 i TTMAPP259–266, rzeczywiste wyniki
+trzech metod, Klasy/Domeny, raw/aligned, sąsiedzi, karta C, niezmienny zoom,
+okno 1024×768, anulowanie, PNG, zapis/otwarcie oraz zamknięcie podczas
+obliczeń **PASS**, bez błędów aplikacji. Źródła pomiarowe pozostały niezmienione.
+W pierwszym przebiegu poprawiono tylko pomocniczy skrypt odczytu rozmiaru
+okna (`QSize`), po czym pełny przebieg GUI przeszedł. To automatyzowane
+sprawdzenie GUI, nie odbiór użytkownika.
 
 Artefakty lokalne: `.scratch/stmdomains-ui-18/` — `report.json`, demo,
 projekt, log i PNG. Reprodukcja w netcat:
@@ -141,7 +154,7 @@ python -m stmdomains.tools.freud_trial .scratch/stmdomains-ui-18-repeat --source
 5. Przełącz Bazowa/freud (i Geometria po jej obliczeniu): zachowane wyniki,
    bez ponownego dopasowania i zmiany zoomu. Zmień szkic tolerancji na 0,30:
    obraz zmieni się dopiero po Analizuj; wtedy 117 klas i nadal 10/312 w domenie.
-6. Włącz dopasowanie obrotu, uruchom i anuluj. Dotychczasowy wynik pozostaje.
+6. Włącz dopasowanie obrotu lub odbicia, uruchom i anuluj. Dotychczasowy wynik pozostaje.
    Zamknięcie aplikacji podczas tej pracy powinno zakończyć proces bez błędu.
 7. Zapisz wyświetlany wynik do nowego `.stmdomains`, otwórz ponownie,
    wyeksportuj PNG/CSV. Zapis zachowuje jedną metodę, parametry użyte i szkic.

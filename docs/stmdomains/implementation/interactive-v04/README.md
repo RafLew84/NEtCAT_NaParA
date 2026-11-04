@@ -207,8 +207,8 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 **Ręczny odbiór użytkownika 10 potwierdzony 2026-11-03** dla wersji
 `4b55727` („testy manualne ok”). Później wykonano 11–15; obecnie następny **16**.
 
-01–03, 05, 05a i 06–17 mają status `done`.
-18, 21–26 oraz 23a mają zakres `ready-for-agent`
+01–03, 05, 05a i 06–17 mają status `done`. 18 jest `in_progress` (końcowy przegląd).
+21–26 oraz 23a mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -216,8 +216,8 @@ wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 **21–25 — ręczną edycję domen i klas, zapis historii oraz eksport korekt**.
 Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
 To plan przyszłych funkcji; implementacji nie rozpoczęto. Następny
-rekomendowany etap głównej ścieżki to teraz **18 — próba lokalnych deskryptorów freud**; 21 można
-wybrać niezależnie już po wykonanym 05a.
+rekomendowany etap po odbiorze 18 to **21 — ręczne domeny**. 19–20
+pozostają odłożone zgodnie z warunkami opisanymi w ich ticketach.
 
 ## Tickety i kolejność
 
@@ -255,8 +255,8 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23a | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 | [26 — Porównaj granice domen metodą level-set Gibou–Fedkiwa](26-compare-fedkiw-level-set.md) | SD-V4-17, SD-V4-13, SD-V4-14 | Zmień regularyzację granic, porównaj molekuły i całe domeny z Geometrią oraz przejrzyj obliczone klatki. |
 
-Po wykonanych 05, 05a i 06–17 następny rekomendowany ticket to
-**18 — próba freud**. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
+Po zakończeniu i odbiorze 18 następny rekomendowany ticket to
+**21 — ręczne domeny**. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
 nie wymaga ukończenia odłożonych 19–20.
 Odbiór użytkownika 13 jest potwierdzony, a 14 potwierdzono dla `4e9f1d9`. 13/14 wykonano po 05;
 16 jest niezależnie dostępny po 05, a 15 po 07. 08 korzysta

@@ -27,6 +27,18 @@ def test_actual_library_matches_rotation_only_when_requested():
     assert not any(rotated[i] for i in (1, 2, 3, 4, 6, 7, 8, 9))
 
 
+def test_registration_explicitly_includes_mirror_images_in_the_plane():
+    from dataclasses import replace
+    motif = np.array([(0., 0.), (1., 0.), (.3, 1.3), (-1., .2), (-.2, -.9)])
+    mirrored = motif * (-1, 1) + (10, 0)
+    environments = replace(two_environments(), points=np.vstack((motif, mirrored)))
+    fixed, _ = compare_environments(environments, FreudSettings(tolerance=.01), lambda: False)
+    settings = FreudSettings(tolerance=.01, registration=True)
+    registered, _ = compare_environments(environments, settings, lambda: False)
+    assert fixed[0] != fixed[5] and registered[0] == registered[5] > 0
+    assert settings.registration_transform == 'proper_3d_rotation_including_planar_reflection'
+
+
 @pytest.mark.parametrize('cancel', [True, False])
 def test_cancel_or_timeout_reaps_native_process(monkeypatch, cancel):
     from stmdomains.analysis import freud_adapter
