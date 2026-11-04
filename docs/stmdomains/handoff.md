@@ -1,10 +1,60 @@
+# STM Domains — SD-V4-17, Panel A
+
+2026-11-04. Użytkownik wybrał Panel A i zlecił `implement 17`.
+Implementacja `25252b2`, poprawki `4c3f3c8`, na `domains/interactive-v04-ui`, worktree
+`/home/rlew/projekty/NEtCAT-domains`; baza `7cf0922`. Status `done`,
+**odbiór ręczny użytkownika oczekuje**. Brak potrzebnych zmian wspólnych.
+
+Wspólne **Analiza → Metoda domen → Geometria** oblicza domeny bieżącej
+klatki z pomiarów 16. Cztery parametry pomiarowe, odległość, wielkość
+regionu i maska oraz istniejące bariery. Kontrola wszystkich par
+pomiarów w regionie, osie modulo 180° i wspólne dopasowanie rodzin kąta
+z rozstawem. Bez katalogu klas; typ nieznany. Karta C pozostaje dostępna.
+Przełącznik nad obrazem zachowuje obie metody w sesji, zoom i klatkę.
+Szkic nie zmienia wyniku, anulowanie pozostawia wcześniejsze przypisania.
+
+Projekt/eksport zachowuje **jeden wybrany wynik**, parametry i pomiary
+przy molekułach, jak dotychczasowy kontrakt 13/14; nie historię obu metod.
+Po otwarciu zapisanego wyniku geometrycznego można obliczyć bazowy
+bez utraty wczytanego wyniku geometrii. Źródła i ZIP pozostają niezmienione.
+
+[Raport i manualne kroki](implementation/interactive-v04/acceptance-17.md),
+[protokół ustalony przed próbą](implementation/interactive-v04/experiment-17.md),
+[Standards/Spec](implementation/interactive-v04/review-17.md).
+TTMAPP259–266: geometria 32–41 przypisań do jednej domeny; ścisły wariant
+19–30, łagodny bez poprawy. Brak referencji oznacza brak oceny poprawności.
+Kontrole: nadmierne podziały regularnej sieci przez bariery obrazu,
+odmowy na luce/deformacji, niezaliczony skok fazy. Nie uznajemy tego
+za gotowy detektor domen 2D. Wynik zerowy nie zalicza granicy fazy.
+
+Wykonane: mypy 109 modułów; natywne Qt/X11 netcat na kontrolach 1–9 i
+TTMAPP259–266, raw/aligned, zoom, karta C, 1024×768, anulowanie,
+zapis/otwarcie oraz zamknięcie podczas zadania. SHA256 źródeł bez zmian,
+0 odczytów historycznych paczek. Artefakty `.scratch/stmdomains-ui-17/`.
+**543 testy PASS** po poprawkach: dwie rozłączne grupy 298 / 134,85 s
+oraz 245 / 103,75 s, 78 plików. Przed przeglądem 542 PASS;
+powtórzenie po zmianach zapisu i wspólnego rastra. Standards/Spec:
+0 otwartych uwag. Kod/testy: 22 pliki poniżej 1000 linii,
+maksimum 821 (limit 1500). Linki dokumentacji i graf 26 ticketów PASS.
+Nieaktywne niepoprawne pola szkicu bazowego zachowywane niezależnie;
+nie blokują zapisu geometrii, a po powrocie blokują tylko bazowe obliczenia.
+
+Środowisko nadal **netcat**; interpreter:
+`/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python`.
+Start: `python -m stmdomains.main`. Kontrole do otwarcia:
+`.scratch/stmdomains-ui-17/demo/domain-geometry.moltrack.json`.
+Następny rekomendowany ticket 18; ręczna edycja 21 dostępna niezależnie.
+Nie kontynuowano innych ticketów. Poniżej historia.
+
+---
+
 # STM Domains — propozycje UI SD-V4-17
 
 2026-11-04. Użytkownik zlecił `prototype` po omówieniu metody 17.
 Trzy warianty: A — wspólne okno Analiza, B — dwa obrazy obok siebie,
 C — stały panel parametrów. [Otwieranie i porównanie](implementation/interactive-v04/prototype-17-layouts.md),
 [ticket 17](implementation/interactive-v04/17-segment-geometric-tolerances.md).
-**Wybór użytkownika oczekuje; 17 nadal `ready-for-agent`.** Rekomendacja A
+**Później użytkownik wybrał A i zlecił 17; status powyżej.** Rekomendacja A
 nie jest decyzją. Nie rozpoczęto implementacji nowego algorytmu domen.
 Pływająca karta C z odebranego 16 pozostaje dostępna w każdym wariancie.
 

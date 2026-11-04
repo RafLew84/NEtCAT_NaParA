@@ -8,7 +8,7 @@ Analiza → Analiza… → Metoda domen → Geometria. Obliczana jest bieżąca 
 
 Edycja jest szkicem. Analizuj zamyka okno i liczy w tle. Pasek Bazowa/Geometria przełącza zachowane wyniki tej klatki, zachowując zoom. Anulowanie, zmiana klatki/serii i zamknięcie programu nie publikują nieaktualnej pracy. Karta C pomiarów z 16 pozostaje dostępna.
 
-Zapis projektu i eksport dotyczą **jednego wybranego wyniku**, jak w 13/14. Nie zapisują historii porównania obu metod. Wynik geometryczny zapisuje przypisania, maski, parametry i pomiary użyte do decyzji; typ/klasa jest pusta. Po otwarciu można przeliczyć bazową i ponownie porównywać. Samodzielne pomiary karty 16 nadal są sesyjne. Szkic geometrii jest zapisywany niezależnie od użytych wartości.
+Zapis projektu i eksport dotyczą **jednego wybranego wyniku**, jak w 13/14. Nie zapisują historii porównania obu metod. Wynik geometryczny zapisuje przypisania, maski, parametry i pomiary użyte do decyzji; typ/klasa jest pusta. Po otwarciu można przeliczyć bazową i ponownie porównywać. Samodzielne pomiary karty 16 nadal są sesyjne. Szkic geometrii jest zapisywany niezależnie od użytych wartości. Niedokończone, nawet sprzeczne między sobą pola nieaktywnego szkicu bazowego (np. próg krawędzi większy od średnicy regionu) są zachowywane bez blokowania zapisu geometrii. Po przełączeniu na Bazową trzeba je poprawić przed uruchomieniem jej obliczeń.
 
 ## Protokół i dane
 
@@ -47,7 +47,7 @@ Generator dostarcza obrazy, centra oraz jawne etykiety regionów w `reference.js
 | 8: rzędy 1D | 0 / 228 | 0 | 0 | 0 | 0 |
 | 9: trzy centra | 0 / 3 | 0 | — | — | — |
 
-**Regularna sieć została nadmiernie podzielona (7 domen zamiast jednej).** Na obrazach generatora istniejący detektor barier kontrastu tnie także regularne rzędy molekuł. To porażka całego zestawu ustawień. Test samej segmentacji z poprawnymi pomiarami i bez barier daje jedną domenę; nie zastępuje to oceny pełnego wejścia obrazowego.
+**Regularna sieć została nadmiernie podzielona (7 domen zamiast jednej).** Na obrazach generatora istniejący detektor barier kontrastu tnie także regularne rzędy molekuł. To porażka całego zestawu ustawień. Dodatkowa diagnostyka przy tych samych centrach: obraz generatora daje 63 przypisania / 7 domen / 54 przecięte krawędzie; płaski obraz daje 63 / 1 / 0. Nie zmieniono zamrożonych parametrów. Test samej segmentacji z poprawnymi pomiarami i bez barier daje jedną domenę; nie zastępuje to oceny pełnego wejścia obrazowego.
 
 **Skok fazy nie został poprawnie rozpoznany:** żadna molekuła nie otrzymała domeny, oba oczekiwane regiony pominięto. Zero błędnych scaleń przy pełnej odmowie nie jest sukcesem detekcji granicy. Dodatkowa kontrola na analitycznych pomiarach o identycznym kącie i rozstawie scala obie przesunięte części — jawny błąd wynikający z braku testu fazy.
 
@@ -59,7 +59,7 @@ Raport liczy domeny zawierające >1 region referencji, regiony rozdzielone na >1
 
 ## Sprawdzenia
 
-Testy publicznych obliczeń, parametrów, całego regionu, symetrii, barier, braków, powtarzalności, anulowania i zapisu/odczytu; regresje okna Analiza i karty C. Pełny wynik zestawu i przeglądu zostanie uzupełniony po zakończeniu.
+Testy publicznych obliczeń, parametrów, całego regionu, symetrii, barier, braków, powtarzalności, anulowania i zapisu/odczytu; regresje okna Analiza i karty C. **543 testy PASS** po poprawkach przeglądu, w dwóch rozłącznych grupach 78 plików: 298 / 134,85 s oraz 245 / 103,75 s. Pierwszy przebieg przed przeglądem: 542 PASS; ponowienie uzasadnione poprawką zapisu i wydzieleniem wspólnego rastra. Regresja nieaktywnego szkicu RED→GREEN, 37 testów celowanych PASS. Mypy: **109 modułów PASS**. Wszystkie 22 zmienionych plików kodu/testów mają <1000 linii, maksimum **821** (`session_controller.py`); twardy limit 1500 zachowany. [Przegląd Standards/Spec](review-17.md): 0 otwartych uwag w obu osiach. Linki dokumentacji i graf 26 ticketów sprawdzone.
 
 Natywne GUI X11 w netcat: kontrole 1–9 i TTMAPP259–266, rzeczywiste wyniki obu metod, przełączanie z niezmiennym zoomem, raw/aligned, karta C, okno 1024×768, anulowanie, zapis/otwarcie i zamknięcie w trakcie pracy. Artefakty: `.scratch/stmdomains-ui-17/` (raport, log, PNG, projekt, skrypty). To wykonane sprawdzenie automatyczne GUI; nie jest odbiorem użytkownika.
 
@@ -74,3 +74,8 @@ Natywne GUI X11 w netcat: kontrole 1–9 i TTMAPP259–266, rzeczywiste wyniki o
 7. Zapisz wyświetlany wynik do nowego `.stmdomains`, otwórz i porównaj. W pliku pozostaje jeden wybrany wynik; drugą metodę można ponownie obliczyć.
 
 Powtórzenie próby: `python -m stmdomains.tools.geometry_domain_trial .scratch/stmdomains-ui-17-repeat --source data/TTMAPP/detection_full.moltrack.json` w środowisku netcat.
+
+## Identyfikacja źródeł
+
+- `detection_full.moltrack.json`: SHA256 `d0c4cb999bede28edb5dfd18ddbe146054711382f1c78363055be2330b3cdd2e`.
+- `MOVIE_23raw_TTMAPP_I_AU111.MPP`: SHA256 `8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66`.

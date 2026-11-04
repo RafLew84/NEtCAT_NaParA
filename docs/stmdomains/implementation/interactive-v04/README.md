@@ -1,11 +1,28 @@
 # Interaktywne STM Domains — obliczenia z danych
 
+**Wykonano SD-V4-17 — domeny geometryczne, wybrany Panel A (`25252b2`, poprawki `4c3f3c8`).**
+**Analiza → Analiza… → Metoda domen → Geometria**: kąt, rozstaw,
+koherencja i wsparcie w bieżącej klatce; bez dopasowania klas.
+Przełącznik **Bazowa / Geometria** nad obrazem zachowuje wynik i zoom.
+Zapis/eksport obejmuje jeden wybrany wynik, typ pozostaje nieznany.
+[Raport i test ręczny](acceptance-17.md),
+[protokół porównania](experiment-17.md),
+[przegląd](review-17.md).
+TTMAPP259–266: geometria bazowa 32–41 przypisań i 1 domena na klatkę;
+bez referencji nie oznacza to poprawy. Kontrole wykazały nadmierne
+podziały i nierozstrzygnięty skok fazy. Metoda pozostaje eksperymentalna.
+**543 testy PASS**, mypy 109 modułów PASS, natywne GUI X11 PASS,
+Standards/Spec 0 otwartych uwag; kod maks. 821 linii.
+**Odbiór ręczny użytkownika oczekuje.** Następny rekomendowany ticket: **18**;
+21 (edycja ręczna) jest również dostępny po swoich zależnościach.
+Poniżej historia wcześniejszych etapów.
+
 **2026-11-04 — prototyp UI ticketu 17:** A — wspólne okno Analiza,
 B — dwa wyniki obok siebie, C — stały panel ustawień.
 [Uruchomienie i źródło](prototype-17-layouts.md).
 Gałąź `prototype/stmdomains-domain-method-ui`, commit `621ce71`.
-Wyboru użytkownika jeszcze nie ma; rekomendacja A nie jest decyzją.
-17 nadal `ready-for-agent`; nowe domeny prototypu są demonstracyjne.
+Później użytkownik wybrał A i zlecił implementację 17 (podsumowanie powyżej).
+Nowe domeny historycznego prototypu były demonstracyjne.
 Odbiór użytkownika 16 pozostaje potwierdzony.
 
 **Wykonano SD-V4-16 — geometria w wybranej karcie C (`c4b6c70`, poprawki `009f38f`, `97988c2`).**
@@ -173,8 +190,8 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 **Ręczny odbiór użytkownika 10 potwierdzony 2026-11-03** dla wersji
 `4b55727` („testy manualne ok”). Później wykonano 11–15; obecnie następny **16**.
 
-01–03, 05, 05a i 06–16 mają status `done`.
-17–18, 21–25 oraz 23a mają zakres `ready-for-agent`
+01–03, 05, 05a i 06–17 mają status `done`.
+18, 21–25 oraz 23a mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -182,7 +199,7 @@ wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 **21–25 — ręczną edycję domen i klas, zapis historii oraz eksport korekt**.
 Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
 To plan przyszłych funkcji; implementacji nie rozpoczęto. Następny
-rekomendowany etap głównej ścieżki to teraz **17 — domeny według tolerancji**; 21 można
+rekomendowany etap głównej ścieżki to teraz **18 — próba lokalnych deskryptorów freud**; 21 można
 wybrać niezależnie już po wykonanym 05a.
 
 ## Tickety i kolejność

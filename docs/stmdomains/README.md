@@ -1,11 +1,28 @@
 # STM Domains
 
+**Wykonano SD-V4-17 — domeny geometryczne, wybrany Panel A (`25252b2`, poprawki `4c3f3c8`).**
+**Analiza → Analiza… → Metoda domen → Geometria**: kąt, rozstaw,
+koherencja i wsparcie w bieżącej klatce; bez dopasowania klas.
+Przełącznik **Bazowa / Geometria** nad obrazem zachowuje wynik i zoom.
+Zapis/eksport obejmuje jeden wybrany wynik, typ pozostaje nieznany.
+[Raport i test ręczny](implementation/interactive-v04/acceptance-17.md),
+[protokół porównania](implementation/interactive-v04/experiment-17.md),
+[przegląd](implementation/interactive-v04/review-17.md).
+TTMAPP259–266: geometria bazowa 32–41 przypisań i 1 domena na klatkę;
+bez referencji nie oznacza to poprawy. Kontrole wykazały nadmierne
+podziały i nierozstrzygnięty skok fazy. Metoda pozostaje eksperymentalna.
+**543 testy PASS**, mypy 109 modułów PASS, natywne GUI X11 PASS,
+Standards/Spec 0 otwartych uwag; kod maks. 821 linii.
+**Odbiór ręczny użytkownika oczekuje.** Następny rekomendowany ticket: **18**;
+21 (edycja ręczna) jest również dostępny po swoich zależnościach.
+Poniżej historia wcześniejszych etapów.
+
 **2026-11-04 — prototyp UI ticketu 17:** A — wspólne okno Analiza,
 B — dwa wyniki obok siebie, C — stały panel ustawień.
 [Uruchomienie i źródło](implementation/interactive-v04/prototype-17-layouts.md).
 Gałąź `prototype/stmdomains-domain-method-ui`, commit `621ce71`.
-Wyboru użytkownika jeszcze nie ma; rekomendacja A nie jest decyzją.
-17 nadal `ready-for-agent`; nowe domeny prototypu są demonstracyjne.
+Później użytkownik wybrał A i zlecił implementację 17 (podsumowanie powyżej).
+Nowe domeny historycznego prototypu były demonstracyjne.
 Odbiór użytkownika 16 pozostaje potwierdzony.
 
 **Wykonano SD-V4-16 — geometria w wybranej karcie C (`c4b6c70`, poprawki `009f38f`, `97988c2`).**

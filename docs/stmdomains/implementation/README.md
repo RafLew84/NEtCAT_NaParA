@@ -1,5 +1,22 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**Wykonano SD-V4-17 — domeny geometryczne, wybrany Panel A (`25252b2`, poprawki `4c3f3c8`).**
+**Analiza → Analiza… → Metoda domen → Geometria**: kąt, rozstaw,
+koherencja i wsparcie w bieżącej klatce; bez dopasowania klas.
+Przełącznik **Bazowa / Geometria** nad obrazem zachowuje wynik i zoom.
+Zapis/eksport obejmuje jeden wybrany wynik, typ pozostaje nieznany.
+[Raport i test ręczny](interactive-v04/acceptance-17.md),
+[protokół porównania](interactive-v04/experiment-17.md),
+[przegląd](interactive-v04/review-17.md).
+TTMAPP259–266: geometria bazowa 32–41 przypisań i 1 domena na klatkę;
+bez referencji nie oznacza to poprawy. Kontrole wykazały nadmierne
+podziały i nierozstrzygnięty skok fazy. Metoda pozostaje eksperymentalna.
+**543 testy PASS**, mypy 109 modułów PASS, natywne GUI X11 PASS,
+Standards/Spec 0 otwartych uwag; kod maks. 821 linii.
+**Odbiór ręczny użytkownika oczekuje.** Następny rekomendowany ticket: **18**;
+21 (edycja ręczna) jest również dostępny po swoich zależnościach.
+Poniżej historia wcześniejszych etapów.
+
 **Wykonano SD-V4-15 — opis otoczenia i bariery (`1b0c1de`, poprawki `9fe24a6`, `9bf767a`).**
 **Analiza → Analiza… → Zaawansowane**: sigma, histogram, zakres par i PCA,
 progi/długości/nachylenie/poszerzenie barier oraz pomarańczowy podgląd.
