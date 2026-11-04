@@ -1,5 +1,12 @@
 # STM Domains
 
+**2026-11-04 — prototyp UI ticketu 18:** A — wspólne okno Analiza,
+B — porównanie obok siebie, C — stały panel otoczeń.
+[Podgląd i instrukcja uruchomienia](implementation/interactive-v04/prototype-18-layouts.md).
+Wyniki freud są symulowane; wybór układu pozostaje otwarty.
+Źródło: `prototype/stmdomains-freud-ui`, `d962b7d`. Ticket 18 nadal
+`ready-for-agent`; 17 odebrany, 26 pozostaje na końcu planu.
+
 **2026-11-04 — dodano [SD-V4-26: próbę level-set Gibou–Fedkiwa](implementation/interactive-v04/26-compare-fedkiw-level-set.md)**
 na końcu [planu UI](implementation/interactive-v04/README.md#tickety-i-kolejność),
 po 25. Zakres obejmuje porównanie domen na tych samych cechach, parametry

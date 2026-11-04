@@ -1,3 +1,39 @@
+# STM Domains — propozycje UI SD-V4-18
+
+2026-11-04. Użytkownik zlecił `prototype` dla metody freud.
+[Podgląd, zakres i uruchomienie](implementation/interactive-v04/prototype-18-layouts.md).
+A — wspólne okno Analiza, B — porównanie obok siebie,
+C — stały panel otoczeń. Rekomendacja A; **wybór użytkownika otwarty**.
+Ticket 18 nadal `ready-for-agent`, bez implementacji EnvironmentCluster.
+
+Źródło pierwotne na `prototype/stmdomains-freud-ui`: **`d962b7d`**, baza
+`97a60bd`, katalog `stmdomains/ui/prototype_freud/`. Po zapisaniu wrócono
+na `domains/interactive-v04-ui` w tym samym worktree. Tu zmienia się tylko
+dokumentacja; kod demo nie jest częścią aplikacji.
+
+W **netcat**: `python .scratch/stmdomains-freud-ui/serve.py`.
+Adres **http://127.0.0.1:8878/?variant=A**, również B/C. Samowystarczalny
+HTML i kopia źródeł pozostają w `.scratch/stmdomains-freud-ui/`.
+Rzeczywiste obrazy/centra TTMAPP258–260 i zapisane wyniki Bazowej/Geometrii
+259. Wszystkie nowe wyniki freud, progi i postęp są demonstracyjne.
+Podgląd sąsiadów nie jest obliczeniem freud. Skala parametrów jest propozycją
+UI i wymaga weryfikacji przy implementacji 18.
+
+Wykonane: QtWebEngine/X11 w netcat, A/B/C przy 1440×1000 i 1024×768;
+zrzuty obejrzano. Przejście szkic → Analizuj, anulowanie, osobne klatki,
+Klasy/Domeny, raw/aligned, wybór molekuły, rzeczywiste przeciąganie suwaka,
+zoom, odmowy, klawiatura i stan prototypu; bez błędów JS.
+Nie pisano testów demo ani nie powtarzano regresji produkcyjnej aplikacji.
+Maksymalny plik kodu: 241 linii. Sprawdzono odnośniki i diff.
+Brak zmian wspólnych i potrzeb integracyjnych. Dane tylko odczytane;
+brak zapisu użytkownika, treningu i wysyłania pomiarów.
+
+Po wyborze zapisać decyzję w 18 i wdrożyć właściwe UI Qt z obliczeniami;
+nie scalać kodu prototypu. 17 pozostaje odebrany, 26 na końcu planu.
+Commit dokumentacji podany w odpowiedzi końcowej. Poniżej historia.
+
+---
+
 # STM Domains — SD-V4-26 dodany na końcu planu
 
 2026-11-04. Na polecenie użytkownika dodano

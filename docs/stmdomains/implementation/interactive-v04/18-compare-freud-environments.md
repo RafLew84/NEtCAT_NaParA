@@ -10,6 +10,19 @@
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady rozszerzeń](README.md#rozszerzenia).
 
+## Prototyp UI — 2026-11-04
+
+Na polecenie użytkownika przygotowano [trzy interaktywne układy](prototype-18-layouts.md):
+A — wspólne okno Analiza, B — porównanie obok siebie, C — stały panel otoczeń.
+Źródło pierwotne: `prototype/stmdomains-freud-ui`, commit `d962b7d`,
+`stmdomains/ui/prototype_freud/`. Lokalny podgląd:
+`python .scratch/stmdomains-freud-ui/serve.py` w netcat.
+
+Pytanie dotyczy miejsca ustawień i porównania klas/domen. Rekomendacja A
+rozwija wybrane UI 17; **wybór użytkownika pozostaje otwarty**.
+Wyniki freud i parametry są symulacją, nie implementacją metody ani ustaleniem
+jej skali. Po wyborze przepisać właściwy wariant w Qt; nie scalać kodu demo.
+
 ## Kryteria akceptacji
 
 - [ ] Jeden wariant EnvironmentCluster działa od ustawienia w UI do wyniku na rzeczywistych oznaczeniach. Liczba klas wynika z tolerancji; nie jest po drodze wymuszana przez KMeans ani Auto z 12. Nową hipotezą jest porównanie otoczeń tą metodą, nie samo zastąpienie obliczeń NumPy biblioteką.

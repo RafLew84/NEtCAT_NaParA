@@ -14,6 +14,14 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**2026-11-04 — prototyp UI SD-V4-18:**
+[Trzy układy freud](implementation/interactive-v04/prototype-18-layouts.md)
+obejmują ustawienia otoczeń, Klasy/Domeny, porównanie z Bazową/Geometrią
+i podgląd sąsiadów. Nowe wyniki są symulowane. Wybór otwarty;
+rekomendacja A nie jest decyzją użytkownika. Źródło `d962b7d` na
+`prototype/stmdomains-freud-ui`; na gałęzi aplikacji tylko dokumentacja.
+Status 18 i kolejność pozostałych ticketów bez zmian.
+
 **2026-11-04 — użytkownik zlecił dopisanie próby Fedkiwa:**
 [SD-V4-26](implementation/interactive-v04/26-compare-fedkiw-level-set.md)
 jest ostatni w planie, po 25; status `ready-for-agent`, zależności 17, 13 i 14.

@@ -1,5 +1,11 @@
 # Interaktywne STM Domains — obliczenia z danych
 
+**2026-11-04 — [prototyp UI 18](prototype-18-layouts.md):** A — wspólne
+okno Analiza, B — porównanie obok siebie, C — stały panel otoczeń.
+Wyniki freud są symulowane; wybór użytkownika pozostaje otwarty.
+Źródło: `prototype/stmdomains-freud-ui`, `d962b7d`. Status 18 nadal
+`ready-for-agent`; rekomendacja autora to A, zgodnie z kierunkiem 17.
+
 **2026-11-04 — dodano na końcu planu [26 — próba level-set Gibou–Fedkiwa](26-compare-fedkiw-level-set.md).**
 Porównanie z geometrią na tych samych cechach, z parametrami w UI,
 przypisaniami molekuł, obszarami domen i ręcznym odbiorem.
