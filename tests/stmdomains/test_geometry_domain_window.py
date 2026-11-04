@@ -92,3 +92,32 @@ def test_geometric_result_and_draft_survive_project_save_and_export(qtbot, opene
     assert controller.domain_method == 'baseline'
     controller.select_domain_method('geometry')
     assert controller.result is restored
+
+
+def test_inactive_invalid_baseline_draft_does_not_block_geometric_project(qtbot, opened, tmp_path):
+    from stmdomains.ui.project_view import capture_draft
+    controller, dialog = opened.controller, opened.analysis_dialog
+    dialog.domain_fields.edge_threshold.setValue(.8)
+    dialog.domain_fields.region_diameter.setValue(.1)
+    dialog.advanced_fields.descriptor.pair_min.setValue(3.)
+    dialog.advanced_fields.descriptor.pair_max.setValue(1.)
+    dialog.method.setCurrentIndex(1)
+    dialog.calculate.click()
+    qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
+    expected = controller.result
+    path = tmp_path/'inactive-draft.stmdomains'
+    errors = []
+    controller.prompts.show_error = errors.append
+    controller.save_project(path, draft=capture_draft(dialog))
+    qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
+    assert not errors
+    controller.open_session(path)
+    qtbot.waitUntil(lambda: not controller.is_busy, timeout=15000)
+    assert not errors and controller.result.assignments == expected.assignments
+    assert dialog.method.currentData() == 'geometry' and dialog.calculate.isEnabled()
+    dialog.method.setCurrentIndex(0)
+    assert dialog.domain_fields.edge_threshold.value() == .8
+    assert dialog.domain_fields.region_diameter.value() == .1
+    assert dialog.advanced_fields.descriptor.pair_min.value() == 3.
+    assert dialog.advanced_fields.descriptor.pair_max.value() == 1.
+    assert not dialog.calculate.isEnabled()

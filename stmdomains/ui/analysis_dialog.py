@@ -156,7 +156,7 @@ class AnalysisDialog(QDialog):
             self.scope_fields.scope.setCurrentIndex(0)
         self.refresh()
 
-    def plan(self) -> SeriesAnalysisPlan:
+    def plan(self, *, inactive_baseline: bool = False) -> SeriesAnalysisPlan:
         scope, classes = self.scope_fields, self.class_fields
         current = scope.scope.currentData() == "current_frame"
         return SeriesAnalysisPlan(
@@ -165,9 +165,9 @@ class AnalysisDialog(QDialog):
             whole_series=scope.scope.currentData() == "whole_series", k=classes.chosen_k,
             fit_source="existing" if classes.mode.currentData() == "existing" else classes.fit_source.currentData(),
             fit_start=classes.fit_start.value() - 1, fit_end=classes.fit_end.value() - 1,
-            domain_settings=self.domain_fields.settings(), order_settings=self.order_fields.settings(),
+            domain_settings=DomainSettings() if inactive_baseline else self.domain_fields.settings(), order_settings=self.order_fields.settings(),
             acceptance=self.acceptance_fields.settings(),
-            descriptor_settings=self.advanced_fields.descriptor.settings(),
+            descriptor_settings=DescriptorSettings() if inactive_baseline else self.advanced_fields.descriptor.settings(),
             barrier_settings=self.advanced_fields.barriers.settings(),
             class_count_mode="auto" if classes.automatic else "manual", auto_max_k=classes.maximum_k,
         )

@@ -29,6 +29,7 @@ def validate_project_state(view: Mapping, draft: Mapping, count: int) -> None:
         raise ProjectError('Niepoprawny stan widoku lub parametrów.')
     if draft.get('domain_method', 'baseline') not in ('baseline', 'geometry'):
         raise ProjectError('Nieznana metoda domen w szkicu.')
+    validate_inactive_baseline(draft.get('inactive_baseline', {}))
     GeometryDomainSettings(**draft.get('geometry_tolerances', {}))
     DomainSettings(**draft.get('geometry_constraints', {}))
     index = view.get('current_index', 0)
@@ -113,3 +114,38 @@ def validate_execution(execution: Mapping, indices: tuple[int, ...], count: int)
     if 'plan' in execution and analysis_plan(execution['plan']).indices(count) != indices:
         raise ProjectError('Zakres wykonania nie odpowiada zapisanej analizie.')
     validate_selection(execution.get('selection'))
+
+
+def validate_inactive_baseline(record: Mapping) -> None:
+    """Keep editable scalar bounds, deliberately permit invalid cross-field drafts."""
+    if not isinstance(record, Mapping):
+        raise ProjectError('Niepoprawny nieaktywny szkic bazowy.')
+    if not record:
+        return
+    limits = {
+        'domain_settings': {'minimum_domain_size': (1, 3000, int), 'edge_distance_factor': (.05, 10, float),
+            'edge_max_hellinger': (0, 1, float), 'region_max_hellinger_diameter': (0, 1, float),
+            'raster_radius_factor': (.05, 10, float)},
+        'descriptor_settings': {'descriptor_radial_bins': (4, 32, int), 'descriptor_angle_bins': (8, 72, int),
+            'descriptor_sigma_factor': (.25, 3, float), 'pca_max_components': (1, 64, int)}}
+    if set(record) != set(limits):
+        raise ProjectError('Niepełny nieaktywny szkic bazowy.')
+    for group, fields in limits.items():
+        values = record[group]
+        extra = 'geometry_mode' if group == 'domain_settings' else 'descriptor_pair_distance_range'
+        if not isinstance(values, Mapping) or set(values) != set(fields) | {extra}:
+            raise ProjectError('Niepoprawne pola nieaktywnego szkicu.')
+        for key, (low, high, kind) in fields.items():
+            value = values[key]
+            if (type(value) not in ((int,) if kind is int else (int, float))
+                    or not isfinite(value) or not low <= value <= high):
+                raise ProjectError('Wartość nieaktywnego szkicu poza zakresem.')
+        if group == 'domain_settings':
+            if values[extra] not in ('off', 'hellinger_region'):
+                raise ProjectError('Nieznana kontrola zgodności szkicu.')
+        else:
+            pair = values[extra]
+            if (not isinstance(pair, (tuple, list)) or len(pair) != 2 or
+                    any(type(v) not in (int, float) or not isfinite(v) or not low <= v <= high
+                        for v, low, high in zip(pair, (.1, .2), (3.9, 4.)))):
+                raise ProjectError('Niepoprawny zakres par w szkicu.')

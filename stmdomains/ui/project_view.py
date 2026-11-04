@@ -46,7 +46,13 @@ def restore_view(window: 'STMDomainsMainWindow', view: Mapping[str, Any]) -> Non
 
 def capture_draft(dialog: 'AnalysisDialog') -> dict:
     classes = dialog.class_fields
-    return {'plan': asdict(dialog.plan()), 'scope': dialog.scope_fields.scope.currentData(),
+    geometric = dialog.method.currentData() == 'geometry'
+    # Inactive edits may be cross-field-invalid; keep their raw values separately.
+    # The canonical plan is only a transport for the other baseline fields here.
+    inactive = {'domain_settings': dialog.domain_fields.draft_values(),
+                'descriptor_settings': dialog.advanced_fields.descriptor.draft_values()} if geometric else {}
+    return {'plan': asdict(dialog.plan(inactive_baseline=geometric)), 'inactive_baseline': inactive,
+            'scope': dialog.scope_fields.scope.currentData(),
             'domain_method': dialog.method.currentData(),
             'geometry_tolerances': asdict(dialog.geometry_fields.settings()),
             'geometry_constraints': asdict(dialog.geometry_fields.constraints()),
@@ -81,6 +87,10 @@ def restore_draft(dialog: 'AnalysisDialog', draft: Mapping[str, Any]) -> None:
     dialog.advanced_fields.barriers.load(plan.barrier_settings)
     dialog.geometry_fields.load(GeometryDomainSettings(**draft.get('geometry_tolerances', {})),
                                 DomainSettings(**draft.get('geometry_constraints', {})))
+    inactive = draft.get('inactive_baseline', {})
+    if inactive:
+        dialog.domain_fields.load_draft(inactive['domain_settings'])
+        dialog.advanced_fields.descriptor.load_draft(inactive['descriptor_settings'])
     dialog.method.setCurrentIndex(dialog.method.findData(draft.get('domain_method', 'baseline')))
     del blockers
     dialog.refresh()

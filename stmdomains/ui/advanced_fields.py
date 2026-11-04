@@ -1,5 +1,7 @@
 """Advanced controls describe the existing method and its recalculation boundary."""
 
+from dataclasses import asdict
+
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QCheckBox, QDoubleSpinBox, QFormLayout, QGroupBox, QLabel, QSpinBox, QVBoxLayout, QWidget
 
@@ -66,18 +68,26 @@ class DescriptorFields(QGroupBox):
         if not self._loading:
             self.changed.emit()
 
+    def draft_values(self) -> dict:
+        return dict(descriptor_radial_bins=self.radial_bins.value(), descriptor_angle_bins=self.angle_bins.value(),
+                    descriptor_sigma_factor=self.sigma.exact_value(),
+                    descriptor_pair_distance_range=(self.pair_min.exact_value(), self.pair_max.exact_value()),
+                    pca_max_components=self.pca.value())
+
     def settings(self) -> DescriptorSettings:
-        return DescriptorSettings(self.radial_bins.value(), self.angle_bins.value(), self.sigma.exact_value(),
-                                  (self.pair_min.exact_value(), self.pair_max.exact_value()), self.pca.value())
+        return DescriptorSettings(**self.draft_values())
 
     def load(self, settings: DescriptorSettings) -> None:
+        self.load_draft(asdict(settings))
+
+    def load_draft(self, values) -> None:
         self._loading = True
-        self.sigma.load_value(settings.descriptor_sigma_factor)
-        self.radial_bins.setValue(settings.descriptor_radial_bins)
-        self.angle_bins.setValue(settings.descriptor_angle_bins)
-        self.pca.setValue(settings.pca_max_components)
-        self.pair_min.load_value(settings.descriptor_pair_distance_range[0])
-        self.pair_max.load_value(settings.descriptor_pair_distance_range[1])
+        self.sigma.load_value(values['descriptor_sigma_factor'])
+        self.radial_bins.setValue(values['descriptor_radial_bins'])
+        self.angle_bins.setValue(values['descriptor_angle_bins'])
+        self.pca.setValue(values['pca_max_components'])
+        self.pair_min.load_value(values['descriptor_pair_distance_range'][0])
+        self.pair_max.load_value(values['descriptor_pair_distance_range'][1])
         self._loading = False
         self.changed.emit()
 

@@ -1,5 +1,7 @@
 """The same editable domain parameters in single-frame and series workflows."""
 
+from dataclasses import asdict
+
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QComboBox, QDoubleSpinBox, QFormLayout, QSpinBox, QWidget
 
@@ -54,17 +56,24 @@ class DomainSettingsFields(QWidget):
         if not self._loading:
             self.changed.emit()
 
+    def draft_values(self) -> dict:
+        return dict(minimum_domain_size=self.minimum.value(), edge_distance_factor=self.link_distance.value(),
+                    geometry_mode=self.geometry_mode.currentData(), edge_max_hellinger=self.edge_threshold.value(),
+                    region_max_hellinger_diameter=self.region_diameter.value(), raster_radius_factor=self.mask_radius.value())
+
     def settings(self) -> DomainSettings:
-        return DomainSettings(self.minimum.value(), self.link_distance.value(), self.geometry_mode.currentData(),
-                              self.edge_threshold.value(), self.region_diameter.value(), self.mask_radius.value())
+        return DomainSettings(**self.draft_values())
 
     def load(self, settings: DomainSettings) -> None:
+        self.load_draft(asdict(settings))
+
+    def load_draft(self, values) -> None:
         self._loading = True
-        self.minimum.setValue(settings.minimum_domain_size)
-        self.link_distance.setValue(settings.edge_distance_factor)
-        self.geometry_mode.setCurrentIndex(self.geometry_mode.findData(settings.geometry_mode))
-        self.edge_threshold.setValue(settings.edge_max_hellinger)
-        self.region_diameter.setValue(settings.region_max_hellinger_diameter)
-        self.mask_radius.setValue(settings.raster_radius_factor)
+        self.minimum.setValue(values['minimum_domain_size'])
+        self.link_distance.setValue(values['edge_distance_factor'])
+        self.geometry_mode.setCurrentIndex(self.geometry_mode.findData(values['geometry_mode']))
+        self.edge_threshold.setValue(values['edge_max_hellinger'])
+        self.region_diameter.setValue(values['region_max_hellinger_diameter'])
+        self.mask_radius.setValue(values['raster_radius_factor'])
         self._loading = False
         self._changed()
