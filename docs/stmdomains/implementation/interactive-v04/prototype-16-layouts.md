@@ -3,7 +3,8 @@
 Data: **2026-11-04**. Pytanie użytkownika: jak pokazywać informacje
 o geometrii przy oglądaniu kolejnych obrazów? Wykorzystano skill `prototype`,
 gałąź UI. [Ticket 16](16-inspect-local-geometry.md) pozostaje `ready-for-agent`.
-**Nie wybrano jeszcze układu i nie zaimplementowano pomiarów ticketu 16.**
+**Użytkownik wybrał wariant C 2026-11-04 i zlecił implementację ticketu 16.**
+Prototyp pozostaje źródłem decyzji; jego demonstracyjne pomiary nie przechodzą do aplikacji.
 
 ## Trzy propozycje
 
@@ -83,9 +84,8 @@ w `.scratch/stmdomains-geometry-layouts/`. Nie pisano testów prototypu i nie
 ponawiano testów produkcyjnej aplikacji. Źródła prototypu: sześć plików,
 największy plik kodu ma 199 linii, bez wyjątku od limitu 1000/1500.
 
-**Wstępna rekomendacja agenta: A.** W małym oknie B zmniejsza wysokość
+**Historyczna rekomendacja agenta: A; decyzja użytkownika: C.** W małym oknie B zmniejsza wysokość
 pola obrazu do 181 px przy 399 px w A/C; C może zasłaniać część skanu.
-To obserwacja układu, nie odbiór przez użytkownika. Można wybrać połączenie
-elementów. Po decyzji należy zapisać wybrany układ w tickecie 16 i napisać
+To obserwacja układu, nie ocena metody. Wybrany C zapisano w tickecie 16; należy napisać
 docelowe UI Qt zgodnie z wymaganiami produkcyjnymi; nie przenosić kodu
 demonstracji do aplikacji.

@@ -10,6 +10,7 @@ from stmdomains.core.annotations import FrameAnnotations
 from stmdomains.core.analysis_result import AnalysisInput, FrameAnalysis
 from stmdomains.core.display import RenderedImage, contrast_limits, render_image
 from stmdomains.core.registration import parse_registration
+from stmdomains.core.geometry import FrameGeometry
 from stmdomains.core.series import FrameData, Series
 from stmdomains.io.annotations import AnnotationStore
 
@@ -26,6 +27,7 @@ class PresentedFrame:
     masks: RenderedImage | None
     gamma: float = 1.0
     result: FrameAnalysis | None = None
+    geometry: FrameGeometry | None = None
 
 
 class FramePresenter:

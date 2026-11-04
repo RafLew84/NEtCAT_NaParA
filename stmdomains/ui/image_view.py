@@ -15,6 +15,7 @@ from stmdomains.core.display import RenderedImage
 from stmdomains.core.frame_presentation import PresentedFrame
 from stmdomains.ui.annotation_overlay import AnnotationOverlay
 from stmdomains.ui.domain_overlay import DomainOverlay
+from stmdomains.ui.geometry_overlay import GeometryOverlay
 
 
 def image_pixmap(rendered: RenderedImage) -> QPixmap:
@@ -70,6 +71,9 @@ class ImageView(QGraphicsView):
         for item in (self._picture, self._field_background, self._mask_clip,
                      self._mask_picture, self._field_border, self._barrier_clip, self._barrier_picture):
             item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+        self.geometry_overlay = GeometryOverlay()
+        self.geometry_overlay.setZValue(4)
+        scene.addItem(self.geometry_overlay)
         self._press_position: QPoint | None = None
         self._mode = "raw"
         self._fit_mode = True
@@ -107,6 +111,7 @@ class ImageView(QGraphicsView):
         self._field_border.setVisible(view.mode == "expanded_aligned")
         self._mask_picture.setPixmap(image_pixmap(view.masks) if view.masks is not None else QPixmap())
         self._overlay.set_frame(view)
+        self.geometry_overlay.set_frame(view)
         self._domains.set_frame(view)
         self._barrier_clip.setRect(field)
         mask = view.result.barrier_mask if view.result is not None else None

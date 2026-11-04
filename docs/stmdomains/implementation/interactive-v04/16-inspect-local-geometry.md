@@ -6,15 +6,16 @@
 
 **Blocked by:** [05: Oblicz klasy i domeny bieżącej klatki z danych](05-analyze-current-frame.md).
 
-**Status:** ready-for-agent — dodanie rozszerzenia do planu zlecone przez użytkownika; wykonanie po zależnościach.
+**Status:** in-progress — implementacja zlecona 2026-11-04; wybrany wariant C.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady rozszerzeń](README.md#rozszerzenia).
 
 **Prototyp układów — 2026-11-04:** przygotowano A (panel boczny), B (tabela
 pod obrazem), C (pływająca karta). [Uruchomienie, porównanie i źródło](prototype-16-layouts.md).
 Źródło pierwotne: gałąź `prototype/stmdomains-geometry-layouts`, commit `2a31997`.
-Wybór użytkownika oczekuje; A jest wstępną rekomendacją agenta. Pomiary
-w prototypie są demonstracyjne. Nie jest to wykonanie ticketu 16.
+**Decyzja użytkownika 2026-11-04: wariant C — pływająca karta**, zwijana
+i przenoszona między stronami obrazu. Wcześniejsza rekomendacja A nie została
+wybrana. Pomiary prototypu są demonstracyjne; implementacja 16 oblicza je z danych.
 
 ## Kryteria akceptacji
 

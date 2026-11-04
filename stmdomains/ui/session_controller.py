@@ -16,6 +16,9 @@ from stmdomains.core.frame_presentation import FramePresenter, PresentedFrame
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.class_catalogue import ClassCatalogue
 from stmdomains.core.series import Series
+from stmdomains.core.geometry import FrameGeometry
+from stmdomains.analysis.geometry import measure_geometry
+from stmdomains.analysis.geometry_calibration import calibration_from_header
 from stmdomains.core.result_store import ResultStore
 from stmdomains.core.export import ExportOptions
 from stmdomains.ui.export_runner import ExportRunner
@@ -70,6 +73,8 @@ class SessionController(QObject):
         self._open_token: int | None = None
         self._frame_token: int | None = None
         self._analysis_token: int | None = None
+        self._geometry_token: int | None = None
+        self._geometries: dict[int, FrameGeometry] = {}
         self._results: MutableMapping[int, FrameAnalysis] = {}
         self._run_results: dict[int, FrameAnalysis] = {}
         self._save_token: int | None = None
@@ -101,7 +106,7 @@ class SessionController(QObject):
     @property
     def is_busy(self) -> bool:
         return self.export_running or self.series_running or any(token is not None for token in (
-            self._open_token, self._frame_token, self._analysis_token, self._save_token,
+            self._open_token, self._frame_token, self._analysis_token, self._save_token, self._geometry_token,
         ))
 
     @property
@@ -237,7 +242,7 @@ class SessionController(QObject):
     @property
     def can_play(self) -> bool:
         return (self.series is not None and self.series.frame_count > 1
-                and self._open_token is None and self._analysis_token is None
+                and self._open_token is None and self._analysis_token is None and self._geometry_token is None
                 and not self.series_running and not self.export_running and self._save_token is None and not self._closed)
 
     @property
@@ -308,6 +313,7 @@ class SessionController(QObject):
         if not text:
             text = self.export_message if self.export_running else "Zapisywanie projektu…" if self._save_token is not None else "Otwieranie zapisu…" if self._open_token is not None else (
                 self.series_run.message if self.series_running and self.series_run is not None else
+                "Pomiar geometrii…" if self._geometry_token is not None else
                 "Analiza klatki…" if self._analysis_token is not None else
                 f"Przygotowanie klatki {self._requested_index + 1}…"
                 if self._frame_token is not None else "Gotowe"
@@ -320,6 +326,7 @@ class SessionController(QObject):
         self._export_runner.cancel()
         self._series_runner.cancel()
         self._cancel_analysis()
+        self._cancel_geometry()
         self._abandon(self._open_token)
         self._open_token = None
         self._busy()
@@ -361,6 +368,7 @@ class SessionController(QObject):
             return
         if index != self.current_index:
             self._cancel_analysis()
+            self._cancel_geometry()
         self._abandon(self._frame_token)
         self._requested_index = index
         mode = self._requested_mode
@@ -368,6 +376,30 @@ class SessionController(QObject):
         self._frame_token = self._submit(lambda cancelled, report: presenter.present(index, mode, gamma))
         self._automatic_token = self._frame_token if automatic else None
         self._busy()
+
+    @property
+    def geometry(self) -> FrameGeometry | None:
+        return self._geometries.get(self.current_index)
+
+    @property
+    def geometry_running(self) -> bool:
+        return self._geometry_token is not None
+
+    def measure_current_geometry(self) -> None:
+        self.pause()
+        if not self.can_analyze or self.presenter is None or self.series is None:
+            return
+        presenter, index = self.presenter, self.current_index
+        calibration = calibration_from_header(self.series.raw_header, self.series.frame_shape)
+        self._geometry_token = self._submit(lambda cancelled, report: measure_geometry(
+            presenter.analysis_input(index), calibration=calibration,
+            cancelled=cancelled.is_set, progress=report,
+        ))
+        self._busy()
+
+    def _cancel_geometry(self) -> None:
+        self._abandon(self._geometry_token)
+        self._geometry_token = None
 
     def analyze_current_frame(self) -> None:
         self.pause()
@@ -523,6 +555,7 @@ class SessionController(QObject):
         self._export_runner.cancel()
         self._series_runner.cancel()
         self._cancel_analysis()
+        self._cancel_geometry()
         if self._open_token is not None:
             self._abandon(self._open_token)
             self._open_token = None
@@ -545,6 +578,15 @@ class SessionController(QObject):
             self._saving_path = None
             self._busy()
             self.project_saved.emit(self.project_path)
+        elif token == self._geometry_token and isinstance(result, FrameGeometry):
+            self._geometry_token = None
+            if (self.series is not None and result.series_id == self.series.identity
+                    and result.working_index == self.current_index == self._requested_index
+                    and result.source_index == self.series.frame(self.current_index).source_index):
+                self._geometries[self.current_index] = result
+                if self._published is not None and self._frame_token is None:
+                    self._publish(self._published)
+            self._busy()
         elif token == self._analysis_token and isinstance(result, FrameAnalysis):
             if (self.series is not None and result.series_id == self.series.identity
                     and result.working_index == self.current_index == self._requested_index
@@ -601,6 +643,7 @@ class SessionController(QObject):
             self.presenter = result.presenter
             self.current_index = result.view.frame.working_index
             self._results = {}
+            self._geometries.clear()
             self._run_results = {}
             self.loaded_project = result.project
             self.project_path = candidate.series.session_path if result.project else None
@@ -627,7 +670,7 @@ class SessionController(QObject):
         index = frame.frame.working_index
         result = (self._previous_results.get(index) if self._selected_versions.get(index) == "previous"
                   else self._results.get(index))
-        frame = replace(frame, result=result)
+        frame = replace(frame, result=result, geometry=self._geometries.get(index))
         self._published = frame
         self._automatic_token = None
         self.current_index = frame.frame.working_index
@@ -645,11 +688,13 @@ class SessionController(QObject):
 
     @pyqtSlot(int, str)
     def _failed(self, token: int, message: str) -> None:
-        if self._closed or token not in (self._open_token, self._frame_token, self._analysis_token, self._save_token):
+        if self._closed or token not in (self._open_token, self._frame_token, self._analysis_token, self._save_token, self._geometry_token):
             return
         if token == self._save_token:
             self._save_token = None
             self._saving_path = None
+        elif token == self._geometry_token:
+            self._geometry_token = None
         elif token == self._analysis_token:
             self._analysis_token = None
         elif token == self._open_token:
@@ -666,7 +711,7 @@ class SessionController(QObject):
 
     @pyqtSlot(int, str)
     def _progress(self, token: int, text: str) -> None:
-        if token == self._save_token or token == self._open_token or (self._open_token is None and (
+        if token == self._geometry_token or token == self._save_token or token == self._open_token or (self._open_token is None and (
             token == self._analysis_token or (self._analysis_token is None and token == self._frame_token)
         )):
             self._busy(text)
@@ -682,7 +727,7 @@ class SessionController(QObject):
         self._closed = True
         for task in self._tasks.values():
             task.cancelled.set()
-        self._open_token = self._frame_token = self._analysis_token = self._save_token = None
+        self._open_token = self._frame_token = self._analysis_token = self._save_token = self._geometry_token = None
 
     def wait_for_workers(self) -> None:
         """Join cancelled work before Qt destroys the signals used by run()."""

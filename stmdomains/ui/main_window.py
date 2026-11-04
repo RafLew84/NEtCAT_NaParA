@@ -18,6 +18,7 @@ from stmdomains.ui.analysis_dialog import AnalysisDialog
 from stmdomains.ui.analysis_status import STATUS_TEXT
 from stmdomains.ui.catalogue_style import catalogue_description
 from stmdomains.ui.image_view import ImageView
+from stmdomains.ui.geometry_card import GeometryCard
 from stmdomains.ui.filmstrip import Filmstrip
 from stmdomains.ui.import_prompts import ImportPrompts, QtImportPrompts
 from stmdomains.ui.playback_controls import PlaybackControls
@@ -90,6 +91,7 @@ class STMDomainsMainWindow(QMainWindow):
         self.frame_label = QLabel("Otwórz projekt .stmdomains lub zapis .moltrack.json z obrazami MPP.")
         layout.addWidget(self.frame_label)
         self.image_view = ImageView(self)
+        self.geometry_card = GeometryCard(self.controller, self.image_view)
         self.image_view.annotation_selected.connect(self._select_annotation)
         layout.addWidget(self.image_view, 1)
         self.frame_slider = QSlider(Qt.Orientation.Horizontal)
@@ -204,6 +206,10 @@ class STMDomainsMainWindow(QMainWindow):
             self.analysis_action.setObjectName("analysisAction")
             self.analysis_action.setEnabled(False)
             self.analysis_action.triggered.connect(lambda: self._show_analysis())
+        self.geometry_action = analysis_menu.addAction('Geometria…') if analysis_menu is not None else None
+        if self.geometry_action is not None:
+            self.geometry_action.setEnabled(False)
+            self.geometry_action.triggered.connect(self.geometry_card.open)
         app = QCoreApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(self._finish_background_work)
@@ -266,7 +272,9 @@ class STMDomainsMainWindow(QMainWindow):
         self.image_view.set_frame(view)
         self.result_controls.set_frame(view)
         self._show_catalogue_status()
-        self._select_annotation(None)
+        self.geometry_card.set_frame(view)
+        selected_id = self.geometry_card.selected_id
+        self._select_annotation(next((d for d in view.annotations.detections if d.detection_id == selected_id), None))
         self.frame_info_button.setEnabled(True)
         presenter = self.controller.presenter
         controls = self.annotation_controls
@@ -300,6 +308,8 @@ class STMDomainsMainWindow(QMainWindow):
 
     def _show_progress(self, busy: bool, text: str) -> None:
         self.analyze_button.setEnabled(self.controller.can_analyze)
+        if self.geometry_action is not None:
+            self.geometry_action.setEnabled(self.controller.series is not None)
         self._show_catalogue_status()
         if self.analysis_action is not None:
             self.analysis_action.setEnabled(self.controller.series is not None)
@@ -369,6 +379,7 @@ class STMDomainsMainWindow(QMainWindow):
 
     def _select_annotation(self, selected: Detection | Segmentation | None) -> None:
         self._selected = selected
+        self.geometry_card.select(selected)
         self.metadata_button.setEnabled(selected is not None)
         if selected is None:
             self.selection_label.setText("Kliknij oznaczenie, aby zobaczyć jego dane.")
