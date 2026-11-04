@@ -1,3 +1,23 @@
+# STM Domains — przegląd Fedkiwa po tickecie 17
+
+2026-11-04. Na pytanie użytkownika wykonano `research` i krytyczną ocenę
+przydatności metod level set do domen STM.
+[Źródła i wnioski](research-fedkiw-after-ticket-17.md).
+Stan kodu audytowano na `a5229e4`, w tym samym worktree i gałęzi
+`domains/interactive-v04-ui`. Właściwy Gibou–Fedkiw nie jest wdrożony;
+historyczne próby pokrycia używały pokrewnego Chan–Vese. Aktywny plan
+UI nie zawiera osobnego ticketu level set; 18 jest próbą freud.
+
+To przegląd dokumentacji/kodu i źródeł pierwotnych, bez nowego benchmarku,
+zmian aplikacji, zależności lub wspólnych modułów. Sprawdzono linki
+lokalnej dokumentacji i diff; nie powtarzano testów programu.
+Propozycja próby regularizacji na tych samych cechach nie jest decyzją
+wdrożenia. Obowiązują ograniczenia odbioru naukowego z 17.
+Użytkownik potwierdził odbiór ręczny 17; następny rekomendowany ticket
+pozostaje 18. Poniżej stan implementacji i wcześniejsza historia.
+
+---
+
 # STM Domains — SD-V4-17, Panel A
 
 2026-11-04. Użytkownik wybrał Panel A i zlecił `implement 17`.

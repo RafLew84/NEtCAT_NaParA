@@ -14,6 +14,14 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**2026-11-04 — przegląd Fedkiwa po odbiorze SD-V4-17:**
+[Notatka badawcza](research-fedkiw-after-ticket-17.md) rozróżnia level set,
+hybrydę Gibou–Fedkiwa i dawną próbę Chan–Vese do pokrycia. Obecny program
+nie używa tej hybrydy; aktywny plan UI nie ma osobnego ticketu level set.
+18 nadal dotyczy biblioteki freud. Zalecenie ograniczonego porównania
+na tych samych cechach jest propozycją, bez dodawania ticketów ani zmiany
+kolejności. Odbiór 17 pozostaje potwierdzony.
+
 **Wykonano SD-V4-17 — domeny geometryczne, wybrany Panel A (`25252b2`, poprawki `4c3f3c8`).**
 **Analiza → Analiza… → Metoda domen → Geometria**: kąt, rozstaw,
 koherencja i wsparcie w bieżącej klatce; bez dopasowania klas.

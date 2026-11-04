@@ -775,6 +775,9 @@ Nowe metody będą oceniane na danych i kryteriach rozstrzygniętych przez pytan
   przykładowego zapisu TTMAPP i wycinków obrazu. Parametry fizyczne eksportu
   są nieznane; definicja orientacji pozostaje do ustalenia na przykładach.
   Audyt importu pozostaje potrzebny w etapie 1; sam pomiar kąta jest odłożony.
+- [Fedkiw po tickecie 17: przydatność i stan implementacji](research-fedkiw-after-ticket-17.md)
+  — aktualizacja źródeł, rozróżnienie dawnych prób Chan–Vese od właściwej
+  hybrydy Gibou–Fedkiwa i ograniczenia przy granicach przesunięcia sieci.
 - [Wyspy, orientacja sieci i level set](research-domain-detection-level-sets.md)
   — materiał do drugiego etapu: osobne warstwy pokrycia i sieci, ocena
   podejścia Gibou–Fedkiwa oraz propozycja porównania metod na referencjach.
