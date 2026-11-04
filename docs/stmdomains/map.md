@@ -14,10 +14,17 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**2026-11-04 — użytkownik zlecił dopisanie próby Fedkiwa:**
+[SD-V4-26](implementation/interactive-v04/26-compare-fedkiw-level-set.md)
+jest ostatni w planie, po 25; status `ready-for-agent`, zależności 17, 13 i 14.
+Porównanie Geometria / Level set na tych samych cechach obejmuje przypisania
+molekuł, obszary domen, ustawienia oraz test ręczny w UI. Bez implementacji
+i nowych prób w tej zmianie. Następny rekomendowany ticket nadal 18.
+
 **2026-11-04 — przegląd Fedkiwa po odbiorze SD-V4-17:**
 [Notatka badawcza](research-fedkiw-after-ticket-17.md) rozróżnia level set,
 hybrydę Gibou–Fedkiwa i dawną próbę Chan–Vese do pokrycia. Obecny program
-nie używa tej hybrydy; aktywny plan UI nie ma osobnego ticketu level set.
+nie używa tej hybrydy; w chwili przeglądu plan UI nie miał ticketu level set.
 18 nadal dotyczy biblioteki freud. Zalecenie ograniczonego porównania
 na tych samych cechach jest propozycją, bez dodawania ticketów ani zmiany
 kolejności. Odbiór 17 pozostaje potwierdzony.

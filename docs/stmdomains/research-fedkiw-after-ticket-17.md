@@ -6,6 +6,11 @@ Przyjmujemy, że „Fedkiw” oznacza Ronalda Fedkiwa i metody level-set, nie
 bibliotekę `freud`. To ukierunkowany przegląd źródeł i rekomendacja próby,
 bez nowej implementacji, instalacji, benchmarku ani zmiany listy ticketów.
 
+**Późniejsza decyzja użytkownika — 2026-11-04:** próbę zapisano jako
+[SD-V4-26](implementation/interactive-v04/26-compare-fedkiw-level-set.md)
+na końcu planu, po 25. Audyt poniżej opisuje stan przed dopisaniem ticketu;
+metoda nadal nie jest zaimplementowana.
+
 ## Odpowiedź i rekomendacja
 
 **Tak: najbardziej uzasadnione jest sprawdzenie level set jako etapu
@@ -123,8 +128,8 @@ otoczenia punktów; nie jest implementacją metody aktywnych konturów Fedkiwa.
 ## Mała próba, która rozstrzygnie przydatność
 
 Rekomendujemy jedną próbę **„te same cechy, inny sposób budowania granic”**.
-Nie potrzeba do niej trenować sieci neuronowej. To propozycja do osobnego
-wyboru przez użytkownika; nie dopisano jeszcze wykonawczego ticketu.
+Nie potrzeba do niej trenować sieci neuronowej. W chwili przeglądu była
+propozycją do osobnego wyboru; późniejszą decyzję i ticket 26 podano wyżej.
 Porównanie obecnego grafu z level set przy tych samych cechach zmienia też
 kryterium podziału i regularyzację, więc ocenia dwa przebiegi analizy.
 Nie izoluje samego solvera. Do twierdzenia o korzyści z solvera lub szybkości

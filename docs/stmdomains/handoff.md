@@ -1,3 +1,23 @@
+# STM Domains — SD-V4-26 dodany na końcu planu
+
+2026-11-04. Na polecenie użytkownika dodano
+[26 — próbę level-set Gibou–Fedkiwa](implementation/interactive-v04/26-compare-fedkiw-level-set.md)
+po 25. Status `ready-for-agent`; zależności 17, 13 i 14 są ukończone.
+Zakres: jedna metoda na wspólnych cechach z geometrią, parametry w UI,
+porównanie przypisań molekuł i obszarów domen, przeglądanie obliczonych
+klatek, zapis/eksport oraz jawny test ręczny. Odbiór funkcji jest oddzielony
+od wyniku badania; negatywny wynik próby jest dopuszczalny.
+
+Gałąź `domains/interactive-v04-ui`, worktree `/home/rlew/projekty/NEtCAT-domains`,
+baza `e3f9922`. Plan ma 27 ticketów; następny rekomendowany pozostaje 18.
+Aktualizacja dotyczy wyłącznie dokumentacji, bez implementacji, instalacji
+i nowych eksperymentów. Brak potrzebnych zmian wspólnych.
+Sprawdzono odnośniki, identyfikatory i zależności planu oraz `git diff --check`.
+Nie ponawiano testów programu ani GUI; instrukcja ręczna 26 dotyczy przyszłej
+implementacji. Commit dokumentacji podany w odpowiedzi końcowej.
+
+---
+
 # STM Domains — przegląd Fedkiwa po tickecie 17
 
 2026-11-04. Na pytanie użytkownika wykonano `research` i krytyczną ocenę

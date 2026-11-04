@@ -1,5 +1,11 @@
 # STM Domains
 
+**2026-11-04 — dodano [SD-V4-26: próbę level-set Gibou–Fedkiwa](implementation/interactive-v04/26-compare-fedkiw-level-set.md)**
+na końcu [planu UI](implementation/interactive-v04/README.md#tickety-i-kolejność),
+po 25. Zakres obejmuje porównanie domen na tych samych cechach, parametry
+i wynik w UI oraz test ręczny; status `ready-for-agent`, bez implementacji.
+Następny rekomendowany ticket pozostaje 18.
+
 **Wykonano SD-V4-17 — domeny geometryczne, wybrany Panel A (`25252b2`, poprawki `4c3f3c8`).**
 **Analiza → Analiza… → Metoda domen → Geometria**: kąt, rozstaw,
 koherencja i wsparcie w bieżącej klatce; bez dopasowania klas.

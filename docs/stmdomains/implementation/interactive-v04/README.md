@@ -1,5 +1,12 @@
 # Interaktywne STM Domains — obliczenia z danych
 
+**2026-11-04 — dodano na końcu planu [26 — próba level-set Gibou–Fedkiwa](26-compare-fedkiw-level-set.md).**
+Porównanie z geometrią na tych samych cechach, z parametrami w UI,
+przypisaniami molekuł, obszarami domen i ręcznym odbiorem.
+Status `ready-for-agent`; plan ma teraz **27 ticketów**.
+26 jest po 25, nie wymaga odłożonych 19–20. Implementacji nie rozpoczęto;
+następny rekomendowany ticket nadal **18**.
+
 **Wykonano SD-V4-17 — domeny geometryczne, wybrany Panel A (`25252b2`, poprawki `4c3f3c8`).**
 **Analiza → Analiza… → Metoda domen → Geometria**: kąt, rozstaw,
 koherencja i wsparcie w bieżącej klatce; bez dopasowania klas.
@@ -191,7 +198,7 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 `4b55727` („testy manualne ok”). Później wykonano 11–15; obecnie następny **16**.
 
 01–03, 05, 05a i 06–17 mają status `done`.
-18, 21–25 oraz 23a mają zakres `ready-for-agent`
+18, 21–26 oraz 23a mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -204,7 +211,7 @@ wybrać niezależnie już po wykonanym 05a.
 
 ## Tickety i kolejność
 
-Identyfikatory **SD-V4-01–25, SD-V4-05a oraz SD-V4-23a** odróżniają tę serię od dawnych ticketów
+Identyfikatory **SD-V4-01–26, SD-V4-05a oraz SD-V4-23a** odróżniają tę serię od dawnych ticketów
 badawczych 01–26 i implementacyjnych SD-IMPL. Każdy plik zawiera zakres,
 zależności, kryteria akceptacji i instrukcję testu ręcznego.
 
@@ -236,9 +243,11 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [23a — Scalaj i dziel klasy ręcznie](23a-split-merge-classes.md) | SD-V4-23 | Scal klasy lub wydziel wskazanych członków w jawnym zakresie; sprawdź podgląd i Cofnij/Ponów. |
 | [24 — Zapisz korekty i wznów ręczną edycję projektu](24-save-manual-corrections.md) | SD-V4-13, SD-V4-23a | Otwórz zapisane korekty bez źródeł i kontynuuj Cofnij/Ponów. |
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23a | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
+| [26 — Porównaj granice domen metodą level-set Gibou–Fedkiwa](26-compare-fedkiw-level-set.md) | SD-V4-17, SD-V4-13, SD-V4-14 | Zmień regularyzację granic, porównaj molekuły i całe domeny z Geometrią oraz przejrzyj obliczone klatki. |
 
-Po wykonanych 05, 05a i 06–16 następny rekomendowany ticket to
-**17 — domeny według tolerancji**. Odbiór użytkownika 16 potwierdzono dla `420f196`; 15 dla `f129ac2`.
+Po wykonanych 05, 05a i 06–17 następny rekomendowany ticket to
+**18 — próba freud**. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
+nie wymaga ukończenia odłożonych 19–20.
 Odbiór użytkownika 13 jest potwierdzony, a 14 potwierdzono dla `4e9f1d9`. 13/14 wykonano po 05;
 16 jest niezależnie dostępny po 05, a 15 po 07. 08 korzysta
 z dopasowania z 07, a 14 eksportuje obliczenia z 05. Nie ma zależności
@@ -315,6 +324,13 @@ decyzji; dla nowych operacji obowiązują 21–25 oraz 23a. Nie oznacza to odbio
 naukowego metody ani uznania ręcznych korekt za niezależną referencję.
 
 ## Rozszerzenia
+
+**26 — level-set Gibou–Fedkiwa** to osobna próba dodana na końcu planu
+na polecenie użytkownika 2026-11-04, na podstawie
+[przeglądu](../../research-fedkiw-after-ticket-17.md). Porównuje tworzenie
+granic na tych samych cechach z metodą 17. Obowiązuje wspólny sprawdzian
+poniżej, rozszerzony o małą domenę i artefakt skanu; wynik jest widoczny
+w działającym UI. Odbiór funkcji nie wymaga dodatniego wyniku naukowego.
 
 Rozszerzenia metod w 16–20 wynikają z zaakceptowanej przez użytkownika rekomendacji:
 najpierw czytelne pomiary geometrii i możliwość strojenia, potem ograniczona
