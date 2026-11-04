@@ -77,3 +77,15 @@ def test_cancellation_is_cooperative_and_does_not_modify_input():
     with pytest.raises(AnalysisCancelled):
         measure_geometry(data, progress=calls.append, cancelled=lambda: len(calls) > 2)
     assert np.array_equal(data.frame.image, image)
+
+
+def test_measurement_does_not_scan_native_libraries_in_worker(monkeypatch):
+    # Regression for a native Qt deadlock in dl_iterate_phdr / threadpoolctl
+    # while the GUI loads platform libraries. Guard the external library boundary.
+    import threadpoolctl
+    from stmdomains.analysis.geometry import measure_geometry
+    def forbid_scan(*args, **kwargs):
+        raise AssertionError('Geometry worker must not scan loaded native libraries')
+    monkeypatch.setattr(threadpoolctl.ThreadpoolController, '__init__', forbid_scan)
+    result = measure_geometry(analysis_input(rectangular_points()))
+    assert result.molecules['m-0049'].status == 'lattice_2d'

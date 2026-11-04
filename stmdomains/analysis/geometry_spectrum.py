@@ -65,8 +65,12 @@ def spectrum_axes(offsets: np.ndarray, settings: GeometrySettings,
     waves = np.column_stack(((ff*np.cos(aa)).ravel(), (ff*np.sin(aa)).ravel()))
     denominator = max(weight_sum**2-self_power, 1e-12)
     def scores(q):
-        phases = 2 * np.pi * offsets @ np.asarray(q).reshape(-1, 2).T
-        power = (weights @ np.cos(phases))**2 + (weights @ np.sin(phases))**2
+        # Tiny two-coordinate contractions: explicit einsum avoids BLAS worker
+        # pools and any dynamic-library scan from this background Qt task.
+        phases = 2 * np.pi * np.einsum('nd,qd->nq', offsets, np.asarray(q).reshape(-1, 2), optimize=False)
+        real = np.einsum('n,nq->q', weights, np.cos(phases), optimize=False)
+        imaginary = np.einsum('n,nq->q', weights, np.sin(phases), optimize=False)
+        power = real**2 + imaginary**2
         return (power-self_power) / denominator
     values = scores(waves).reshape(ff.shape)
     maxima = maximum_filter(values, size=(3, 3), mode=('nearest', 'wrap'))
