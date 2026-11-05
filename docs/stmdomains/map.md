@@ -21,7 +21,7 @@ Przełącznik Bazowa / Geometria / freud, Klasy/Domeny i podgląd sąsiadów.
 [protokół](implementation/interactive-v04/experiment-18.md). W netcat dodano freud-analysis 3.6.1.
 TTMAPP259–266: 0–25 przypisań do domen; brak wykazanej poprawy detekcji.
 557 testów pełnej regresji PASS, 28 testów po poprawkach PASS, mypy 105 modułów PASS.
-Natywne GUI X11 PASS; **odbiór ręczny użytkownika pozostaje do wykonania**.
+Natywne GUI X11 PASS; **odbiór ręczny użytkownika 18 potwierdzony 2026-11-05 dla wersji `f2e0cbc` („testy manualne ok”)**.
 Dalsza dostępna ścieżka: 21 → 22 → 23 → 23a → 24 → 25 → 26;
 19–20 nadal odłożone. Poniżej historia wcześniejszych prac.
 

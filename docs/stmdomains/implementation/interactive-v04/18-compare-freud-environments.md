@@ -6,7 +6,7 @@
 
 **Blocked by:** [06: Strojenie tworzenia domen i porównanie wyniku](06-tune-domain-formation.md), [16: Zobacz kierunek, rozstaw i jakość geometrii na obrazie](16-inspect-local-geometry.md).
 
-**Status:** done — 2026-11-04, Panel A, `85a90e0` i `d7ea7b2`. Odbiór ręczny użytkownika do wykonania.
+**Status:** done — 2026-11-04, Panel A, `85a90e0` i `d7ea7b2`. Odbiór ręczny użytkownika 18 potwierdzony 2026-11-05 dla wersji `f2e0cbc` („testy manualne ok”).
 
 [Raport i test ręczny](acceptance-18.md) · [protokół](experiment-18.md) · [przegląd](review-18.md).
 

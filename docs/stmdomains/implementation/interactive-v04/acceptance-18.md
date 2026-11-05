@@ -2,7 +2,7 @@
 
 2026-11-04. Wspólne okno Analiza, metoda **freud — podobieństwo otoczeń**.
 Rzeczywiste obliczenia `EnvironmentCluster` 3.6.1; bez K, Auto i treningu.
-Odbiór ręczny użytkownika pozostaje do wykonania.
+**Odbiór ręczny użytkownika 18 potwierdzony 2026-11-05 dla wersji `f2e0cbc` („testy manualne ok”).**
 
 ## Działanie i interpretacja
 

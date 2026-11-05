@@ -2,7 +2,7 @@
 
 2026-11-04, gałąź `domains/interactive-v04-ui`, poprawny worktree
 `/home/rlew/projekty/NEtCAT-domains`, baza zadania `e4fb4aa`.
-**Wykonano: `85a90e0`, poprawki `d7ea7b2`; status `done`, odbiór ręczny użytkownika do wykonania.**
+**Wykonano: `85a90e0`, poprawki `d7ea7b2`; status `done`, odbiór ręczny użytkownika 18 potwierdzony 2026-11-05 dla wersji `f2e0cbc` („testy manualne ok”).**
 [Raport i test ręczny](implementation/interactive-v04/acceptance-18.md),
 [protokół](implementation/interactive-v04/experiment-18.md).
 
@@ -36,7 +36,9 @@ otoczeń; test prawdziwej biblioteki potwierdza to przy progu 0,01.
 Wydzielono wspólne pochodzenie wyników 17/18 i poprawiono utrzymanie
 podglądu sąsiadów przy zmianie raw/aligned. Domyślne wyniki bez rejestracji
 nie zmieniły się. Sprawdzenie linków i grafu 27 ticketów PASS.
-Commit końcowej dokumentacji jest podany w odpowiedzi końcowej.
+Dokumentacja implementacji: `f2e0cbc`. Potwierdzenie odbioru 2026-11-05
+zmienia wyłącznie dokumentację; sprawdzono diff, bez ponawiania testów kodu
+i GUI. Następny rekomendowany ticket: **21 — ręczne tworzenie domen i zmiana składu**.
 
 ---
 
