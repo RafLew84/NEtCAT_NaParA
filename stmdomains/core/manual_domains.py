@@ -1,6 +1,7 @@
 """One source-bound manual variant with immutable previews and undo/redo."""
 
 from dataclasses import replace
+from typing import Any
 from uuid import uuid4
 
 from stmdomains.analysis.features import prepare_points
@@ -10,6 +11,11 @@ from stmdomains.core.analysis_result import AnalysisInput, FrameAnalysis, Molecu
 
 MANUAL_METHOD = 'manual_membership_v1'
 EXCLUDED = ('outside_field', 'suppressed_duplicate')
+
+
+def _source_metadata(member: MoleculeAssignment) -> dict[str, Any]:
+    return {'domain_local_id': member.domain_local_id, 'class_id': member.class_id,
+            'status': member.status, 'rejection_reason': member.rejection_reason}
 
 
 class ManualDomains:
@@ -25,9 +31,17 @@ class ManualDomains:
         self._pending: FrameAnalysis | None = None
         self._revision = 0
         self._cursor = 0
-        self._history = [original if original is not None else self._without_analysis()]
-        if set(self.current.assignments) != {d.detection_id for d in data.annotations.detections}:
+        spatial = self._without_analysis()
+        if original is not None and set(original.assignments) != set(spatial.assignments):
             raise ValueError('Wynik nie odpowiada oznaczeniom tej klatki.')
+        base = original or spatial
+        assignments = dict(base.assignments)
+        for key, member in spatial.assignments.items():
+            if member.status in EXCLUDED and assignments[key].status not in EXCLUDED:
+                source = assignments[key]
+                assignments[key] = replace(source, domain_local_id=0, class_id='', status=member.status,
+                    metadata={**source.metadata, **member.metadata, 'manual_source': _source_metadata(source)})
+        self._history = [replace(base, assignments=assignments) if assignments != base.assignments else base]
 
     def _without_analysis(self) -> FrameAnalysis:
         detections = self.data.annotations.detections
@@ -85,9 +99,7 @@ class ManualDomains:
             source_member = self._history[0].assignments[key]
             assignments[key] = replace(member, domain_local_id=target,
                 status='domain' if target else 'unassigned', class_id='',
-                metadata={**member.metadata, 'manual_source': {
-                    'domain_local_id': source_member.domain_local_id, 'class_id': source_member.class_id,
-                    'status': source_member.status, 'rejection_reason': source_member.rejection_reason}})
+                metadata={**member.metadata, 'manual_source': _source_metadata(source_member)})
         source = self._history[0].assignments
         affected = {target, *(self.current.assignments[key].domain_local_id for key in selected)} - {0}
         for domain in affected:
@@ -97,9 +109,7 @@ class ManualDomains:
             for key in members:
                 source_member = source[key]
                 assignments[key] = replace(assignments[key], class_id=common,
-                    metadata={**assignments[key].metadata, 'manual_source': {
-                        'domain_local_id': source_member.domain_local_id, 'class_id': source_member.class_id,
-                        'status': source_member.status, 'rejection_reason': source_member.rejection_reason}})
+                    metadata={**assignments[key].metadata, 'manual_source': _source_metadata(source_member)})
         height, width = self.data.frame.image.shape
         labels, unsupported = manual_regions(self.data.annotations.detections, assignments, (height, width))
         self._revision += 1

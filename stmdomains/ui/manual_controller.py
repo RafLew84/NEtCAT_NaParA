@@ -6,6 +6,8 @@ from PyQt6.QtCore import QObject, pyqtSignal
 
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.manual_domains import ManualDomains
+from stmdomains.analysis.geometry_domain_settings import METHOD as GEOMETRY_METHOD
+from stmdomains.analysis.freud_settings import METHOD as FREUD_METHOD
 
 if TYPE_CHECKING:
     from stmdomains.ui.session_controller import SessionController
@@ -27,12 +29,16 @@ class ManualController(QObject):
         self.compare_original = False
         self.editing = False
         self.message = ''
+        self._undo: list[str] = []
+        self._redo: list[str] = []
         self._frame_index = -1
         controller.series_changed.connect(self.reset)
         controller.frame_changed.connect(self._frame_changed)
 
     def reset(self, *_: object) -> None:
         self.variants.clear()
+        self._undo.clear()
+        self._redo.clear()
         self.selected.clear()
         self.selection = ()
         self.preview_result = None
@@ -90,7 +96,7 @@ class ManualController(QObject):
             if variant.data.frame.working_index == self.controller.current_index:
                 method = variant.original.parameters.get('domain_method', '') if variant.original else ''
                 source = ('bez analizy' if variant.original is None else
-                          {'geometry_tolerances_v1': 'Geometria', 'freud_environment_v1': 'freud'}.get(method, 'Bazowa'))
+                          {GEOMETRY_METHOD: 'Geometria', FREUD_METHOD: 'freud'}.get(method, 'Bazowa'))
                 entries.append((key, f'Korekta {len(entries)} · {source}'))
         return entries
 
@@ -191,16 +197,34 @@ class ManualController(QObject):
         if not self.can_edit or self.preview_result is None or self.active is None:
             return
         self.active.apply(self.preview_result)
+        self._undo.append(self.active.identifier)
+        self._redo.clear()
         self.preview_result = None
         self.message = 'Zastosowano korektę. ' + UNSAVED_MANUAL
         self._notify()
 
     def undo(self) -> None:
-        if self.can_edit and self.active is not None:
-            self.active.undo()
-            self.cancel_preview()
+        self._restore_history(self._undo, self._redo, redo=False)
 
     def redo(self) -> None:
-        if self.can_edit and self.active is not None:
-            self.active.redo()
-            self.cancel_preview()
+        self._restore_history(self._redo, self._undo, redo=True)
+
+    def history_target(self, *, redo: bool = False) -> ManualDomains | None:
+        history = self._redo if redo else self._undo
+        return self.variants[history[-1]] if history else None
+
+    def _restore_history(self, source: list[str], destination: list[str], *, redo: bool) -> None:
+        if not self.can_edit or not source:
+            return
+        key = source.pop()
+        variant = self.variants[key]
+        variant.redo() if redo else variant.undo()
+        destination.append(key)
+        self.preview_result = None
+        self.selection = ()
+        index = variant.data.frame.working_index
+        self.selected[index] = key
+        self.message = f'{"Ponowiono" if redo else "Cofnięto"} operację w klatce {index + 1}.'
+        if self.controller.current_index != index:
+            self.controller.show_frame(index)
+        self._notify()

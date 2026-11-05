@@ -172,7 +172,11 @@ class ManualPanel(QWidget):
         self.review.setEnabled(manual.can_edit and bool(manual.selection))
         self.apply.setEnabled(manual.can_edit and manual.preview_result is not None)
         self.cancel.setEnabled(manual.preview_result is not None)
-        self.undo.setEnabled(manual.can_edit and active is not None and active.changed)
-        self.redo.setEnabled(manual.can_edit and active is not None and active.can_redo)
+        for button, redo in ((self.undo, False), (self.redo, True)):
+            history_target = manual.history_target(redo=redo)
+            label = 'Ponów' if redo else 'Cofnij'
+            button.setText(f'{label} · kl. {history_target.data.frame.working_index + 1}' if history_target else label)
+            button.setToolTip('Historia operacji w sesji; przechodzi do klatki wskazanej na przycisku.')
+            button.setEnabled(manual.can_edit and history_target is not None)
         for widget in (self.operation, self.clear, self.tool, self.mode):
             widget.setEnabled(manual.can_edit)

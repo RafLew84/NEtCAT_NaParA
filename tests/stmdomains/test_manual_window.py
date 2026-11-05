@@ -170,3 +170,31 @@ def test_zero_automatic_result_stays_available_after_manual_domain(qtbot, opened
     assert controller.displayed_result is zero
     controller.manual.select_variant(key)
     assert controller.displayed_result.assigned_count == 5
+
+
+def test_undo_redo_follows_operation_order_across_frames(qtbot, opened):
+    controller = opened.controller
+    select_sample(opened)
+    controller.manual.preview('new')
+    controller.manual.apply()
+    first = controller.manual.active
+    controller.show_frame(1)
+    qtbot.waitUntil(lambda: not controller.is_busy)
+    select_sample(opened)
+    controller.manual.preview('new')
+    controller.manual.apply()
+    second = controller.manual.active
+    controller.show_frame(0)
+    qtbot.waitUntil(lambda: not controller.is_busy)
+    assert '2' in opened.manual_panel.undo.text()
+    opened.manual_panel.undo.click()
+    qtbot.waitUntil(lambda: not controller.is_busy)
+    assert controller.current_index == 1 and first.changed and not second.changed
+    opened.manual_panel.undo.click()
+    qtbot.waitUntil(lambda: not controller.is_busy)
+    assert controller.current_index == 0 and not first.changed
+    opened.manual_panel.redo.click()
+    qtbot.waitUntil(lambda: not controller.is_busy)
+    opened.manual_panel.redo.click()
+    qtbot.waitUntil(lambda: not controller.is_busy)
+    assert controller.current_index == 1 and first.changed and second.changed

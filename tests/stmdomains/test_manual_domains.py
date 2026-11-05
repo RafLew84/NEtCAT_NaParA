@@ -104,3 +104,15 @@ def test_neighbour_domains_keep_separate_masks_without_changing_membership():
     assert edits.current.domain_labels[10, 30] == 2
     assert edits.current.domain_labels[0, 255] == 0
     assert edits.current.domain_labels.shape == (256, 256)
+
+
+def test_early_automatic_refusal_does_not_make_outside_or_duplicate_points_editable():
+    from stmdomains.analysis import analyze_frame
+    data = analysis_input([(10, 10), (20, 10), (10, 20), (20, 20), (10.1, 10), (-1, 0)], state='partial')
+    original = analyze_frame(data)
+    assert original.status == 'insufficient_data'
+    edits = ManualDomains(data, original)
+    for key in ('m-0004', 'm-0005'):
+        with pytest.raises(ValueError):
+            edits.preview('new', (key,))
+    assert edits.original is original
