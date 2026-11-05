@@ -10,6 +10,7 @@ class ProjectPrompts(Protocol):
     def choose_path(self, suggested: Path) -> Path | None: ...
     def choose_analysis(self, options: list[tuple[str, str]]) -> str | None: ...
     def confirm_unsaved(self) -> str: ...
+    def confirm_manual_unsaved(self) -> str: ...
 
 
 class ProjectFileDialog(QFileDialog):
@@ -56,3 +57,15 @@ class QtProjectPrompts:
         box.setEscapeButton(cancel)
         box.exec()
         return 'save' if box.clickedButton() is save else 'discard' if box.clickedButton() is discard else 'cancel'
+
+    def confirm_manual_unsaved(self) -> str:
+        box = QMessageBox(QMessageBox.Icon.Warning, 'Korekty ręczne tylko w sesji',
+                          'Korekty ręczne nie mają jeszcze zapisu.\n'
+                          'Zamknięcie lub otwarcie innych danych utraci korekty.\n'
+                          'Możesz anulować i kontynuować pracę.', QMessageBox.StandardButton.NoButton, self.parent)
+        discard = box.addButton('Odrzuć korekty i kontynuuj', QMessageBox.ButtonRole.DestructiveRole)
+        cancel = box.addButton('Anuluj', QMessageBox.ButtonRole.RejectRole)
+        box.setDefaultButton(cancel)
+        box.setEscapeButton(cancel)
+        box.exec()
+        return 'discard' if box.clickedButton() is discard else 'cancel'

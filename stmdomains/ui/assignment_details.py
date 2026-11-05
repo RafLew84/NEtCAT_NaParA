@@ -3,6 +3,7 @@
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.core.analysis_result import FrameAnalysis
+from stmdomains.core.manual_domains import MANUAL_METHOD
 from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings, METHOD
 from stmdomains.analysis.freud_settings import FreudSettings, METHOD as FREUD_METHOD
 from stmdomains.ui.result_style import assignment_description
@@ -13,6 +14,13 @@ def assignment_details(result: FrameAnalysis | None, detection_id: str) -> str:
     if result is None or result.status != "complete":
         return summary
     member = result.assignments.get(detection_id)
+    if member is not None and result.parameters.get('domain_method') == MANUAL_METHOD:
+        source = member.metadata.get('manual_source', {})
+        return (summary + '\nKorekta ręczna nie zmienia oceny metody.\n'
+                + f"Źródłowa klasa: {source.get('class_id', member.class_id) or 'nieustalona'}. "
+                + f"Źródłowa domena: {source.get('domain_local_id', member.domain_local_id)}.\n"
+                + f"Pierwotny powód odmowy: {member.rejection_reason or 'brak'}.\n"
+                + 'Porównaj z „Automatyczny przed korektą”, aby obejrzeć pierwotną ocenę.')
     if member is not None and result.parameters.get('domain_method') in (METHOD, FREUD_METHOD):
         measured = member.metadata.get('geometry', {})
         geometric_settings = GeometryDomainSettings.from_parameters(result.parameters)

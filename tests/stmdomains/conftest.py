@@ -8,3 +8,4 @@ from stmdomains.ui.project_prompts import QtProjectPrompts
 @pytest.fixture(autouse=True)
 def discard_temporary_gui_work(monkeypatch):
     monkeypatch.setattr(QtProjectPrompts, 'confirm_unsaved', lambda self: 'discard')
+    monkeypatch.setattr(QtProjectPrompts, 'confirm_manual_unsaved', lambda self: 'discard')

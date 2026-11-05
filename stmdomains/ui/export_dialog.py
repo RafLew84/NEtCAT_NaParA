@@ -94,6 +94,7 @@ class ExportDialog(QDialog):
             checkbox.toggled.connect(self._refresh)
         self.controller.busy_changed.connect(lambda *_: self._refresh())
         self.controller.export_changed.connect(self._progress)
+        self.controller.manual.changed.connect(self._refresh)
         self.selection.currentIndexChanged.connect(self._choose_analysis_scope)
 
     def prepare(self) -> None:
@@ -115,6 +116,8 @@ class ExportDialog(QDialog):
         self._refresh()
 
     def _choose_analysis_scope(self) -> None:
+        if self.controller.manual.blocks_persistence:
+            return
         choice = self.selection.currentData()
         if choice not in ('displayed', 'latest', 'none'):
             return
@@ -130,7 +133,9 @@ class ExportDialog(QDialog):
             self.folder.setText(path)
 
     def _refresh(self) -> None:
-        ready = self.controller.can_analyze
+        ready = self.controller.can_analyze and not self.controller.manual.blocks_persistence
+        if self.controller.manual.blocks_persistence:
+            self.status.setText('Korekty ręczne są tylko w sesji. Eksport korekt nie jest jeszcze dostępny.')
         self.fields.setEnabled(ready)
         self.first.setEnabled(self.scope.currentData() == 'range')
         self.last.setEnabled(self.scope.currentData() == 'range')

@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import QMenu
 
 from stmdomains.core.project import ProjectSnapshot
 from stmdomains.ui.project_prompts import ProjectPrompts
+from stmdomains.ui.manual_controller import UNSAVED_MANUAL
 from stmdomains.ui.project_selection import analysis_identifier
 from stmdomains.ui.project_view import capture_view, capture_draft, restore_view, restore_draft
 
@@ -39,6 +40,7 @@ class ProjectActions:
                     action.triggered.connect(lambda checked=False, variant=save_as: self.save(save_as=variant))
                     self.save_actions.append(action)
         self.controller.busy_changed.connect(lambda *_: self._refresh())
+        self.controller.manual.changed.connect(self._refresh)
         self._refresh()
 
     def _analysis_changed(self) -> None:
@@ -57,11 +59,12 @@ class ProjectActions:
 
     @property
     def dirty(self) -> bool:
-        return self.controller.series is not None and self._state() != self._baseline
+        return self.controller.manual.has_changes or (self.controller.series is not None and self._state() != self._baseline)
 
     def _refresh(self) -> None:
         for action in self.save_actions:
-            action.setEnabled(self.controller.can_analyze)
+            action.setEnabled(self.controller.can_analyze and not self.controller.manual.blocks_persistence)
+            action.setToolTip(UNSAVED_MANUAL if self.controller.manual.blocks_persistence else '')
 
     def _opened(self, snapshot: ProjectSnapshot) -> None:
         restore_view(self.window, snapshot.view)
@@ -76,6 +79,8 @@ class ProjectActions:
             self._leave(lambda: self.controller.open_session(path))
 
     def allow_close(self) -> bool:
+        if self.controller.manual.has_changes:
+            return self._allow_discard_manual()
         if not self.dirty:
             return True
         decision = self.prompts.confirm_unsaved()
@@ -87,6 +92,10 @@ class ProjectActions:
         return False
 
     def _leave(self, action: Callable[[], object]) -> None:
+        if self.controller.manual.has_changes:
+            if self._allow_discard_manual():
+                action()
+            return
         if not self.dirty:
             action()
             return
@@ -97,9 +106,17 @@ class ProjectActions:
             self.controller.cancel()
             self.save(after_save=action)
 
+    def _allow_discard_manual(self) -> bool:
+        # Older injected prompts fail closed; the application has the explicit dialog.
+        prompt = getattr(self.prompts, 'confirm_manual_unsaved', None)
+        return prompt is not None and prompt() == 'discard'
+
     def save(self, *, save_as: bool = False, after_save: Callable[[], object] | None = None) -> None:
         controller = self.controller
         controller.pause()
+        if controller.manual.blocks_persistence:
+            controller.prompts.show_error(UNSAVED_MANUAL)
+            return
         if not controller.can_analyze or controller.series is None:
             return
         self._after_save = None

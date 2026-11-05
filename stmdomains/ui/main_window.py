@@ -18,6 +18,7 @@ from stmdomains.ui.analysis_dialog import AnalysisDialog
 from stmdomains.ui.analysis_status import STATUS_TEXT
 from stmdomains.ui.catalogue_style import catalogue_description
 from stmdomains.ui.image_view import ImageView
+from stmdomains.ui.manual_panel import ManualPanel
 from stmdomains.ui.geometry_card import GeometryCard
 from stmdomains.ui.filmstrip import Filmstrip
 from stmdomains.ui.import_prompts import ImportPrompts, QtImportPrompts
@@ -96,6 +97,15 @@ class STMDomainsMainWindow(QMainWindow):
         self.image_view.annotation_selected.connect(self._select_annotation)
         self.method_controls = DomainMethodControls(self.controller)
         layout.addWidget(self.method_controls)
+        self.manual_panel = ManualPanel(self.controller.manual, self.image_view)
+        layout.addWidget(self.manual_panel.toolbar)
+        body = QHBoxLayout()
+        browser = QVBoxLayout()
+        browser.setContentsMargins(0, 0, 0, 0)
+        body.addLayout(browser, 1)
+        body.addWidget(self.manual_panel)
+        layout.addLayout(body, 1)
+        layout = browser
         layout.addWidget(self.image_view, 1)
         self.frame_slider = QSlider(Qt.Orientation.Horizontal)
         self.frame_slider.setObjectName("frameSlider")
@@ -187,6 +197,7 @@ class STMDomainsMainWindow(QMainWindow):
             if close_action is not None:
                 close_action.setShortcut(QKeySequence.StandardKey.Quit)
                 close_action.triggered.connect(self.close)
+        self.controller.manual.changed.connect(self._manual_changed)
         self.controller.series_changed.connect(self._show_series)
         self.controller.frame_changed.connect(self._show_frame)
         self.controller.busy_changed.connect(self._show_progress)
@@ -217,9 +228,14 @@ class STMDomainsMainWindow(QMainWindow):
         if app is not None:
             app.aboutToQuit.connect(self._finish_background_work)
 
+    def _manual_changed(self) -> None:
+        self._show_catalogue_status()
+        self._refresh_export_action(False, '')
+
     def _refresh_export_action(self, busy: bool, message: str) -> None:
         if self.export_action is not None:
-            self.export_action.setEnabled(self.controller.can_analyze)
+            self.export_action.setEnabled(self.controller.can_analyze and not self.controller.manual.blocks_persistence)
+            self.export_action.setToolTip("Eksport korekt ręcznych nie jest jeszcze dostępny" if self.controller.manual.blocks_persistence else "Eksportuj wynik")
 
     def _show_export(self) -> None:
         self.export_dialog.prepare()
@@ -273,6 +289,7 @@ class STMDomainsMainWindow(QMainWindow):
         height, width = view.rendered.rgba.shape[:2]
         self._presented = view
         self.image_view.set_frame(view)
+        self.manual_panel.set_frame(view)
         self.result_controls.set_frame(view)
         self._show_catalogue_status()
         self.geometry_card.set_frame(view)
@@ -348,6 +365,13 @@ class STMDomainsMainWindow(QMainWindow):
             text += " · seria: " + STATUS_TEXT[run.frames[self.controller.current_index].status]
             if result is not None and result.metadata.get("series_analysis", {}).get("run_id") != run.identifier:
                 text += " (wyświetlono wynik spoza tego przebiegu)"
+        if self.controller.manual.active is not None:
+            active_manual = self.controller.manual.active
+            text = ('Automatyczny przed korektą' if self.controller.manual.compare_original else
+                    'PODGLĄD korekty' if self.controller.manual.preview_result is not None else
+                    'Po korektach · tylko w sesji' if active_manual.changed else 'Edycja ręczna · brak zmian')
+            if active_manual.original is None:
+                text += ' · brak analizy automatycznej'
         self.details_label.setText(text)
         self.details_label.setToolTip(text + "\nDomeny lokalne dla klatki; metoda eksperymentalna. Jednostki obrazu: px.")
 

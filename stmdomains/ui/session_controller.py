@@ -40,6 +40,7 @@ from stmdomains.analysis.series_analysis import FrameOutcome
 from stmdomains.io.moltrack_import import ImportCandidate, SourceRequest, prepare_import
 from stmdomains.ui.import_prompts import ImportPrompts
 from stmdomains.ui.tasks import Task
+from stmdomains.ui.manual_controller import ManualController, UNSAVED_MANUAL
 from stmdomains.ui.series_runner import SeriesRun, SeriesRunner
 
 
@@ -116,6 +117,7 @@ class SessionController(QObject):
         self._series_runner.catalogue_ready.connect(self._accept_series_catalogue)
         self._series_runner.frame_ready.connect(self._accept_series_frame)
         self._series_runner.failed.connect(self.prompts.show_error)
+        self.manual = ManualController(self)
 
     @property
     def is_busy(self) -> bool:
@@ -174,6 +176,7 @@ class SessionController(QObject):
             return
         self.pause()
         self._selected_methods[self.current_index] = method
+        self.manual.select_variant('')
         self._refresh_result()
         self._busy()
 
@@ -209,6 +212,8 @@ class SessionController(QObject):
         return self._results.memory if isinstance(self._results, ResultStore) else self._results
 
     def project_analysis(self, selection: str = "displayed") -> ProjectAnalysis | None:
+        if self.manual.blocks_persistence:
+            raise ValueError(UNSAVED_MANUAL)
         if selection == "none":
             return None
         run = self.series_run
@@ -286,6 +291,7 @@ class SessionController(QObject):
         self._selected_methods[self.current_index] = 'baseline'
         if self.result is not None and self.result.catalogue is not None:
             self._active_catalogue = self.result.catalogue
+        self.manual.select_variant('')
         self._refresh_result()
         self._busy()
 
@@ -437,6 +443,8 @@ class SessionController(QObject):
         if series is None or presenter is None or not 0 <= index < series.frame_count or self._closed:
             return
         if index != self.current_index:
+            self.manual.preview_result = None
+            self.manual.compare_original = False
             self._cancel_analysis()
             self._cancel_geometry()
         self._abandon(self._frame_token)
@@ -795,7 +803,7 @@ class SessionController(QObject):
     def _publish(self, frame: PresentedFrame) -> None:
         index = frame.frame.working_index
         self.current_index = index
-        result = self.result
+        result = self.displayed_result
         frame = replace(frame, result=result, geometry=self._geometries.get(index))
         self._published = frame
         self._automatic_token = None
@@ -807,9 +815,13 @@ class SessionController(QObject):
         self._busy()
         self._schedule_playback()
 
+    @property
+    def displayed_result(self) -> FrameAnalysis | None:
+        return self.manual.displayed_result(self.result)
+
     def _refresh_result(self) -> None:
-        if self._published is not None and self._published.result is not self.result:
-            self._published = replace(self._published, result=self.result)
+        if self._published is not None and self._published.result is not self.displayed_result:
+            self._published = replace(self._published, result=self.displayed_result)
             self.frame_changed.emit(self._published)
 
     @pyqtSlot(int, str)

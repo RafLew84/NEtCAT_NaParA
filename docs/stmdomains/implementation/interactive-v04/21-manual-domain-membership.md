@@ -6,16 +6,16 @@
 
 **Blocked by:** [05a: Obszary i granice domen](05a-domain-regions.md).
 
-**Status:** ready-for-agent — dodanie do planu zlecone przez użytkownika 2026-11-03; implementacja nie rozpoczęta.
+**Status:** in-progress — implementacja zlecona 2026-11-05; wybrany Panel A.
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady edycji ręcznej](README.md#edycja-ręczna-klas-i-domen).
 
 **2026-11-05 — [interaktywny prototyp UI A/B/C](prototype-21-layouts.md).**
 A — panel boczny, B — pasek pod obrazem, C — karta na obrazie.
-Autor rekomenduje A; wybór użytkownika pozostaje otwarty. Źródło pierwotne:
+Użytkownik wybrał A 2026-11-05: panel widoczny wyłącznie podczas edycji ręcznej, otwierany przez „Edytuj domeny” i chowany przez „Zakończ edycję”. Korekty pozostają widoczne po schowaniu panelu. Źródło pierwotne:
 `prototype/stmdomains-manual-domains-ui`, commit `f2db201` (baza `65b22f0`).
 Prototyp sprawdza wygodę zaznaczania i podglądu zmian, nie jest implementacją
-ticketu. Status pozostaje `ready-for-agent`.
+ticketu. Źródłem implementacji są poniższe kryteria i wybór użytkownika.
 
 ## Kryteria akceptacji
 
