@@ -1,8 +1,19 @@
 # Interaktywne STM Domains — obliczenia z danych
 
+**2026-11-05 — wykonano SD-V4-21, Panel A (`a61e1b2`, poprawki `47bafe0`).**
+**Edytuj domeny** otwiera panel, **Zakończ edycję** go chowa, pozostawiając
+korekty widoczne. Kliknięcia/lasso, podgląd, nowe domeny, dodawanie/usuwanie
+członków, jawne przenoszenie i chronologiczne Cofnij/Ponów między klatkami.
+Osobne warianty zachowują automat; korekty tylko w sesji, zapis/eksport
+czeka na 24/25. [Raport i test ręczny](acceptance-21.md),
+[przegląd](review-21.md). **572 testy PASS**, mypy 110 modułów PASS,
+natywne GUI X11/netcat na TTMAPP PASS. **Odbiór ręczny użytkownika otwarty.**
+Następny rekomendowany: **22 — dzielenie i scalanie domen**; 19–20 odłożone.
+Poniżej historia wcześniejszych prac.
+
 **2026-11-05 — [prototyp UI ręcznej edycji domen, ticket 21](prototype-21-layouts.md).**
 A — panel boczny (rekomendacja autora), B — pasek pod obrazem,
-C — karta na obrazie. Wybór użytkownika otwarty; 21 nadal `ready-for-agent`.
+C — karta na obrazie. Później użytkownik wybrał A i zlecił 21; wykonanie opisano powyżej.
 Kod demo: `prototype/stmdomains-manual-domains-ui`, `f2db201`.
 Odbiór 18 pozostaje potwierdzony; następny ticket 21, 19–20 odłożone.
 
@@ -215,7 +226,8 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 `4b55727` („testy manualne ok”). Później wykonano 11–15; obecnie następny **16**.
 
 01–03, 05, 05a i 06–18 mają status `done`; odbiór ręczny 18 potwierdzono 2026-11-05 dla `f2e0cbc`.
-21–26 oraz 23a mają zakres `ready-for-agent`
+21 ma status `done`; jego odbiór ręczny pozostaje otwarty.
+22–26 oraz 23a mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 

@@ -3,7 +3,10 @@
 2026-11-05. Prototyp odpowiada na pytanie: **gdzie umieścić zaznaczanie
 molekuł, wybór operacji i jej podgląd?** Zakres dotyczy
 [SD-V4-21](21-manual-domain-membership.md). Implementacja produkcyjna
-jeszcze się nie rozpoczęła; użytkownik nie wybrał układu.
+została później wykonana w `a61e1b2` / `47bafe0` po wyborze **A** przez
+użytkownika 2026-11-05. Panel jest widoczny wyłącznie podczas edycji;
+po jego schowaniu korekty pozostają. [Wykonanie i test ręczny](acceptance-21.md).
+Poniżej zapis pierwotnego porównania propozycji.
 
 ## Trzy układy
 
@@ -15,7 +18,7 @@ jeszcze się nie rozpoczęła; użytkownik nie wybrał układu.
 
 Wszystkie warianty używają tych samych danych i zachowują wybór, podgląd
 oraz korekty przy przełączaniu. Rekomendacja A jest opinią autora po
-obejrzeniu demo, nie zatwierdzoną decyzją użytkownika.
+obejrzeniu demo. Użytkownik następnie potwierdził A z panelem widocznym tylko podczas edycji.
 
 ## Uruchomienie
 

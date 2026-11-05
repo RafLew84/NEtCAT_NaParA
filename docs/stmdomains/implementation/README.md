@@ -1,8 +1,19 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**2026-11-05 — wykonano SD-V4-21, Panel A (`a61e1b2`, poprawki `47bafe0`).**
+**Edytuj domeny** otwiera panel, **Zakończ edycję** go chowa, pozostawiając
+korekty widoczne. Kliknięcia/lasso, podgląd, nowe domeny, dodawanie/usuwanie
+członków, jawne przenoszenie i chronologiczne Cofnij/Ponów między klatkami.
+Osobne warianty zachowują automat; korekty tylko w sesji, zapis/eksport
+czeka na 24/25. [Raport i test ręczny](interactive-v04/acceptance-21.md),
+[przegląd](interactive-v04/review-21.md). **572 testy PASS**, mypy 110 modułów PASS,
+natywne GUI X11/netcat na TTMAPP PASS. **Odbiór ręczny użytkownika otwarty.**
+Następny rekomendowany: **22 — dzielenie i scalanie domen**; 19–20 odłożone.
+Poniżej historia wcześniejszych prac.
+
 **2026-11-05 — [prototyp UI ręcznej edycji domen, ticket 21](interactive-v04/prototype-21-layouts.md).**
 A — panel boczny (rekomendacja autora), B — pasek pod obrazem,
-C — karta na obrazie. Wybór użytkownika otwarty; 21 nadal `ready-for-agent`.
+C — karta na obrazie. Później użytkownik wybrał A i zlecił 21; wykonanie opisano powyżej.
 Kod demo: `prototype/stmdomains-manual-domains-ui`, `f2db201`.
 Odbiór 18 pozostaje potwierdzony; następny ticket 21, 19–20 odłożone.
 

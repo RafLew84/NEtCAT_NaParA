@@ -1,3 +1,50 @@
+# STM Domains — wykonano SD-V4-21, Panel A
+
+2026-11-05. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
+`domains/interactive-v04-ui`, baza `4d32fbe`. Implementacja **`a61e1b2`**,
+poprawki po przeglądzie **`47bafe0`**. Status `done`;
+**odbiór ręczny użytkownika pozostaje otwarty**.
+[Raport i test ręczny](implementation/interactive-v04/acceptance-21.md),
+[przegląd](implementation/interactive-v04/review-21.md).
+
+Panel A jest widoczny tylko po Edytuj domeny, a Zakończ edycję przywraca
+miejsce obrazowi, pozostawiając korekty. Istniejące centra wybiera się
+kliknięciami lub lassem. Nowa domena, dodawanie/usuwanie i jawne przenoszenie
+mają podgląd oraz Zastosuj. Cofnij/Ponów zachowuje chronologię sesji,
+wskazuje klatkę i do niej przechodzi. Automat, korekta i nowsze analizy
+pozostają osobnymi wariantami; oryginalna tabela serii jest niezmieniona.
+Własne klasy i podział/scalanie nie są częścią 21. Następny: **22**.
+19–20 pozostają odłożone. Odbiór 18 pozostaje potwierdzony.
+
+Korekty tylko w pamięci. Zapis/eksport są blokowane przy korektach lub
+podglądzie, także w API; zamknięcie/zmiana danych pozwala anulować utratę.
+Nie zmieniono formatów. Geometryczny obszar ręczny: ograniczone komórki
+najbliższych centrów, 0,8 mediany NN, minimum 3 niewspółliniowych członków;
+brak wsparcia pozostawia punkty. To przybliżenie członkostwa, nie test porządku.
+Wyłączenia przestrzenne są sprawdzane także po wczesnej odmowie automatu.
+
+Sprawdzenia w **netcat**: **572 testy PASS / 262,28 s**, mypy **110 modułów
+PASS**, po poprawkach **17 celowanych testów PASS / 3,85 s**. Pierwsza pełna
+regresja wykazała jeden kruchy test obrysu (569 PASS / 1 FAIL); zdiagnozowano
+zaokrąglenie współrzędnych o 1 piksel i poprawiono tolerancję testu,
+bez zmiany renderera. Dlatego ponowiono pełną regresję po poprawkach.
+Natywne Qt/X11 na TTMAPP259–260, 1024×768: 8 kliknięć, 105→113 przypisań,
+5→6 domen; lasso 3 centra, podgląd/anulowanie, zastosowanie, Cofnij/Ponów,
+porównanie automatu, powrót do klatki, raw/aligned/zoom i anulowanie
+zamknięcia PASS. Obejrzano zrzuty. To sprawdzenie autora, nie odbiór
+użytkownika ani dowód skuteczności detekcji. Źródła odczytywane, bez ich edycji.
+
+Przegląd Standards: 2 uwagi heurystyczne zamknięte, 0 twardych naruszeń;
+Spec: 3 uwagi zamknięte (chronologia między klatkami, wyłączenia po odmowie,
+etykieta freud). Ponowny przegląd: **0 otwartych uwag w obu osiach**.
+16 zmienionych plików kodu/testów, maksimum **874 linie**, wszystkie <1000.
+Raporty, zrzuty i przykłady: `.scratch/stmdomains-ui-21/`.
+Bez nowych zależności, wspólnych zmian i nowych potrzeb integracyjnych.
+Sprawdzono odnośniki dokumentacji, graf 27 ticketów i diff.
+Commit dokumentacji podany w końcowej odpowiedzi.
+
+---
+
 # STM Domains — propozycje UI SD-V4-21
 
 2026-11-05, worktree `/home/rlew/projekty/NEtCAT-domains`.
