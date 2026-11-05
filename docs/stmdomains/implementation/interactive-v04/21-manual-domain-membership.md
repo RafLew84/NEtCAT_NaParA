@@ -10,6 +10,13 @@
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady edycji ręcznej](README.md#edycja-ręczna-klas-i-domen).
 
+**2026-11-05 — [interaktywny prototyp UI A/B/C](prototype-21-layouts.md).**
+A — panel boczny, B — pasek pod obrazem, C — karta na obrazie.
+Autor rekomenduje A; wybór użytkownika pozostaje otwarty. Źródło pierwotne:
+`prototype/stmdomains-manual-domains-ui`, commit `f2db201` (baza `65b22f0`).
+Prototyp sprawdza wygodę zaznaczania i podglądu zmian, nie jest implementacją
+ticketu. Status pozostaje `ready-for-agent`.
+
 ## Kryteria akceptacji
 
 - [ ] Tryb edycji ma widoczną selekcję i licznik: pojedyncze kliknięcie, dodawanie/odejmowanie molekuł, lasso i wyczyszczenie wyboru. Lasso wybiera oznaczenia według środka; zoom, raw/aligned i przesunięcia ułamkowe nie zmieniają wybranych ID. Wyjście z trybu przywraca zwykłą nawigację.

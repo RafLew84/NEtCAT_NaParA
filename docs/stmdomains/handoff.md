@@ -1,3 +1,34 @@
+# STM Domains — propozycje UI SD-V4-21
+
+2026-11-05, worktree `/home/rlew/projekty/NEtCAT-domains`.
+[Podgląd, instrukcja i ograniczenia](implementation/interactive-v04/prototype-21-layouts.md).
+A — panel boczny, B — pasek pod obrazem, C — karta na obrazie.
+Autor rekomenduje A; **wybór użytkownika pozostaje otwarty**.
+21 nadal `ready-for-agent`; odbiór 18 potwierdzony. 19–20 odłożone.
+
+Źródło pierwotne: `prototype/stmdomains-manual-domains-ui`, **`f2db201`**,
+baza `65b22f0`, katalog `stmdomains/ui/prototype_manual/`.
+Wrócono na `domains/interactive-v04-ui`; tutaj tylko dokumentacja.
+Nie scalać demo do aplikacji. Commit dokumentacji podany w odpowiedzi końcowej.
+
+W **netcat**: `python .scratch/stmdomains-manual-ui/serve.py`.
+Adres http://127.0.0.1:8879/?variant=A, także B/C; lokalnie również
+samowystarczalny `prototype.html`. Rzeczywiste TTMAPP258–260 i centra,
+zapisane bazowe przypisania 259 (105/312, 5 domen). Korekty wyłącznie
+w pamięci, obszary poglądowe; bez zapisu korekt i nowych obliczeń metod.
+
+Wykonano przejście GUI QtWebEngine/X11/netcat, A/B/C w 1440×1000 i 1024×768.
+Obejrzano zrzuty; kliknięcia, lasso, suwak, raw/aligned/zoom, podgląd,
+anulowanie, zastosowanie, przenoszenie, usuwanie, Cofnij/Ponów i izolacja
+klatek PASS, brak błędów JS. To sprawdzenie autora, nie odbiór użytkownika.
+Nie dodawano testów demo i nie powtarzano regresji aplikacji.
+Artefakty `.scratch/stmdomains-manual-ui/`; maksymalny plik kodu 663 linie.
+Sprawdzono odnośniki dokumentacji i diff. Brak nowych zależności,
+wspólnych zmian i potrzeb integracyjnych z tego zadania.
+Po wyborze układu zapisać decyzję w 21 i wdrożyć właściwe UI Qt.
+
+---
+
 # STM Domains — SD-V4-18, Panel A
 
 2026-11-04, gałąź `domains/interactive-v04-ui`, poprawny worktree

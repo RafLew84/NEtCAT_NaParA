@@ -14,6 +14,12 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**2026-11-05 — [prototyp UI ręcznej edycji domen, ticket 21](implementation/interactive-v04/prototype-21-layouts.md).**
+A — panel boczny (rekomendacja autora), B — pasek pod obrazem,
+C — karta na obrazie. Wybór użytkownika otwarty; 21 nadal `ready-for-agent`.
+Kod demo: `prototype/stmdomains-manual-domains-ui`, `f2db201`.
+Odbiór 18 pozostaje potwierdzony; następny ticket 21, 19–20 odłożone.
+
 **2026-11-04 — Wykonano SD-V4-18, wybrany Panel A (`85a90e0`, poprawki `d7ea7b2`).**
 Analiza → Analiza… → freud: tolerancja, sąsiedzi, zasięg i obrót; bez K.
 Przełącznik Bazowa / Geometria / freud, Klasy/Domeny i podgląd sąsiadów.
