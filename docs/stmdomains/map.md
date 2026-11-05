@@ -21,7 +21,7 @@ członków, jawne przenoszenie i chronologiczne Cofnij/Ponów między klatkami.
 Osobne warianty zachowują automat; korekty tylko w sesji, zapis/eksport
 czeka na 24/25. [Raport i test ręczny](implementation/interactive-v04/acceptance-21.md),
 [przegląd](implementation/interactive-v04/review-21.md). **572 testy PASS**, mypy 110 modułów PASS,
-natywne GUI X11/netcat na TTMAPP PASS. **Odbiór ręczny użytkownika otwarty.**
+natywne GUI X11/netcat na TTMAPP PASS. **Odbiór ręczny użytkownika 21 potwierdzony 2026-11-05 dla wersji `e58393c` („testy manualne ok”).**
 Następny rekomendowany: **22 — dzielenie i scalanie domen**; 19–20 odłożone.
 Poniżej historia wcześniejszych prac.
 

@@ -7,7 +7,7 @@ członków, jawne przenoszenie i chronologiczne Cofnij/Ponów między klatkami.
 Osobne warianty zachowują automat; korekty tylko w sesji, zapis/eksport
 czeka na 24/25. [Raport i test ręczny](acceptance-21.md),
 [przegląd](review-21.md). **572 testy PASS**, mypy 110 modułów PASS,
-natywne GUI X11/netcat na TTMAPP PASS. **Odbiór ręczny użytkownika otwarty.**
+natywne GUI X11/netcat na TTMAPP PASS. **Odbiór ręczny użytkownika 21 potwierdzony 2026-11-05 dla wersji `e58393c` („testy manualne ok”).**
 Następny rekomendowany: **22 — dzielenie i scalanie domen**; 19–20 odłożone.
 Poniżej historia wcześniejszych prac.
 
@@ -226,7 +226,7 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 `4b55727` („testy manualne ok”). Później wykonano 11–15; obecnie następny **16**.
 
 01–03, 05, 05a i 06–18 mają status `done`; odbiór ręczny 18 potwierdzono 2026-11-05 dla `f2e0cbc`.
-21 ma status `done`; jego odbiór ręczny pozostaje otwarty.
+21 ma status `done`; odbiór ręczny użytkownika potwierdzono 2026-11-05 dla `e58393c`.
 22–26 oraz 23a mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.

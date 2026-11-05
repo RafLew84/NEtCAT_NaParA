@@ -2,7 +2,7 @@
 
 2026-11-05. Implementacja `a61e1b2`, poprawki `47bafe0`, baza `4d32fbe`.
 Gałąź `domains/interactive-v04-ui`, środowisko **netcat**.
-**Odbiór ręczny użytkownika pozostaje otwarty.**
+**Odbiór ręczny użytkownika 21 potwierdzony 2026-11-05 dla wersji `e58393c` („testy manualne ok”).**
 
 ## Obsługa
 

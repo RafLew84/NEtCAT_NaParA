@@ -3,7 +3,7 @@
 2026-11-05. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
 `domains/interactive-v04-ui`, baza `4d32fbe`. Implementacja **`a61e1b2`**,
 poprawki po przeglądzie **`47bafe0`**. Status `done`;
-**odbiór ręczny użytkownika pozostaje otwarty**.
+**Odbiór ręczny użytkownika 21 potwierdzony 2026-11-05 dla wersji `e58393c` („testy manualne ok”)**.
 [Raport i test ręczny](implementation/interactive-v04/acceptance-21.md),
 [przegląd](implementation/interactive-v04/review-21.md).
 
@@ -41,7 +41,9 @@ etykieta freud). Ponowny przegląd: **0 otwartych uwag w obu osiach**.
 Raporty, zrzuty i przykłady: `.scratch/stmdomains-ui-21/`.
 Bez nowych zależności, wspólnych zmian i nowych potrzeb integracyjnych.
 Sprawdzono odnośniki dokumentacji, graf 27 ticketów i diff.
-Commit dokumentacji podany w końcowej odpowiedzi.
+Dokumentacja implementacji: `e58393c`. Potwierdzenie odbioru 2026-11-05
+zmienia wyłącznie dokumentację; sprawdzono diff, bez ponawiania testów kodu
+i GUI. Następny rekomendowany ticket: **22 — dzielenie i scalanie domen**.
 
 ---
 

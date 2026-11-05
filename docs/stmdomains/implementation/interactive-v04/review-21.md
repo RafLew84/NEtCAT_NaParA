@@ -33,5 +33,5 @@ Ponowny przegląd `4d32fbe...47bafe0`: wszystkie trzy ustalenia zamknięte,
 bez nowych regresji zgodności i bez dodatkowego rozszerzenia zakresu.
 **0 otwartych ustaleń.**
 
-Końcowo: Standards 0, Spec 0. Odbiór ręczny użytkownika pozostaje otwarty;
-wykonane testy i GUI opisano w [raporcie odbioru](acceptance-21.md).
+Końcowo: Standards 0, Spec 0. Odbiór ręczny użytkownika 21 potwierdzony 2026-11-05 dla wersji `e58393c` („testy manualne ok”).
+Wykonane testy i GUI opisano w [raporcie odbioru](acceptance-21.md).

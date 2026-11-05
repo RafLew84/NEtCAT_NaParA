@@ -8,7 +8,7 @@
 
 **Status:** done — implementacja 2026-11-05, wybrany Panel A.
 Commity `a61e1b2`, `47bafe0`. [Raport i test ręczny](acceptance-21.md),
-[przegląd](review-21.md). **Odbiór ręczny użytkownika otwarty.**
+[przegląd](review-21.md). **Odbiór ręczny użytkownika 21 potwierdzony 2026-11-05 dla wersji `e58393c` („testy manualne ok”).**
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady edycji ręcznej](README.md#edycja-ręczna-klas-i-domen).
 
