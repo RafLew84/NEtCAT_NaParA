@@ -1,11 +1,14 @@
 """Session-only manual variants, independent of automatic workers and run tables."""
 
 from typing import TYPE_CHECKING
+from dataclasses import dataclass
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.manual_domains import ManualDomains
+from stmdomains.core.manual_classes import ManualClassList
+from stmdomains.core.manual_class_lists import ManualClassLists
 from stmdomains.analysis.geometry_domain_settings import METHOD as GEOMETRY_METHOD
 from stmdomains.analysis.freud_settings import METHOD as FREUD_METHOD
 
@@ -14,6 +17,13 @@ if TYPE_CHECKING:
 
 UNSAVED_MANUAL = ('Korekty ręczne są przechowywane tylko w tej sesji. '
                   'Zapis i eksport korekt nie są jeszcze dostępne.')
+
+
+@dataclass(frozen=True)
+class ManualStep:
+    variant_id: str
+    before: ManualClassList | None = None
+    after: ManualClassList | None = None
 
 
 class ManualController(QObject):
@@ -29,14 +39,16 @@ class ManualController(QObject):
         self.compare_original = False
         self.editing = False
         self.message = ''
-        self._undo: list[str] = []
-        self._redo: list[str] = []
+        self.class_lists = ManualClassLists()
+        self._undo: list[ManualStep] = []
+        self._redo: list[ManualStep] = []
         self._frame_index = -1
         controller.series_changed.connect(self.reset)
         controller.frame_changed.connect(self._frame_changed)
 
     def reset(self, *_: object) -> None:
         self.variants.clear()
+        self.class_lists = ManualClassLists()
         self._undo.clear()
         self._redo.clear()
         self.selected.clear()
@@ -56,6 +68,16 @@ class ManualController(QObject):
         return any(v.changed for v in self.variants.values())
 
     @property
+    def class_list(self) -> ManualClassList | None:
+        return self.class_lists.get(self.active) if self.active is not None else None
+
+    def class_member_count(self, class_id: str) -> int:
+        labels = self.class_list
+        return sum(a.class_id == class_id for v in self.variants.values()
+                   if labels is not None and self.class_lists.get(v).identifier == labels.identifier
+                   for a in v.current.assignments.values())
+
+    @property
     def blocks_persistence(self) -> bool:
         return (self.has_changes or self.preview_result is not None
                 or self.displayed_result(self.controller.result) is not self.controller.result)
@@ -70,7 +92,7 @@ class ManualController(QObject):
             return automatic
         if self.compare_original:
             return active.original
-        return self.preview_result or (active.current if active.changed else active.original)
+        return self.preview_result or self.class_lists.display(active)
 
     def _notify(self) -> None:
         self.controller._refresh_result()
@@ -82,12 +104,18 @@ class ManualController(QObject):
             self.selection = ()
             self.preview_result = None
             self.compare_original = False
-            if self.editing and self.controller.can_analyze:
+            series = self.controller.series
+            key = self.class_lists.source_key(series.identity, self.controller.result) if series else ''
+            labels = self.class_lists.current.get(key)
+            shared_labels = (labels is not None and labels.generation > 0
+                             and self.controller.current_index not in self.selected)
+            if (self.editing or shared_labels) and self.controller.can_analyze:
                 try:
                     self.ensure_variant()
                 except ValueError as error:
                     self.message = str(error)
                     self.editing = False
+            self.controller._refresh_result()
         self.changed.emit()
 
     def choices(self) -> list[tuple[str, str]]:
@@ -150,6 +178,7 @@ class ManualController(QObject):
         if active is None:
             active = ManualDomains(presenter.analysis_input(self.controller.current_index), original)
             self.variants[active.identifier] = active
+            self.class_lists.bind(active)
         self.selected[self.controller.current_index] = active.identifier
         return active
 
@@ -172,7 +201,9 @@ class ManualController(QObject):
         self.preview_result = None
         try:
             active = self.ensure_variant()
-            result = active.preview(operation, self.selection, target)
+            labels = self.class_lists.get(active)
+            result = active.preview(operation, self.selection, target,
+                                    class_list=labels if labels.generation else None)
             self.preview_result = result
             edit = result.metadata['manual_edit']
             destination = edit['target']
@@ -201,11 +232,44 @@ class ManualController(QObject):
         self.message = ''
         self._notify()
 
+    def preview_classes(self, operation: str, *, target: str = '', name: str = '', color: str = '',
+                        whole_domains: bool = False) -> None:
+        if not self.can_edit:
+            return
+        self.preview_result = None
+        try:
+            active = self.ensure_variant()
+            labels = self.class_lists.get(active)
+            occupied = {a.class_id for v in self.variants.values()
+                        if self.class_lists.get(v).identifier == labels.identifier
+                        for a in v.current.assignments.values()}
+            result = active.preview_classes(labels, operation, target=target, name=name, color=color,
+                selection=self.selection, whole_domains=whole_domains, occupied=occupied)
+            self.preview_result = result
+            edit = result.metadata['manual_edit']
+            splits = edit['splits']
+            self.message = (f'Podgląd klas · {len(edit["selection"])} molekuł w klatce '
+                            f'{self.controller.current_index + 1}. ')
+            if splits:
+                self.message += 'Podział: ' + ', '.join(
+                    f'D{s["source_domain"]} → D{s["source_domain"]} + D{s["target_domain"]}' for s in splits) + '. '
+            if result.class_list is not labels:
+                self.message += 'Zmiana listy klas dotyczy wszystkich korzystających z niej klatek. '
+            self.message += 'Model pozostaje bez zmian.'
+        except ValueError as error:
+            self.message = str(error)
+        self._notify()
+
     def apply(self) -> None:
         if not self.can_edit or self.preview_result is None or self.active is None:
             return
+        class_edit = self.preview_result.metadata['manual_edit']['operation'].startswith('class_')
+        before = self.class_list if class_edit else None
+        after = self.preview_result.class_list if class_edit else None
         self.active.apply(self.preview_result)
-        self._undo.append(self.active.identifier)
+        if after is not None:
+            self.class_lists.publish(after)
+        self._undo.append(ManualStep(self.active.identifier, before, after))
         self._redo.clear()
         self.preview_result = None
         self.message = 'Zastosowano korektę. ' + UNSAVED_MANUAL
@@ -219,15 +283,28 @@ class ManualController(QObject):
 
     def history_target(self, *, redo: bool = False) -> ManualDomains | None:
         history = self._redo if redo else self._undo
-        return self.variants[history[-1]] if history else None
+        return self.variants[history[-1].variant_id] if history else None
 
-    def _restore_history(self, source: list[str], destination: list[str], *, redo: bool) -> None:
+    def history_label(self, *, redo: bool = False) -> str:
+        history = self._redo if redo else self._undo
+        if not history:
+            return ''
+        step = history[-1]
+        frame = self.variants[step.variant_id].data.frame.working_index + 1
+        prefix = 'lista klas · ' if step.before is not step.after else ''
+        return f'{prefix}kl. {frame}'
+
+    def _restore_history(self, source: list[ManualStep], destination: list[ManualStep], *, redo: bool) -> None:
         if not self.can_edit or not source:
             return
-        key = source.pop()
+        step = source.pop()
+        key = step.variant_id
         variant = self.variants[key]
         variant.redo() if redo else variant.undo()
-        destination.append(key)
+        labels = step.after if redo else step.before
+        if labels is not None:
+            self.class_lists.publish(labels)
+        destination.append(step)
         self.preview_result = None
         self.selection = ()
         index = variant.data.frame.working_index

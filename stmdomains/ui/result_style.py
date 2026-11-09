@@ -33,6 +33,9 @@ def assignment_color(result: FrameAnalysis | None, detection_id: str, mode: str)
     if result is None or mode == "input":
         return INPUT_COLOR
     assignment = result.assignments.get(detection_id)
+    if (mode == 'classes' and result.class_list is not None and result.status == 'complete'
+            and assignment is not None and assignment.status not in ('suppressed_duplicate', 'outside_field')):
+        return next((c.color for c in result.class_list.classes if c.class_id == assignment.class_id), UNASSIGNED_COLOR)
     if (mode == 'classes' and result.status == 'complete' and assignment is not None
             and result.parameters.get('domain_method') == FREUD_METHOD):
         return next((item.color for item in result.classes if item.class_id == assignment.provisional_class_id),
@@ -57,6 +60,10 @@ def assignment_description(result: FrameAnalysis | None, detection_id: str) -> s
         return result.message or "Nie wykonano dopasowania klas dla tej klatki"
     if assignment is None:
         return "Brak rekordu przypisania dla tego ID"
+    if result.class_list is not None and assignment.metadata.get('class_assignment_origin') == 'manual':
+        label = next((c.name for c in result.class_list.classes if c.class_id == assignment.class_id), 'nieustalona')
+        domain = f'domena D{assignment.domain_local_id}' if assignment.domain_local_id else 'bez domeny'
+        return f'Klasa ustawiona ręcznie: {label} · {domain} · nie jest rozpoznaniem modelu'
     if assignment.status == "domain":
         if result.parameters.get('domain_method') == MANUAL_METHOD:
             return (f'Ręczna domena D{assignment.domain_local_id} · '
@@ -123,6 +130,23 @@ def describe_result(result: FrameAnalysis | None, mode: str) -> ResultPresentati
         entries = [LegendEntry("Bez dopasowania", UNASSIGNED_COLOR, result.active_count)]
         entries.extend(_excluded_entries(result))
         return ResultPresentation("Brak dopasowania klas", tuple(entries), result.message)
+    if mode == 'classes' and result.class_list is not None:
+        labels = result.class_list
+        manual_counts = result.class_counts
+        count = sum(manual_counts.values())
+        class_only = sum(bool(a.class_id) and a.domain_local_id == 0
+                         and a.status not in ('suppressed_duplicate', 'outside_field')
+                         for a in result.assignments.values())
+        entries = [LegendEntry(c.name, c.color, manual_counts[c.class_id]) for c in labels.classes]
+        if result.active_count > count:
+            entries.append(LegendEntry('Klasa nieustalona', UNASSIGNED_COLOR, result.active_count - count))
+        entries.extend(_excluded_entries(result))
+        title = (f'Klasy: {sum(n > 0 for n in manual_counts.values())} · oznaczono {count}/{result.active_count}'
+                 f' · bez domeny: {class_only}')
+        note = (f'Lista {labels.identifier[:8]} · wersja {labels.version[:8]}. '
+                f'Przypisania do domen: {result.assigned_count}/{result.active_count}. '
+                'Klasy po korektach; nazwa nie potwierdza fizycznego typu. Model nie jest douczany.')
+        return ResultPresentation(title, tuple(entries), note)
     if mode == 'classes' and result.parameters.get('domain_method') == METHOD:
         return ResultPresentation('Typ nieznany', (LegendEntry('Bez typu', UNASSIGNED_COLOR, result.active_count),),
                                   'Metoda geometryczna nie dopasowuje klas; wybierz widok Domeny.')

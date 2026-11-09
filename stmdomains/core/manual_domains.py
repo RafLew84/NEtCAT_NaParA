@@ -1,7 +1,7 @@
 """One source-bound manual variant with immutable previews and undo/redo."""
 
 from dataclasses import replace
-from collections.abc import Mapping
+from collections.abc import Mapping, Collection
 from typing import Any
 from uuid import uuid4
 
@@ -13,6 +13,7 @@ from stmdomains.analysis.config import PARAMETERS
 from stmdomains.analysis.manual_regions import manual_regions
 from stmdomains.analysis.manual_partition import split_labels, merge_labels
 from stmdomains.core.analysis_result import AnalysisInput, FrameAnalysis, MoleculeAssignment
+from stmdomains.core.manual_classes import ManualClassList
 
 MANUAL_METHOD = 'manual_membership_v1'
 EXCLUDED = ('outside_field', 'suppressed_duplicate')
@@ -42,6 +43,7 @@ class ManualDomains:
         self.data, self.original = data, original
         self.identifier = uuid4().hex
         self._pending: FrameAnalysis | None = None
+        self._preview_class_list: ManualClassList | None = None
         self._revision = 0
         self._cursor = 0
         spatial = self._without_analysis()
@@ -88,8 +90,10 @@ class ManualDomains:
     def eligible_ids(self) -> frozenset[str]:
         return frozenset(key for key, value in self.current.assignments.items() if value.status not in EXCLUDED)
 
-    def preview(self, operation: str, selection: tuple[str, ...], target: int = 0) -> FrameAnalysis:
+    def preview(self, operation: str, selection: tuple[str, ...], target: int = 0, *,
+                class_list: ManualClassList | None = None) -> FrameAnalysis:
         self._pending = None
+        self._preview_class_list = class_list or self.current.class_list
         selected = set(selection)
         if not selected or not selected <= self.eligible_ids:
             raise ValueError('Wybierz aktywne molekuły; duplikaty i punkty poza polem są wyłączone.')
@@ -115,16 +119,17 @@ class ManualDomains:
             member = assignments[key]
             source_member = self._history[0].assignments[key]
             assignments[key] = replace(member, domain_local_id=target,
-                status='domain' if target else 'unassigned', class_id='',
+                status='domain' if target else 'unassigned',
+                class_id=member.class_id if self.current.class_list is not None else '',
                 metadata={**member.metadata, 'manual_source': _source_metadata(source_member)})
-        source = self._history[0].assignments
+        source = self.current.assignments if self.current.class_list is not None else self._history[0].assignments
         affected = {target, *(self.current.assignments[key].domain_local_id for key in selected)} - {0}
         for domain in affected:
             members = [key for key, a in assignments.items() if a.domain_local_id == domain]
             classes = {source[key].class_id for key in members}
             common = next(iter(classes)) if len(classes) == 1 else ''
             for key in members:
-                source_member = source[key]
+                source_member = self._history[0].assignments[key]
                 assignments[key] = replace(assignments[key], class_id=common,
                     metadata={**assignments[key].metadata, 'manual_source': _source_metadata(source_member)})
         height, width = self.data.frame.image.shape
@@ -170,7 +175,7 @@ class ManualDomains:
                              'source_analysis_id': original.metadata.get('analysis_id', '') if original else '',
                              'source_parameters': dict(original.parameters) if original else {},
                              **details}},
-            labels, catalogue=original.catalogue if original else None)
+            labels, catalogue=original.catalogue if original else None, class_list=self._preview_class_list)
         return self._pending
 
     def _merge(self, selected: set[str], target: int) -> FrameAnalysis:
@@ -201,6 +206,60 @@ class ManualDomains:
         self._history[self._cursor + 1:] = [preview]
         self._cursor += 1
         self._pending = None
+
+    def preview_classes(self, labels: ManualClassList, operation: str, *, target: str = '',
+                        name: str = '', color: str = '', selection: tuple[str, ...] = (),
+                        whole_domains: bool = False, occupied: Collection[str] = ()) -> FrameAnalysis:
+        self._pending = None
+        self._preview_class_list = labels
+        revised = labels if operation == 'assign' else labels.edit(
+            'create' if operation == 'create_assign' else operation, target, name=name, color=color,
+            occupied=set(occupied) | {a.class_id for a in self.current.assignments.values()})
+        if operation == 'create_assign':
+            target = revised.classes[-1].class_id
+        assignments = dict(self.current.assignments)
+        regions = self.current.domain_labels
+        selected = set(selection) if operation in ('assign', 'create_assign') else set()
+        splits = []
+        if operation in ('assign', 'create_assign'):
+            if target and target not in {c.class_id for c in revised.classes}:
+                raise ValueError('Wybierz klasę z bieżącej listy.')
+            if not selected or not selected <= self.eligible_ids:
+                raise ValueError('Wybierz aktywne molekuły.')
+            domains = {assignments[key].domain_local_id for key in selected}
+            if whole_domains:
+                if 0 in domains:
+                    raise ValueError('W trybie całych domen wybierz członków domen, bez punktów nieprzypisanych.')
+                selected = {key for key, a in assignments.items() if a.domain_local_id in domains}
+            changed = {key for key in selected if assignments[key].class_id != target}
+            if not changed:
+                raise ValueError('Wybrane molekuły mają już tę klasę.')
+            next_domain = max((a.domain_local_id for a in assignments.values()), default=0) + 1
+            for domain in sorted(domains - {0}):
+                members = {key for key, a in assignments.items() if a.domain_local_id == domain}
+                part = members & changed
+                if part and part != members:
+                    regions = split_labels(regions, self.data.annotations.detections, assignments,
+                                           domain, next_domain, part)
+                    for key in part:
+                        assignments[key] = replace(assignments[key], domain_local_id=next_domain)
+                    splits.append({'source_domain': domain, 'target_domain': next_domain,
+                                   'member_ids': sorted(part)})
+                    next_domain += 1
+            for key in changed:
+                source = self.current.assignments[key]
+                assignments[key] = replace(assignments[key], class_id=target, provisional_class_id='',
+                    metadata={'manual_source': source.metadata.get('manual_source',
+                        _source_metadata(self._history[0].assignments[key])),
+                        'manual_class_source': {'class_id': source.class_id,
+                            'provisional_class_id': source.provisional_class_id, 'metadata': source.metadata},
+                        'class_assignment_origin': 'manual'})
+        preview = self._make_preview(assignments, regions, 'class_' + operation, selected, 0,
+            {'class_list_id': revised.identifier, 'class_list_before': labels.version,
+             'class_list_after': revised.version, 'class_target': target, 'splits': splits,
+             'whole_domains': whole_domains})
+        self._pending = replace(preview, class_list=revised)
+        return self._pending
 
     def undo(self) -> None:
         self._pending = None

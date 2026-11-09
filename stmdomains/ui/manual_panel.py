@@ -12,6 +12,7 @@ from stmdomains.core.manual_domains import domain_record
 from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.manual_controller import ManualController, UNSAVED_MANUAL
 from stmdomains.ui.manual_selection import ManualSelection
+from stmdomains.ui.manual_class_dialog import ManualClassDialog
 
 
 class ManualPanel(QWidget):
@@ -41,6 +42,10 @@ class ManualPanel(QWidget):
         outer.setContentsMargins(8, 0, 0, 0)
         title = QLabel('Edycja ręczna domen')
         outer.addWidget(title)
+        self.classes = QPushButton('Klasy ręczne…')
+        self.class_dialog: ManualClassDialog | None = None
+        self.classes.clicked.connect(self._show_classes)
+        outer.addWidget(self.classes)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         content = QWidget()
@@ -127,6 +132,13 @@ class ManualPanel(QWidget):
         if playing:
             self.manual.set_editing(False)
 
+    def _show_classes(self) -> None:
+        if self.class_dialog is None:
+            self.class_dialog = ManualClassDialog(self.manual, self)
+        self.class_dialog.refresh()
+        self.class_dialog.show()
+        self.class_dialog.raise_()
+
     def set_frame(self, frame: PresentedFrame) -> None:
         self.selection.set_frame(frame)
         self.refresh()
@@ -151,6 +163,7 @@ class ManualPanel(QWidget):
         self.toolbar.setVisible(controller.series is not None)
         self.edit.setText('Zakończ edycję' if manual.editing else 'Edytuj domeny')
         self.edit.setEnabled(controller.can_analyze or manual.editing)
+        self.classes.setEnabled(manual.can_edit)
         with QSignalBlocker(self.variants):
             self.variants.clear()
             for key, label in manual.choices():
@@ -204,7 +217,7 @@ class ManualPanel(QWidget):
         for button, redo in ((self.undo, False), (self.redo, True)):
             history_target = manual.history_target(redo=redo)
             label = 'Ponów' if redo else 'Cofnij'
-            button.setText(f'{label} · kl. {history_target.data.frame.working_index + 1}' if history_target else label)
+            button.setText(f'{label} · {manual.history_label(redo=redo)}' if history_target else label)
             button.setToolTip('Historia operacji w sesji; przechodzi do klatki wskazanej na przycisku.')
             button.setEnabled(manual.can_edit and history_target is not None)
         for widget in (self.operation, self.clear, self.tool, self.mode):

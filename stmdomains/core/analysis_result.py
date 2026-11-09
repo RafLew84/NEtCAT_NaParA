@@ -12,6 +12,7 @@ from numpy.typing import NDArray
 from stmdomains.core.annotations import FrameAnnotations
 from stmdomains.core.class_catalogue import ClassCatalogue
 from stmdomains.core.immutable import freeze_metadata
+from stmdomains.core.manual_classes import ManualClassList
 from stmdomains.core.series import FrameData
 
 
@@ -61,6 +62,7 @@ class FrameAnalysis:
 
     catalogue: ClassCatalogue | None = field(default=None, repr=False, compare=False)
     barrier_mask: NDArray[np.bool_] | None = field(default=None, repr=False, compare=False)
+    class_list: ManualClassList | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "assignments", MappingProxyType(dict(self.assignments)))
@@ -111,6 +113,10 @@ class FrameAnalysis:
 
     @property
     def class_counts(self) -> dict[str, int]:
+        if self.class_list is not None:
+            counts = Counter(item.class_id for item in self.assignments.values()
+                             if item.status not in ('suppressed_duplicate', 'outside_field'))
+            return {item.class_id: counts[item.class_id] for item in self.class_list.classes}
         counts = Counter(item.class_id for item in self.assignments.values()
                          if item.domain_local_id > 0)
         return {item.class_id: counts[item.class_id] for item in self.classes}
