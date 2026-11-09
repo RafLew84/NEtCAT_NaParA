@@ -1,3 +1,42 @@
+# STM Domains — poprawka nazw klas i domen po zgłoszeniu do 23
+
+2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
+`domains/interactive-v04-ui`, baza `a42ca1c`. Implementacja **`8d4ec04`**.
+Użytkownik skorygował znaczenie nazw: klasa D i jej osobne domeny D1, D2…;
+w widoku Klasy nadal widział ogólne D1, D2… niezależnie od klasy.
+
+Przyczyna: stały napis `D + domain_local_id` w malowaniu obszaru.
+Test rzeczywistego `DomainOverlay.paint` odtworzył `D1, D2` zamiast `A, A`
+i po poprawce przechodzi. Wspólna reguła nazw obejmuje obraz, legendę,
+panel edycji, podgląd operacji, szczegóły molekuły/pomiaru i eksport PNG.
+Automatyczne klasy A…Z, AA… według całego katalogu; puste klasy nie przesuwają
+liter. Widok Klasy: D, D; widok Domeny: D1, D2. Własne nazwy pozostają
+edytowalne; nieustalona klasa ?, jej domeny ?1, ?2. Nazwy prezentacyjne
+nie zmieniają ID, masek, członkostwa ani modelu. Panel pokazuje również ID;
+CSV/JSON zachowują oryginalne identyfikatory. Numery domen są lokalne dla
+klatki i mogą zmienić się po zmianie składu klas; bez śledzenia w czasie.
+
+[Reguły oraz instrukcja sprawdzenia](implementation/interactive-v04/acceptance-23.md#poprawka-podpisów-po-zgłoszeniu-użytkownika--2026-11-09).
+Natywne Qt/X11 w netcat: kontrola D/D ↔ D1/D2, porównanie oraz Cofnij/Ponów
+PASS. TTMAPP268, K5 wspólny 259–268: 4 domeny, 119/308; obraz i PNG PASS.
+Obejrzano zrzuty. To sprawdzenie autora, nie odbiór użytkownika ani ocena
+detekcji. Artefakty i skrypt: `.scratch/stmdomains-class-names/`.
+
+Testy celowane: **40 PASS / 20,59 s**, mypy **115 modułów PASS**.
+Pełna regresja po poprawce: **600 PASS / 274,03 s** (netcat/offscreen).
+Pierwszy przebieg w sandboxie zakończył się SIGTERM bez raportu błędu testu;
+powtórzony poza sandboxem przeszedł w całości. Log w katalogu artefaktów.
+16 zmienionych plików kodu/testów, maksimum **341 linii**, wszystkie <1000.
+Sprawdzono 546 odnośników w 7 dokumentach, graf 27 ticketów i `git diff --check`.
+Nie dodano zależności ani zmian współdzielonych. Diagnostyczne pliki lokalne
+pozostają w `.scratch/`; bez instrumentacji w kodzie aplikacji.
+
+**Odbiór użytkownika 23 pozostaje otwarty.** Następny 23a → 24 → 25 → 26;
+19–20 odłożone. Korekty ręczne nadal tylko w sesji; ta poprawka nie dodaje
+zapisu/eksportu korekt planowanych w 24/25.
+
+---
+
 # STM Domains — wykonano SD-V4-23, ręczne klasy
 
 2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź

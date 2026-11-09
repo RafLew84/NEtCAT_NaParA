@@ -4,6 +4,51 @@
 Implementacja `94d5a94`, poprawka `b11d09a`.
 Odbiór ręczny użytkownika pozostaje otwarty.
 
+## Poprawka podpisów po zgłoszeniu użytkownika — 2026-11-09
+
+Implementacja: `8d4ec04`, baza `a42ca1c`.
+
+Użytkownik wskazał, że wybór **Klasy** nadal zostawiał na obrazie `D1, D2…`,
+a oczekiwane znaczenie to klasa **D** i jej domeny **D1, D2…**.
+Przyczyną był stały podpis `D + domain_local_id` w warstwie obszarów,
+niezależny od trybu wyświetlania. Test rzeczywistego rysowania Qt odtworzył
+błąd: oczekiwane `A, A`, otrzymane `D1, D2`; po poprawce przechodzi.
+
+- Automatyczne nazwy klas: **A, B, C… Z, AA, AB…**, według pełnej kolejności
+  katalogu. Brak klasy na klatce nie przesuwa liter pozostałych klas.
+- **Klasy**: na każdym obszarze nazwa klasy, np. dwa osobne obszary `D`.
+  **Domeny**: nazwa klasy i kolejny numer jej domeny, np. `D1`, `D2`.
+  Numeracja według wewnętrznych ID, osobno w każdej klasie i klatce.
+- Własne nazwy nadal można ustawiać. Nazwa `Wyspa` daje domeny
+  `Wyspa · 1`, `Wyspa · 2`; wielkie litery, np. `D`, dają `D1`, `D2`.
+  Nieustalona klasa: `?`; jej domeny: `?1`, `?2`.
+- Obraz, legenda, panel edycji, szczegóły molekuły/pomiaru i PNG używają
+  tej samej reguły. **Obszary… → Podpisy klas / domen** włącza podpisy.
+  Panel wyboru domen pokazuje dodatkowo wewnętrzne ID.
+- To nazwy prezentacyjne. Wewnętrzne ID, maski, członkostwo i model się
+  nie zmieniają. Numer może zmienić się po usunięciu lub zmianie klasy
+  innej domeny; nie oznacza śledzenia między klatkami. Pola CSV/JSON
+  `class_id` i `domain_local_id` nadal zawierają oryginalne identyfikatory.
+  Powtórzenie ręcznej nazwy nie scala różnych klas — rozróżnia je ID.
+
+**Test ręczny poprawki:** uruchom ponownie aplikację w netcat, oblicz lub
+otwórz wynik z kilkoma domenami tej samej klasy. Przełącz **Klasy / Domeny**:
+litery na obrazie mają odpowiadać legendzie, a osobne domeny mają różne
+numery w obrębie klasy. W **Klasy ręczne…** zmień nazwę klasy, zastosuj,
+cofnij i ponów; podpisy mają podążać za wyświetlaną wersją. Wyłącz i włącz
+podpisy przez **Obszary…**. Sprawdź też **Automatyczny przed korektą**.
+
+Sprawdzenie autora: natywne Qt/X11/netcat, kontrola dwóch domen klasy D
+(`D, D` ↔ `D1, D2`), porównanie i Cofnij/Ponów PASS. TTMAPP268, K5
+wspólny 259–268: 4 domeny, 119/308 przypisań; podpisy obrazu i PNG PASS.
+Obejrzano zrzuty; nie jest to ocena skuteczności metody ani odbiór użytkownika.
+Artefakty lokalne: `.scratch/stmdomains-class-names/`.
+
+Weryfikacja poprawki: **40 testów celowanych PASS / 20,59 s**;
+pełna regresja **600 PASS / 274,03 s**, mypy **115 modułów PASS**.
+Pełny przebieg wykonano poza sandboxem po przerwaniu pierwszej próby
+sygnałem SIGTERM. Kod/testy: 16 plików, maksimum 341 linii.
+
 ## Obsługa
 
 W **netcat** uruchom `python -m stmdomains.main`. Po otwarciu danych

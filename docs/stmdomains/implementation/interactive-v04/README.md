@@ -1,5 +1,11 @@
 # Interaktywne STM Domains — obliczenia z danych
 
+**2026-11-09 — poprawka po zgłoszeniu do 23: nazwy klas i domen (`8d4ec04`).**
+Widok Klasy pokazuje `A, B, C…`, a Domeny np. `D1, D2…` dla domen
+klasy D. Obraz i legenda zgodne; własne nazwy oraz ID zachowane.
+[Reguły i test ręczny](acceptance-23.md#poprawka-podpisów-po-zgłoszeniu-użytkownika--2026-11-09).
+Odbiór 23 nadal otwarty; następny 23a → 24 → 25 → 26.
+
 **2026-11-09 — wykonano SD-V4-23: ręczne klasy (`94d5a94`, poprawka `b11d09a`).**
 **Edytuj domeny → Klasy ręczne…**: nowa/pusta klasa, nazwa/kolor,
 przypisanie molekuł lub całych domen i usuwanie pustych klas ręcznych.

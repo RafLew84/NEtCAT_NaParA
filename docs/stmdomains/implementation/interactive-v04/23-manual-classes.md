@@ -11,6 +11,12 @@
 [Obsługa, semantyka listy i wykonane sprawdzenia](acceptance-23.md),
 [przegląd Standards/Spec](review-23.md).
 
+**Poprawka po zgłoszeniu 2026-11-09 (`8d4ec04`):** Klasy pokazuje nazwy `A, B, C…`,
+Domeny pokazuje `A1, A2…`, `B1…`; `D1, D2…` oznaczają domeny klasy D.
+Obraz, legenda i edycja korzystają ze wspólnego nazewnictwa.
+[Reguły i test ręczny poprawki](acceptance-23.md#poprawka-podpisów-po-zgłoszeniu-użytkownika--2026-11-09).
+Odbiór użytkownika nadal otwarty.
+
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady edycji ręcznej](README.md#edycja-ręczna-klas-i-domen).
 
 ## Kryteria akceptacji

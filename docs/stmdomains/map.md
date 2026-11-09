@@ -14,6 +14,12 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 
 ## Notes
 
+**2026-11-09 — poprawka nazewnictwa po zgłoszeniu do 23 (`8d4ec04`).**
+Klasy: `A, B, C…`; osobne domeny klasy D: `D1, D2…`.
+Podpisy na obrazie zależą od widoku Klasy/Domeny i zgadzają się z legendą.
+[Reguły i test ręczny](implementation/interactive-v04/acceptance-23.md#poprawka-podpisów-po-zgłoszeniu-użytkownika--2026-11-09).
+Odbiór 23 nadal otwarty; następny 23a, potem 24 → 25 → 26.
+
 **2026-11-09 — wykonano SD-V4-23: ręczne klasy (`94d5a94`, poprawka `b11d09a`).**
 **Edytuj domeny → Klasy ręczne…**: nowa/pusta klasa, nazwa/kolor,
 przypisanie molekuł lub całych domen i usuwanie pustych klas ręcznych.
