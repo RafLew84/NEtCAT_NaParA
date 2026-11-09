@@ -9,7 +9,7 @@ osobne domeny; podział części domeny wydziela ją zgodnie z 22/23.
 Próba natywnego GUI/netcat: kontrola 9/7, podziały 5/4 i 1/8, wariant bez
 modelu oraz TTMAPP259–260 PASS. Przegląd: Standards 0; Spec 1 uwaga poprawiona, 0 otwartych.
 Pełna regresja: **624 testy PASS / 280,46 s**, mypy **119 modułów PASS**.
-**Odbiór ręczny użytkownika 23a otwarty**. Korekty tylko w sesji;
+**Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”)**. Korekty tylko w sesji;
 następny **24 → 25 → 26**, 19–20 odłożone. Poniżej historia wcześniejszych etapów.
 
 **2026-11-09 — poprawka po zgłoszeniu do 23: nazwy klas i domen (`8d4ec04`).**
@@ -276,7 +276,7 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 21 ma status `done`; odbiór ręczny użytkownika potwierdzono 2026-11-05 dla `e58393c`.
 22 ma status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `f37714f` („testy manualne ok”).
 23 ma status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”).
-23a ma status `done`; odbiór ręczny użytkownika pozostaje otwarty.
+23a ma status `done`; odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”).
 24–26 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
@@ -285,7 +285,7 @@ wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 **21–25 — ręczną edycję domen i klas, zapis historii oraz eksport korekt**.
 Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
 21 i 22 są zaimplementowane i odebrane ręcznie przez użytkownika.
-23 jest zaimplementowany i odebrany ręcznie; 23a zaimplementowany, odbiór otwarty.
+23 oraz 23a wraz z poprawką nazw są zaimplementowane i odebrane ręcznie.
 Następny rekomendowany etap to **24 — zapis ręcznych korekt**. 19–20
 pozostają odłożone zgodnie z warunkami opisanymi w ich ticketach.
 
@@ -326,7 +326,7 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [26 — Porównaj granice domen metodą level-set Gibou–Fedkiwa](26-compare-fedkiw-level-set.md) | SD-V4-17, SD-V4-13, SD-V4-14 | Zmień regularyzację granic, porównaj molekuły i całe domeny z Geometrią oraz przejrzyj obliczone klatki. |
 
 Po wykonanym 23a następny rekomendowany ticket to
-**24 — zapis ręcznych korekt**. Odbiór użytkownika 23a pozostaje otwarty. Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
+**24 — zapis ręcznych korekt**. Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”). Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
 nie wymaga ukończenia odłożonych 19–20.
 Odbiór użytkownika 13 jest potwierdzony, a 14 potwierdzono dla `4e9f1d9`. 13/14 wykonano po 05;
 16 jest niezależnie dostępny po 05, a 15 po 07. 08 korzysta

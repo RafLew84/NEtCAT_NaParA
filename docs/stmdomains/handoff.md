@@ -1,3 +1,20 @@
+# STM Domains — odbiór ręczny SD-V4-23a
+
+**2026-11-09: użytkownik potwierdził „testy manualne ok”.**
+Odebrano ticket **23a — scalanie i dzielenie klas**, wraz z poprawką
+pustej nazwy nowej klasy (`7db599f`). Testowana wersja: **`eb112f6`**.
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/interactive-v04-ui`.
+
+Zaktualizowano ticket, plan, raport odbioru i dokumentację startową.
+To zapis odbioru użytkownika; kod aplikacji nie został zmieniony i testów
+nie uruchamiano ponownie. Wcześniejsze wyniki sprawdzeń pozostają w
+[raporcie 23a](implementation/interactive-v04/acceptance-23a.md).
+
+Następny ticket: **24 — zapis korekt i wznowienie ręcznej edycji projektu**,
+potem **25 → 26**. Implementacji 24 nie rozpoczęto. 19–20 nadal odłożone.
+
+---
+
 # STM Domains — domyślne nazwy pustych klas
 
 2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
@@ -21,7 +38,7 @@ maksimum 268 linii; wyłącznie zakres STM Domains. Bez nowych zależności,
 bez potrzebnych zmian współdzielonych. Artefakty lokalne:
 `.scratch/stmdomains-class-name-report/`.
 
-**Odbiór użytkownika 23a wraz z poprawką otwarty.** Kolejność 24 → 25 → 26;
+**Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”).** Kolejność 24 → 25 → 26;
 korekty nadal tylko w pamięci sesji, zapis w 24, eksport w 25.
 
 ---

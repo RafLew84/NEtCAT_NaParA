@@ -9,7 +9,7 @@ osobne domeny; podział części domeny wydziela ją zgodnie z 22/23.
 Próba natywnego GUI/netcat: kontrola 9/7, podziały 5/4 i 1/8, wariant bez
 modelu oraz TTMAPP259–260 PASS. Przegląd: Standards 0; Spec 1 uwaga poprawiona, 0 otwartych.
 Pełna regresja: **624 testy PASS / 280,46 s**, mypy **119 modułów PASS**.
-**Odbiór ręczny użytkownika 23a otwarty**. Korekty tylko w sesji;
+**Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”)**. Korekty tylko w sesji;
 następny **24 → 25 → 26**, 19–20 odłożone. Poniżej historia wcześniejszych etapów.
 
 **2026-11-09 — poprawiono podpisy po zgłoszeniu do 23 (`8d4ec04`).**

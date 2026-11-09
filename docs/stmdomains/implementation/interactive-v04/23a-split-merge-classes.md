@@ -6,7 +6,7 @@
 
 **Blocked by:** [23: Twórz klasy ręcznie i poprawiaj ich przypisania](23-manual-classes.md).
 
-**Status:** done — implementacja 2026-11-09, `5ca2e6f`, poprawka `5de0d7f`; odbiór ręczny użytkownika otwarty.
+**Status:** done — implementacja 2026-11-09, `5ca2e6f`, poprawki `5de0d7f`, `7db599f`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”).
 
 [Obsługa, gotowy przykład, wyniki kontroli i test ręczny](acceptance-23a.md). [Przegląd](review-23a.md): Standards 0; Spec 1 uwaga poprawiona, 0 otwartych. Pełna regresja: **624 testy PASS / 280,46 s**, mypy **119 modułów PASS**.
 

@@ -2,14 +2,15 @@
 
 2026-11-09. Gałąź `domains/interactive-v04-ui`, baza `ee2071d`.
 Implementacja `5ca2e6f`, poprawka doboru zgodnych źródeł `5de0d7f`.
-Odbiór ręczny użytkownika **otwarty**. Poniżej wykonane sprawdzenia agenta
-oraz oddzielna instrukcja do samodzielnego odbioru.
+**Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”).**
+Potwierdzenie obejmuje 23a i poprawkę `7db599f`. Poniżej wykonane sprawdzenia
+agenta oraz zachowana instrukcja testu ręcznego.
 
 ## Poprawka pustej nazwy nowej klasy — 2026-11-09
 
 Zgłoszenie użytkownika: po wydzieleniu fragmentów jeden miał podpis `?1`;
 użyta opcja **Nowa pusta — podgląd**, bez jawnej nazwy. Poprawka `7db599f`,
-baza `27a939c`. Odbiór użytkownika tej poprawki pozostaje otwarty.
+baza `27a939c`. Odbiór użytkownika tej poprawki potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”).
 
 Odtworzenie w rzeczywistym oknie: utworzenie z pustym polem było odrzucane
 przez walidację nazwy, więc **Zastosuj** pozostawało nieaktywne. Cel nadal
@@ -195,4 +196,4 @@ maksimum **891** (`ui/session_controller.py`), bez wyjątków od limitu.
 Korekty nadal tylko w pamięci sesji: zapis/odtworzenie w 24, eksport w 25.
 Brak nowych zależności. Nie dodano automatycznej propagacji zaznaczeń,
 uczenia klas, łączenia obcych katalogów ani swobodnego rysowania granic.
-Odbiór ręczny użytkownika pozostaje otwarty; następny etap **24 → 25 → 26**.
+Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”); następny etap **24 → 25 → 26**.

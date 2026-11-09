@@ -5,7 +5,7 @@ Puste pole podczas tworzenia klasy nadaje kolejną wolną literę, np. F po A–
 Odtworzono i poprawiono sekwencję prowadzącą do przypisania `?1` po odrzuconym
 utworzeniu klasy. 48 testów PASS, mypy 119 modułów PASS, GUI TTMAPP268 PASS.
 [Wyjaśnienie, naprawa bieżącego wyniku i test ręczny](implementation/interactive-v04/acceptance-23a.md#poprawka-pustej-nazwy-nowej-klasy--2026-11-09).
-Odbiór użytkownika 23a i poprawki otwarty; następny 24 → 25 → 26.
+Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”); następny 24 → 25 → 26.
 
 **2026-11-09 — wykonano SD-V4-23a: scalanie i dzielenie klas (`5ca2e6f`, poprawka `5de0d7f`).**
 **Edytuj domeny → Klasy ręczne… → Scal klasy… / Podziel klasę…**:
@@ -16,7 +16,7 @@ osobne domeny; podział części domeny wydziela ją zgodnie z 22/23.
 Próba natywnego GUI/netcat: kontrola 9/7, podziały 5/4 i 1/8, wariant bez
 modelu oraz TTMAPP259–260 PASS. Przegląd: Standards 0; Spec 1 uwaga poprawiona, 0 otwartych.
 Pełna regresja: **624 testy PASS / 280,46 s**, mypy **119 modułów PASS**.
-**Odbiór ręczny użytkownika 23a otwarty**. Korekty tylko w sesji;
+**Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”)**. Korekty tylko w sesji;
 następny **24 → 25 → 26**, 19–20 odłożone. Poniżej historia wcześniejszych etapów.
 
 ID: stmdomains-map

@@ -46,4 +46,4 @@ regresji i rozszerzenia zakresu. Testy controls/window: **13 PASS / 7,92 s**.
 
 Podsumowanie osi: Standards — 0 uwag; Spec — 1 P2 poprawiona, 0 otwartych.
 Końcowa regresja: **624 PASS / 280,46 s**, mypy **119 modułów PASS**.
-Testy i otwarty ręczny odbiór: [raport](acceptance-23a.md).
+Testy i potwierdzony 2026-11-09 ręczny odbiór wersji `eb112f6`: [raport](acceptance-23a.md).
