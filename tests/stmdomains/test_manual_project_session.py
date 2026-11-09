@@ -262,3 +262,20 @@ def test_local_geometry_class_list_rebinds_and_resumes_after_reopen(qtbot, opene
     assert not m.class_list.classes
     m.redo()
     assert m.class_list.classes[0].name == 'Local'
+
+
+def test_automatic_fit_resize_is_not_an_unsaved_edit_but_zoom_is(qtbot, control, tmp_path):
+    from test_project_window import ProjectPrompts
+    c, m = control.controller, control.controller.manual
+    p = ProjectPrompts(tmp_path / 'fit.stmdomains')
+    p.selection = 'manual:' + m.active.identifier
+    control.project_actions.prompts = p
+    control.project_actions.save(save_as=True)
+    qtbot.waitUntil(lambda: not c.is_busy)
+    assert not control.project_actions.dirty
+    before = control.image_view.transform().m11()
+    control.resize(control.width() + 150, control.height() + 100)
+    qtbot.waitUntil(lambda: control.image_view.transform().m11() != before)
+    assert not control.project_actions.dirty
+    control.image_view.zoom_by(1.4)
+    assert control.project_actions.dirty

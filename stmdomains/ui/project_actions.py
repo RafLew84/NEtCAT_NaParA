@@ -47,6 +47,10 @@ class ProjectActions:
         self._revision += 1
 
     def _state(self) -> tuple:
+        view = capture_view(self.window)
+        if view.get('viewport', {}).get('fit'):
+            # Scale/centre in Fit mode are derived from the window layout.
+            view['viewport'] = {'fit': True}
         try:
             draft = capture_draft(self.window.analysis_dialog)
         except ValueError as error:
@@ -54,7 +58,7 @@ class ProjectActions:
             # while closing/opening may explicitly discard it.
             draft = {'invalid_draft': str(error)}
         return (self.controller.series.identity if self.controller.series else None, self._revision,
-                capture_view(self.window), draft,
+                view, draft,
                 analysis_identifier(self.controller.result) if self.controller.result else None)
 
     @property
