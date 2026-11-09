@@ -12,6 +12,7 @@ from stmdomains.analysis.features import prepare_points
 from stmdomains.analysis.config import PARAMETERS
 from stmdomains.analysis.manual_regions import manual_regions
 from stmdomains.analysis.manual_partition import split_labels, merge_labels
+from stmdomains.analysis.class_domain_join import join_class_domains
 from stmdomains.core.analysis_result import AnalysisInput, FrameAnalysis, MoleculeAssignment
 from stmdomains.core.manual_classes import ManualClassList
 from stmdomains.core.manual_project import ManualVariantState
@@ -236,7 +237,7 @@ class ManualDomains:
 
     def preview_classes(self, labels: ManualClassList, operation: str, *, target: str = '',
                         name: str = '', color: str = '', selection: tuple[str, ...] = (),
-                        whole_domains: bool = False, occupied: Collection[str] = (),
+                        whole_domains: bool = False, occupied: Collection[str] = (), join_touching: bool = False,
                         operation_details: Mapping[str, Any] | None = None) -> FrameAnalysis:
         self._pending = None
         self._preview_class_list = labels
@@ -249,6 +250,7 @@ class ManualDomains:
         regions = self.current.domain_labels
         selected = set(selection) if operation in ('assign', 'create_assign') else set()
         splits = []
+        joined: list[dict[str, Any]] = []
         if operation in ('assign', 'create_assign'):
             if target and target not in {c.class_id for c in revised.classes}:
                 raise ValueError('Wybierz klasę z bieżącej listy.')
@@ -260,7 +262,7 @@ class ManualDomains:
                     raise ValueError('W trybie całych domen wybierz członków domen, bez punktów nieprzypisanych.')
                 selected = {key for key, a in assignments.items() if a.domain_local_id in domains}
             changed = {key for key in selected if assignments[key].class_id != target}
-            if not changed:
+            if not changed and not join_touching:
                 raise ValueError('Wybrane molekuły mają już tę klasę.')
             next_domain = max((a.domain_local_id for a in assignments.values()), default=0) + 1
             for domain in sorted(domains - {0}):
@@ -282,10 +284,16 @@ class ManualDomains:
                         'manual_class_source': {'class_id': source.class_id,
                             'provisional_class_id': source.provisional_class_id, 'metadata': source.metadata},
                         'class_assignment_origin': 'manual'})
+            if join_touching:
+                assignments, regions, joined = join_class_domains(
+                    regions, assignments, self.data.annotations.detections, selected, target)
+                if not changed and not joined:
+                    raise ValueError('Wybrane molekuły mają już tę klasę; nie ma stykających się domen do połączenia.')
         preview = self._make_preview(assignments, regions, 'class_' + operation, selected, 0,
             {'class_list_id': revised.identifier, 'class_list_before': labels.version,
              'class_list_after': revised.version, 'class_target': target, 'splits': splits,
-             'whole_domains': whole_domains, **(operation_details or {})})
+             'whole_domains': whole_domains, 'join_touching': join_touching,
+             'joined_domains': joined, **(operation_details or {})})
         self._pending = replace(preview, class_list=revised)
         return self._pending
 

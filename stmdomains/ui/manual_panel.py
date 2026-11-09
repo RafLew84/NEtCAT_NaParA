@@ -13,6 +13,7 @@ from stmdomains.core.result_names import class_name, domain_name, domain_names
 from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.manual_controller import ManualController, UNSAVED_MANUAL
 from stmdomains.ui.manual_selection import ManualSelection
+from stmdomains.ui.selection_controls import SelectionControls
 from stmdomains.ui.manual_class_dialog import ManualClassDialog
 
 
@@ -52,19 +53,12 @@ class ManualPanel(QWidget):
         content = QWidget()
         form = QFormLayout(content)
         form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-        self.tool = QComboBox()
-        for label, key in [('Lasso', 'lasso'), ('Kliknięcia', 'click'), ('Przesuwanie', 'pan')]:
-            self.tool.addItem(label, key)
-        self.mode = QComboBox()
-        for label, key in [('Zastąp wybór', 'replace'), ('Dodaj do wyboru', 'add'), ('Odejmij z wyboru', 'subtract')]:
-            self.mode.addItem(label, key)
-        form.addRow('Narzędzie', self.tool)
-        form.addRow('Zaznaczanie', self.mode)
+        self.selection_controls = SelectionControls(manual)
+        self.tool, self.mode = self.selection_controls.tool, self.selection_controls.mode
+        self.clear = self.selection_controls.clear
+        form.addRow(self.selection_controls)
         self.count = QLabel('Wybrano: 0')
-        self.clear = QPushButton('Wyczyść wybór')
-        self.clear.clicked.connect(lambda: self._select((), 'replace'))
         form.addRow(self.count)
-        form.addRow(self.clear)
         self.operation = QComboBox()
         for label, key in [('Nowa domena', 'new'), ('Dodaj do domeny', 'add'),
                            ('Usuń z domeny', 'remove'), ('Przenieś do domeny', 'move'),

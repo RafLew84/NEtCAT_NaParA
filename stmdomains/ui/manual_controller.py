@@ -32,6 +32,8 @@ class ManualController(QObject):
         self.variants: dict[str, ManualDomains] = {}
         self.selected: dict[int, str] = {}
         self.selection: tuple[str, ...] = ()
+        self.selection_tool = 'lasso'
+        self.selection_mode = 'replace'
         self.preview_result: FrameAnalysis | None = None
         self.compare_original = False
         self.editing = False
@@ -212,6 +214,17 @@ class ManualController(QObject):
             self.class_lists.bind(active)
         return active
 
+    def set_selection_options(self, *, tool: str | None = None, mode: str | None = None) -> None:
+        if tool is not None:
+            if tool not in ('click', 'lasso', 'pan'):
+                raise ValueError('Nieznane narzędzie zaznaczania.')
+            self.selection_tool = tool
+        if mode is not None:
+            if mode not in ('replace', 'add', 'subtract'):
+                raise ValueError('Nieznany tryb zaznaczania.')
+            self.selection_mode = mode
+        self.changed.emit()
+
     def select_molecules(self, identifiers: tuple[str, ...], mode: str = 'replace') -> None:
         if not self.can_edit:
             return
@@ -266,7 +279,7 @@ class ManualController(QObject):
         self._notify()
 
     def preview_classes(self, operation: str, *, target: str = '', name: str = '', color: str = '',
-                        whole_domains: bool = False) -> None:
+                        whole_domains: bool = False, join_touching: bool = False) -> None:
         if not self.can_edit:
             return
         self.class_operations.invalidate('Rozpoczęto inną edycję. Ustal zakres ponownie.')
@@ -278,13 +291,17 @@ class ManualController(QObject):
                         if self.class_lists.get(v).identifier == labels.identifier
                         for a in v.current.assignments.values()}
             result = active.preview_classes(labels, operation, target=target, name=name, color=color,
-                selection=self.selection, whole_domains=whole_domains, occupied=occupied)
+                selection=self.selection, whole_domains=whole_domains, occupied=occupied, join_touching=join_touching)
             self.preview_result = result
             edit = result.metadata['manual_edit']
             splits = edit['splits']
             self.message = (f'Podgląd klas · {len(edit["selection"])} molekuł w klatce '
                             f'{self.controller.current_index + 1}. ')
-            if splits:
+            if edit.get('joined_domains'):
+                before = self.current_result or active.current
+                self.message += f'Domeny: {before.domain_count} → {result.domain_count}. '
+                self.message += 'Połączono stykające się fragmenty docelowej klasy; obszar bez zmian. '
+            elif splits:
                 current = self.current_result or active.current
                 self.message += 'Podział: ' + ', '.join(
                     f'{domain_name(current, s["source_domain"])} → '

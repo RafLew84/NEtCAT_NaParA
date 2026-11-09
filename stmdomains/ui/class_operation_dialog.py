@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 )
 
 from stmdomains.ui.manual_controller import ManualController
+from stmdomains.ui.selection_controls import SelectionControls
 
 
 class ClassOperationDialog(QDialog):
@@ -69,6 +70,8 @@ class ClassOperationDialog(QDialog):
         target_form.addRow('Kolor nowej klasy', colors)
         choices.addLayout(target_form, 2)
         layout.addLayout(choices)
+        self.selection_controls = SelectionControls(manual)
+        layout.addWidget(self.selection_controls)
         self.selection_mode = QComboBox()
         self.selection_mode.addItem('Zaznaczone molekuły', False)
         self.selection_mode.addItem('Całe wskazane domeny + wybrane punkty bez domeny', True)
@@ -167,6 +170,7 @@ class ClassOperationDialog(QDialog):
         anchor = m.variants.get(self.variant.currentData())
         labels = op.labels or (m.class_lists.get(anchor) if anchor else None)
         split = self.operation.currentData() == 'split'
+        self.selection_controls.setVisible(split)
         count = m.controller.series.frame_count if m.controller.series else 1
         with QSignalBlocker(self.start), QSignalBlocker(self.end):
             self.start.setMaximum(count)

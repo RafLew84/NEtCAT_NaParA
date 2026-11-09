@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 )
 
 from stmdomains.ui.manual_controller import ManualController
+from stmdomains.ui.selection_controls import SelectionControls
 from stmdomains.ui.class_operation_dialog import ClassOperationDialog
 
 
@@ -16,10 +17,11 @@ class ManualClassDialog(QDialog):
     def __init__(self, manual: ManualController, parent: QWidget) -> None:
         super().__init__(parent)
         self.manual = manual
+        manual.set_selection_options(mode='add')
         self._context: tuple[object, ...] = ()
         self.operations_dialog: ClassOperationDialog | None = None
         self.setWindowTitle('Klasy ręczne — bieżąca klatka')
-        self.resize(620, 680)
+        self.resize(620, 840)
         layout = QVBoxLayout(self)
         self.scope = QLabel()
         self.scope.setWordWrap(True)
@@ -63,12 +65,19 @@ class ManualClassDialog(QDialog):
         self.selection = QLabel()
         self.selection.setWordWrap(True)
         layout.addWidget(self.selection)
+        self.selection_controls = SelectionControls(manual)
+        layout.addWidget(self.selection_controls)
         self.assignment_scope = QComboBox()
         self.assignment_scope.addItem('Tylko zaznaczone molekuły (część domeny zostanie wydzielona)', False)
         self.assignment_scope.addItem('Całe domeny wskazane przez zaznaczone molekuły', True)
         layout.addWidget(self.assignment_scope)
+        self.join_touching = QCheckBox('Połącz stykające się domeny tej klasy')
+        self.join_touching.setToolTip('Łączy obszary tej klasy połączone z zaznaczeniem. '
+                                     'Nie łączy przez przerwy ani nie tworzy domen z punktów bez obszaru.')
+        self.join_touching.toggled.connect(manual.cancel_preview)
+        layout.addWidget(self.join_touching)
         assignments = QHBoxLayout()
-        self.assign = QPushButton('Przypisz wybraną — podgląd')
+        self.assign = QPushButton('Przypisz do klasy — podgląd')
         self.create_assign = QPushButton('Nowa klasa i przypisanie — podgląd')
         self.assign.clicked.connect(lambda: self._preview('assign'))
         self.create_assign.clicked.connect(lambda: self._preview('create_assign'))
@@ -105,7 +114,8 @@ class ManualClassDialog(QDialog):
 
     def _preview(self, operation: str) -> None:
         self.manual.preview_classes(operation, target=self.target.currentData() or '',
-            name=self.name.text(), color=self.color.text(), whole_domains=self.assignment_scope.currentData())
+            name=self.name.text(), color=self.color.text(), whole_domains=self.assignment_scope.currentData(),
+            join_touching=self.join_touching.isChecked() and operation in ('assign', 'create_assign'))
 
     def _show_operation(self, operation: str) -> None:
         self.manual.cancel_preview()
@@ -218,6 +228,7 @@ class ManualClassDialog(QDialog):
         self.delete.setToolTip('Tylko ręczna klasa bez członków we wszystkich wariantach tej listy.')
         for button in (self.assign, self.create_assign):
             button.setEnabled(manual.can_edit and bool(manual.selection))
+        self.join_touching.setEnabled(manual.can_edit)
         self.apply.setEnabled(manual.can_edit and manual.preview_result is not None)
         self.cancel.setEnabled(manual.preview_result is not None)
         for button, redo in ((self.undo, False), (self.redo, True)):
