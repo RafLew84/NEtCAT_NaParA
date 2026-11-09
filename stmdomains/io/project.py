@@ -13,7 +13,7 @@ from stmdomains.core.immutable import plain_metadata
 from stmdomains.core.project import ProjectSnapshot
 from stmdomains.io.moltrack_import import _series_from_source
 from stmdomains.io.project_validation import validate_project_state
-from stmdomains.io.project_results import save_analysis, load_analysis
+from stmdomains.io.project_results import save_analysis, load_analysis, PinnedFrameResults
 from stmdomains.io.project_manual import save_manual, load_manual
 from stmdomains.io.project_archive import (ProjectCancelled, ProjectError, atomic_archive, checkpoint,
     extract_checked, json_bytes, put_bytes, put_source, read_json)
@@ -93,7 +93,12 @@ def open_project(path: Path, *, cancelled: Callable[[], bool] = lambda: False,
             raise ProjectError('Niezgodna obecność korekt w projekcie.')
         analysis = load_analysis(record['analysis'], root, series,
                                  {k: v for k, v in entries.items() if not k.startswith('manual/')}, check)
-        manual = load_manual(root, entries, series, check) if manual_present else None
+        manual = load_manual(root, entries, series, check, analysis) if manual_present else None
+        if manual is not None and analysis is not None:
+            variants = {v.identifier: v for v in manual.variants}
+            originals = {i: original for i, key in manual.selected if (original := variants[key].original) is not None}
+            # Keep edited originals stable even after the bounded raster cache evicts a frame.
+            analysis = replace(analysis, frames=PinnedFrameResults(analysis.frames, originals))
         return ProjectSnapshot(series, record['view'], record['draft'], analysis, manual)
     except ProjectCancelled:
         cache.cleanup()

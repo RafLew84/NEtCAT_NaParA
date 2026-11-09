@@ -1,6 +1,7 @@
 """Select a coherent manual document and track which variants were actually saved."""
 
 from collections import Counter
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from stmdomains.core.manual_class_lists import ManualClassLists
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
 class ManualPersistence:
     def __init__(self, manual: 'ManualController') -> None:
         self.manual = manual
-        self.saved: dict[str, tuple] = {}
+        self.saved: dict[Path, dict[str, tuple]] = {}
 
     def reset(self) -> None:
         self.saved.clear()
@@ -41,14 +42,19 @@ class ManualPersistence:
     @property
     def dirty(self) -> bool:
         current = self.tokens()
-        return any(current.get(key) != self.saved.get(key) for key in set(current) | set(self.saved))
+        return any(not any(document.get(key) == value for document in self.saved.values())
+                   for key, value in current.items())
 
-    def mark_saved(self, state: ManualProjectState | None) -> None:
+    def mark_saved(self, state: ManualProjectState | None, path: Path) -> None:
+        # Replacing a document invalidates checkpoints omitted from that file.
+        # Save As preserves checkpoints still present in a different document.
+        checkpoint = {}
         if state is not None:
             used = {v.class_list_id for v in state.variants if len(v.frames) > 1}
             for labels in state.revisions:
                 if labels.identifier in used:
-                    self.saved[labels.source_key] = self._token(state, labels.source_key)
+                    checkpoint[labels.source_key] = self._token(state, labels.source_key)
+        self.saved[path.resolve()] = checkpoint
 
     def options(self) -> list[tuple[str, str]]:
         m = self.manual
@@ -112,7 +118,9 @@ class ManualPersistence:
         if not frames:
             return None
         statuses = dict(base.statuses) if base else {}
-        statuses.update({i: {'status': f.status, 'message': f.message} for i, f in frames.items()})
+        statuses.update({i: {**statuses.get(i, {}), 'status': f.status, 'message': f.message,
+                             'assigned': f.assigned_count, 'active': f.active_count, 'domains': f.domain_count}
+                         for i, f in frames.items()})
         indices = tuple(sorted(set(statuses)))
         execution = base.execution if base and indices == base.indices else {'phase': 'restored'}
         return ProjectAnalysis(base.identifier if base else 'manual-base-' + state.variants[0].identifier,
@@ -140,4 +148,5 @@ class ManualPersistence:
         m.selected = dict(state.selected)
         m.editing, m.compare_original = state.editing, state.comparison
         m._frame_index = m.controller.current_index
-        self.mark_saved(state)
+        assert m.controller.project_path is not None
+        self.mark_saved(state, m.controller.project_path)

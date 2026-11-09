@@ -32,6 +32,22 @@ from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.io.project_archive import ProjectError, json_bytes, put_bytes, read_json
 
 
+class PinnedFrameResults(Mapping[int, FrameAnalysis]):
+    """Keep edited originals stable while other saved rasters remain lazy."""
+
+    def __init__(self, source: Mapping[int, FrameAnalysis], originals: Mapping[int, FrameAnalysis]) -> None:
+        self.source, self.originals = source, dict(originals)
+
+    def __getitem__(self, index: int) -> FrameAnalysis:
+        return self.originals[index] if index in self.originals else self.source[index]
+
+    def __iter__(self) -> Iterator[int]:
+        return iter(self.source)
+
+    def __len__(self) -> int:
+        return len(self.source)
+
+
 def catalogue_record(catalogue: ClassCatalogue) -> dict:
     return {'identifier': catalogue.identifier, 'scope': catalogue.scope, 'indices': catalogue.frame_indices,
             'state': plain_metadata(catalogue.state), 'provenance': plain_metadata(catalogue.provenance),

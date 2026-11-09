@@ -104,6 +104,9 @@ class ManualDomains:
         initial, expected = state.frames[0], variant.current
         if (initial.assignments != expected.assignments or initial.classes != expected.classes
                 or initial.parameters != expected.parameters or initial.metadata != expected.metadata
+                or initial.status != expected.status or initial.message != expected.message
+                or initial.class_list != expected.class_list
+                or not np.array_equal(np.asarray(initial.barrier_mask), np.asarray(expected.barrier_mask))
                 or not np.array_equal(np.asarray(initial.domain_labels), np.asarray(expected.domain_labels))):
             raise ValueError('Początek historii nie odpowiada wynikowi bazowemu.')
         variant.identifier = state.identifier

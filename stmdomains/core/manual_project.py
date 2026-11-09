@@ -56,6 +56,7 @@ def validate_history(state: ManualProjectState) -> None:
     positions = dict.fromkeys(variants, 0)
     versions = dict(starts)
     timeline = state.undo + tuple(reversed(state.redo))
+    seen_transactions: set[str] = set()
     for position in range(len(timeline) + 1):
         if position == len(state.undo):
             if versions != current or any(positions[v.identifier] != v.cursor for v in state.variants):
@@ -97,7 +98,9 @@ def validate_history(state: ManualProjectState) -> None:
                     scope = tuple(edit.get('transaction_frames', ()))
                     if (edit.get('class_operation') not in ('merge', 'split') or not sources
                             or not set(sources) <= {c.class_id for c in step.before.classes}
-                            or len(scope) != len(set(scope)) or frame.working_index not in scope):
+                            or len(scope) != len(set(scope)) or frame.working_index not in scope
+                            or not set(scope) <= {v.frames[0].working_index for v in state.variants
+                                                  if v.class_list_id == step.before.identifier}):
                         raise ValueError('Niepoprawne źródła lub zakres operacji klas.')
                     previous = variant.frames[positions[key] - 1]
                     if any(previous.assignments[k].class_id not in sources
@@ -107,6 +110,10 @@ def validate_history(state: ManualProjectState) -> None:
             transactions.add(edit.get('transaction_id'))
         if len(keys) > 1 and (len(transactions) != 1 or None in transactions or len(transaction_scopes) != 1):
             raise ValueError('Niespójna wieloklatkowa operacja historii.')
+        transaction_ids = transactions - {None}
+        if seen_transactions & transaction_ids:
+            raise ValueError('Atomowa operacja została rozdzielona na kilka kroków historii.')
+        seen_transactions.update(transaction_ids)
         if step.before is not None and step.after is not None:
             if (step.before.identifier != step.after.identifier or versions.get(step.before.identifier) != step.before.version
                     or revisions.get((step.before.identifier, step.before.version)) is not step.before

@@ -733,7 +733,8 @@ class SessionController(QObject):
             self._save_token = None
             self.project_path = self._saving_path
             self._saving_path = None
-            self.manual.persistence.mark_saved(self._saving_manual)
+            assert self.project_path is not None
+            self.manual.persistence.mark_saved(self._saving_manual, self.project_path)
             self._saving_manual = None
             self._busy()
             self.project_saved.emit(self.project_path)

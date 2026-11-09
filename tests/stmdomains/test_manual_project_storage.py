@@ -103,3 +103,41 @@ def test_pending_preview_cannot_be_silently_omitted_from_save(qtbot, control, tm
     with pytest.raises(ValueError, match='Zatwierdź lub anuluj'):
         c.save_project(tmp_path / 'pending.stmdomains')
     assert m.preview_result is not None and control.project_actions.dirty
+
+
+def test_multiframe_transaction_cannot_be_split_into_independent_undo_steps(qtbot, control, tmp_path):
+    c, m = control.controller, control.controller.manual
+    capture(qtbot, m.class_operations, 'whole_series')
+    preview(qtbot, m.class_operations, 'merge', ('A', 'B'), target='A')
+    m.class_operations.apply()
+    path = tmp_path / 'compound.stmdomains'
+    c.save_project(path)
+    qtbot.waitUntil(lambda: not c.is_busy)
+    with zipfile.ZipFile(path) as archive:
+        state = json.loads(archive.read('manual/state.json'))
+    step = state['undo'].pop()
+    for key in step['variant_ids']:
+        state['undo'].append({**step, 'variant_id': key, 'variant_ids': [key]})
+    rewrite_part(path, 'manual/state.json', json.dumps(state).encode(), refresh_hash=True)
+    with pytest.raises(ProjectError):
+        open_project(path)
+
+
+def test_partial_automatic_run_keeps_uncomputed_frame_with_manual_history(qtbot, control, tmp_path):
+    from dataclasses import replace
+    c, m = control.controller, control.controller.manual
+    base = c.project_analysis()
+    partial = replace(base, frames={i: f for i, f in base.frames.items() if i != 2},
+                      statuses={**base.statuses, 2: {'status': 'not_run', 'message': 'Przerwano'}},
+                      execution={'phase': 'cancelled'})
+    manual = m.persistence.snapshot(partial, m.active)
+    path = tmp_path / 'partial-manual.stmdomains'
+    save_project(path, ProjectSnapshot(c.series, analysis=partial, manual=manual))
+    c.open_session(path)
+    qtbot.waitUntil(lambda: not c.is_busy)
+    assert c.displayed_result.class_counts == {'A': 6, 'B': 3}
+    assert c.series_run.frames[2].status == 'not_run'
+    assert 2 not in c.loaded_project.analysis.frames
+    c.show_frame(2)
+    qtbot.waitUntil(lambda: not c.is_busy)
+    assert c.result is None and c.displayed_result is None

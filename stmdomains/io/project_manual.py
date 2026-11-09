@@ -13,6 +13,7 @@ from stmdomains.core.manual_classes import ManualClass, ManualClassList
 from stmdomains.core.manual_class_lists import ManualClassLists
 from stmdomains.core.manual_project import ManualProjectState, ManualStep, ManualVariantState
 from stmdomains.core.series import Series
+from stmdomains.core.project import ProjectAnalysis
 from stmdomains.io.project_archive import ProjectError, json_bytes, put_bytes, read_json
 from stmdomains.io.project_results import catalogue_record, frame_record, load_catalogue
 from stmdomains.io.manual_validation import validate_manual
@@ -72,7 +73,8 @@ def save_manual(archive: zipfile.ZipFile, entries: dict, state: ManualProjectSta
     put_bytes(archive, entries, 'manual/state.json', json_bytes(record))
 
 
-def load_manual(root: Path, entries: dict, series: Series, check) -> ManualProjectState:
+def load_manual(root: Path, entries: dict, series: Series, check,
+                analysis: ProjectAnalysis | None = None) -> ManualProjectState:
     record = read_json(root / 'manual/state.json')
     if type(record['version']) is not int or record['version'] != 1 or not isinstance(record['series_id'], str):
         raise ProjectError('Nieobsługiwana wersja korekt ręcznych.')
@@ -140,7 +142,16 @@ def load_manual(root: Path, entries: dict, series: Series, check) -> ManualProje
         results[key] = value
         return value
 
-    variants = tuple(ManualVariantState(v['identifier'], v['class_list_id'], result(v['original']),
+    def original(key):
+        value = result(key)
+        base = analysis.frames.get(value.working_index) if analysis and value is not None else None
+        if value is not None and base is not None and same_result(value, base):
+            # Returning to the same automatic result must resume its saved variant.
+            results[key] = base
+            return base
+        return value
+
+    variants = tuple(ManualVariantState(v['identifier'], v['class_list_id'], original(v['original']),
         tuple(result(k) for k in v['frames']), v['cursor'], v['revision']) for v in record['variants'])
     # Series identities change on opening a portable document. Rebind internal
     # source keys while preserving every list/label/revision and variant ID.
@@ -171,7 +182,19 @@ def load_manual(root: Path, entries: dict, series: Series, check) -> ManualProje
     state = ManualProjectState(variants, tuple(remapped.values()), tuple(tuple(x) for x in record['current']),
         tuple(step(s) for s in record['undo']), tuple(step(s) for s in record['redo']),
         tuple(tuple(x) for x in record['selected']), record['editing'], record['comparison'])
+    by_id = {v.identifier: v for v in variants}
+    for index, key in state.selected:
+        base = analysis.frames.get(index) if analysis else None
+        source = by_id[key].original
+        if (base is None) != (source is None) or (base is not None and source is not None and not same_result(base, source)):
+            raise ProjectError('Wybrany wynik bazowy nie odpowiada oryginałowi korekt.')
     if expected != {name for name in entries if name.startswith('manual/')}:
         raise ProjectError('Brakujące lub niepowiązane części korekt.')
     validate_manual(state, series, check)
     return state
+
+
+def same_result(left: FrameAnalysis, right: FrameAnalysis) -> bool:
+    return (frame_record(left) == frame_record(right)
+            and np.array_equal(np.asarray(left.domain_labels), np.asarray(right.domain_labels))
+            and np.array_equal(np.asarray(left.barrier_mask), np.asarray(right.barrier_mask)))

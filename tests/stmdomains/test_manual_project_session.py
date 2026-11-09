@@ -27,6 +27,8 @@ def test_save_after_undo_reopens_classes_and_redo_without_original_sources(qtbot
     assert c.displayed_result.class_list.classes[-1].name == 'Fragment'
     assert c.displayed_result.assignments['frame-1-molecule-1'].class_id == target
     assert c.displayed_result.domain_count == 3
+    assert c.series_run.frames[0].assigned == original.assigned_count
+    assert c.series_run.frames[0].active == original.active_count
     m.set_editing(True)
     m.redo()
     assert m.class_list.classes[-1].name == 'Nowa nazwa'
@@ -202,3 +204,61 @@ def test_save_one_source_keeps_other_source_dirty_and_idle_editing_clean(qtbot, 
     assert prompts.path.exists()
     assert opened.project_actions.dirty
     assert 'Pozostają niezapisane' in opened.progress_label.text()
+
+
+def test_overwriting_saved_project_without_manual_edits_marks_them_unsaved(qtbot, control, tmp_path):
+    from test_project_window import ProjectPrompts
+    c, m = control.controller, control.controller.manual
+    p = ProjectPrompts(tmp_path / 'edited.stmdomains')
+    p.selection = 'manual:' + m.active.identifier
+    control.project_actions.prompts = p
+    control.project_actions.save(save_as=True)
+    qtbot.waitUntil(lambda: not c.is_busy)
+    assert not control.project_actions.dirty
+    p.selection = 'automatic'
+    control.project_actions.save()
+    qtbot.waitUntil(lambda: not c.is_busy)
+    assert control.project_actions.dirty
+    assert 'Pozostają niezapisane' in control.progress_label.text()
+    assert not control.project_actions.allow_close()
+
+
+def test_editing_same_automatic_base_after_reopen_resumes_saved_variant(qtbot, control, tmp_path):
+    c, m = control.controller, control.controller.manual
+    identifier = m.active.identifier
+    path = tmp_path / 'resume.stmdomains'
+    c.save_project(path)
+    qtbot.waitUntil(lambda: not c.is_busy)
+    c.open_session(path)
+    qtbot.waitUntil(lambda: not c.is_busy)
+    m.select_variant('')
+    assert c.displayed_result is c.result
+    m.set_editing(True)
+    assert m.active.identifier == identifier
+    assert c.displayed_result.class_counts == {'A': 6, 'B': 3}
+
+
+def test_local_geometry_class_list_rebinds_and_resumes_after_reopen(qtbot, opened, tmp_path):
+    from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings
+    c, m = opened.controller, opened.controller.manual
+    c.analyze_geometry_domains(GeometryDomainSettings())
+    qtbot.waitUntil(lambda: not c.is_busy, timeout=20000)
+    assert c.result is not None and c.result.catalogue is None
+    m.set_editing(True)
+    m.preview_classes('create', name='Local', color='#123456')
+    m.apply()
+    identifier, labels = m.active.identifier, m.class_list
+    path = tmp_path / 'local.stmdomains'
+    c.save_project(path)
+    qtbot.waitUntil(lambda: not c.is_busy)
+    assert path.exists()
+    c.open_session(path)
+    qtbot.waitUntil(lambda: not c.is_busy)
+    assert m.class_list.identifier == labels.identifier and m.class_list.version == labels.version
+    m.select_variant('')
+    m.set_editing(True)
+    assert m.active.identifier == identifier
+    m.undo()
+    assert not m.class_list.classes
+    m.redo()
+    assert m.class_list.classes[0].name == 'Local'
