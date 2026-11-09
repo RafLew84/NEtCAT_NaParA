@@ -1,5 +1,18 @@
 # Interaktywne STM Domains — obliczenia z danych
 
+**2026-11-09 — wykonano SD-V4-25: eksport ręcznych klas i domen** (`03dfece`, `bf243a0`).
+**Plik → Eksportuj PNG/CSV…**: domyślne Po korektach, opcjonalny bazowy
+automat, jawny zakres; CSV zachowuje bazowe/końcowe przypisania i pochodzenie,
+PNG kolory, nazwy i legendę wybranego wariantu. Eksport działa przed zapisem
+projektu i zachowuje historię oraz dirty. Wspólne etykiety obejmują także
+nieodwiedzone klatki tego katalogu; braki analizy/geometrii pozostają jawne.
+[Obsługa, gotowe przykłady i test ręczny](acceptance-25.md),
+[przegląd](review-25.md): 0 otwartych uwag Standards/Spec.
+Mypy **127 modułów PASS**; natywne GUI/netcat: kontrole i TTMAPP259 PASS.
+Pełna regresja: **659 testów PASS / 295,49 s**.
+**Odbiór ręczny użytkownika 25 otwarty.** Następny **26**; 19–20 odłożone.
+Poniżej historia wcześniejszych etapów.
+
 **2026-11-09 — wykonano SD-V4-24: zapis korekt i historii** (`1c1b798`, `9b7a19b`, `94803e8`).
 **Plik → Zapisz projekt…**: jawny wybór wyniku po korektach, automatu lub
 samych danych. Projekt odtwarza klasy, domeny i Cofnij/Ponów, także po
@@ -290,7 +303,8 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 23 ma status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”).
 23a ma status `done`; odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”).
 24 ma status `done`; zapis korekt i historii wykonano. Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”).
-25–26 mają zakres `ready-for-agent`
+25 jest zaimplementowany; odbiór ręczny użytkownika otwarty.
+26 ma zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -299,7 +313,7 @@ wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
 21 i 22 są zaimplementowane i odebrane ręcznie przez użytkownika.
 23 oraz 23a wraz z poprawką nazw są zaimplementowane i odebrane ręcznie.
-Następny rekomendowany etap to **25 — eksport ręcznych korekt**. 19–20
+Następny rekomendowany etap to **26 — próba level-set Gibou–Fedkiwa**. 19–20
 pozostają odłożone zgodnie z warunkami opisanymi w ich ticketach.
 
 ## Tickety i kolejność
@@ -338,8 +352,8 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23a | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 | [26 — Porównaj granice domen metodą level-set Gibou–Fedkiwa](26-compare-fedkiw-level-set.md) | SD-V4-17, SD-V4-13, SD-V4-14 | Zmień regularyzację granic, porównaj molekuły i całe domeny z Geometrią oraz przejrzyj obliczone klatki. |
 
-Po wykonanym 23a następny rekomendowany ticket to
-**25 — eksport ręcznych korekt**. Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”). Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”). Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
+Po wykonanym 25 następny rekomendowany ticket to
+**26 — próba level-set Gibou–Fedkiwa**. Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”). Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”). Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
 nie wymaga ukończenia odłożonych 19–20.
 Odbiór użytkownika 13 jest potwierdzony, a 14 potwierdzono dla `4e9f1d9`. 13/14 wykonano po 05;
 16 jest niezależnie dostępny po 05, a 15 po 07. 08 korzysta
@@ -401,8 +415,9 @@ Wspólny zakres i zasady:
   po ponownym uruchomieniu wykonano w 24.
 - Od 24 zapis projektu zachowuje wybrane korekty i historię. Zapis samego
   automatu wymaga świadomego wyboru; pominięte korekty pozostają niezapisane.
-  Eksport korekt jest zablokowany do 25. Późniejsze zmiany zapisu i eksportu
-  muszą zachować obsługę korekt. Zamknięcie programu nie może bez ostrzeżenia
+  Od 25 eksport CSV/PNG obejmuje wybrany stan po korektach lub automat.
+  Eksport nie zastępuje zapisu projektu i nie usuwa stanu niezapisanych korekt.
+  Późniejsze zmiany zapisu i eksportu muszą zachować obsługę korekt. Zamknięcie programu nie może bez ostrzeżenia
   utracić edycji.
 - Ręczna korekta nie trenuje modelu ani nie przenosi przypisań automatycznie
   na inne klatki. W 23a użytkownik może jawnie objąć operacją wiele klatek

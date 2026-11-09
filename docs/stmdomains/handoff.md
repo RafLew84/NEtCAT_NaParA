@@ -1,3 +1,41 @@
+# STM Domains — SD-V4-25: eksport korekt
+
+2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
+`domains/interactive-v04-ui`; baza `4555908`, implementacja **`03dfece`**,
+poprawki przeglądu **`bf243a0`**. **Odbiór ręczny użytkownika 25 otwarty.**
+
+**Plik → Eksportuj PNG/CSV…**: Po korektach lub bazowy automat, jawny
+zakres klatek. CSV zachowuje bazowe/końcowe przypisania, ID, nazwy/kolory
+klas, pochodzenie i zastosowane operacje; PNG odpowiada widokowi i legendzie.
+Wspólna rewizja nazw obejmuje też nieodwiedzone klatki tego samego katalogu.
+Eksport przed zapisem projektu; Cofnij/Ponów, anulowanie i błąd nie zmieniają
+historii ani stanu niezapisanych korekt. Brak modelu, analizy i geometrii
+pozostaje jawny. Klasy bez domeny nie uzyskują sztucznej powierzchni.
+
+[Obsługa, gotowe przykłady i test ręczny](implementation/interactive-v04/acceptance-25.md),
+[przegląd](implementation/interactive-v04/review-25.md). Standardowy start:
+`conda activate netcat`, następnie `python -m stmdomains.main`.
+
+Netcat: **32 testy powiązane PASS**, mypy **127 modułów PASS**.
+Końcowa pełna regresja: **659 testów PASS / 295,49 s** dla `bf243a0` (`regression.xml`).
+Natywne Qt/X11 po `bf243a0`: kontrole oraz TTMAPP259 PASS; dokładne przypisania
+CSV, legenda i kolory pikseli PNG, widok oryginalny/wyrównany, gamma, historia,
+wspólne nazwy, brak automatu/analizy i nieznana geometria. Na TTMAPP wydzielenie
+jednego członka do ręcznej klasy: 6→7 domen, 120 członków bez zmiany. To kontrola
+eksportu, nie nowy pomiar skuteczności metody. Artefakty:
+`.scratch/stmdomains-ui-25/`, końcowe GUI w `gui-final/`.
+
+Standards: 1 sugestia P3 uwzględniona, 0 otwartych. Spec: P1 (wspólne nazwy
+nieodwiedzonych klatek) i P2 (nieznany brzeg klasy) poprawione; recenzenci
+potwierdzili zamknięcie. **16 zmienionych plików Python, maksimum 911 linii**,
+wszystkie poniżej 1000. Bez nowych zależności i zmian współdzielonych.
+
+Następny **26**; implementacji nie rozpoczęto. 19–20 pozostają odłożone.
+CSV/PNG nie są projektem z historią ani automatycznie referencją naukową.
+Starsze wpisy poniżej opisują historyczne ograniczenia.
+
+---
+
 # STM Domains — odbiór ręczny 24 i poprawki wyboru molekuł
 
 **2026-11-09: użytkownik potwierdził „temty manualne ok”.**

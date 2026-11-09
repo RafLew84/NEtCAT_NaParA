@@ -1,5 +1,18 @@
 # STM Domains
 
+**2026-11-09 — wykonano SD-V4-25: eksport ręcznych klas i domen** (`03dfece`, `bf243a0`).
+**Plik → Eksportuj PNG/CSV…**: domyślne Po korektach, opcjonalny bazowy
+automat, jawny zakres; CSV zachowuje bazowe/końcowe przypisania i pochodzenie,
+PNG kolory, nazwy i legendę wybranego wariantu. Eksport działa przed zapisem
+projektu i zachowuje historię oraz dirty. Wspólne etykiety obejmują także
+nieodwiedzone klatki tego katalogu; braki analizy/geometrii pozostają jawne.
+[Obsługa, gotowe przykłady i test ręczny](implementation/interactive-v04/acceptance-25.md),
+[przegląd](implementation/interactive-v04/review-25.md): 0 otwartych uwag Standards/Spec.
+Mypy **127 modułów PASS**; natywne GUI/netcat: kontrole i TTMAPP259 PASS.
+Pełna regresja: **659 testów PASS / 295,49 s**.
+**Odbiór ręczny użytkownika 25 otwarty.** Następny **26**; 19–20 odłożone.
+Poniżej historia wcześniejszych etapów.
+
 **2026-11-09 — wiele zaznaczeń i łączenie fragmentów klasy (`8edc163`).**
 W oknie Klasy ręczne są Kliknięcia/Lasso oraz Dodaj/Odejmij/Zastąp wybór.
 Opcja **Połącz stykające się domeny tej klasy** porządkuje fragmenty po
