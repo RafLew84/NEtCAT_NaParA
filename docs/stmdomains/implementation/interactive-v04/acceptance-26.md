@@ -89,4 +89,36 @@ wpływ regularyzacji na rzeczywistą maskę, spójność centrum–maska,
 powtarzalność, limit, anulowanie i brak danych.
 Testy Qt: porównanie bez utraty zoomu, szkic, anulowanie, nawigacja,
 zapis/odczyt/eksport oraz zachowanie osobnych ręcznych korekt.
-Końcowe wyniki regresji, przeglądu i natywnego GUI zostaną dopisane po ich zakończeniu.
+W netcat: **17 testów Level set PASS**, dodatkowy zestaw powiązanych testów
+przełączania i eksportu **17 PASS**; mypy **134 moduły PASS**.
+Pełna regresja po `7816cf6`: **676 testów PASS / 301.89 s** (`regression.xml`).
+Przegląd [Standards/Spec](review-26.md): po jednej uwadze poprawionej,
+0 otwartych. **20 zmienionych plików Python, maksimum 926 linii**;
+bez nowych zależności i zmian konfiguracji wspólnej.
+
+Natywne Qt/X11/netcat po `7816cf6`, sterowane przez QTest: kontrole oraz
+TTMAPP259–266 PASS. Sprawdzono parametry, przełącznik z zachowaniem zoomu,
+suwak między wszystkimi ośmioma klatkami, brak wyniku na 258, anulowanie,
+spóźnione zadanie po nawigacji, zapis/otwarcie ręcznej klasy, Cofnij/Ponów,
+zgodność przypisań CSV/PNG w widoku oryginalnym i wyrównanym oraz zamknięcie
+podczas zadania. Zrzuty obejrzano. To sprawdzenie wykonawcy;
+**nie jest potwierdzeniem ręcznego odbioru użytkownika**.
+
+Artefakty lokalne: `.scratch/stmdomains-ui-26/gui-reviewed/` (raport JSON,
+PNG, projekty i eksporty), `regression.xml`, `line-counts.json`.
+Gotowe projekty: `gui-reviewed/regular-no-barriers.stmdomains` oraz
+`gui-reviewed/ttmapp259-corrected.stmdomains` w tym samym katalogu próby.
+Pierwszy zawiera obliczoną regularną kontrolę, drugi przykład ręcznej
+korekty na wyniku Level set. W obu otwarcie nie uruchamia analizy.
+
+Komendy sprawdzeń:
+
+```bash
+conda activate netcat
+QT_QPA_PLATFORM=offscreen MPLCONFIGDIR=/tmp/netcat-stmdomains-mpl python -m pytest tests/stmdomains -q --junitxml=.scratch/stmdomains-ui-26/regression.xml
+python -m mypy --follow-imports=silent --ignore-missing-imports stmdomains/core stmdomains/analysis stmdomains/ui stmdomains/io stmdomains/tools/levelset_demo.py stmdomains/tools/levelset_trial.py
+QT_QPA_PLATFORM=xcb MPLCONFIGDIR=/tmp/netcat-stmdomains-mpl python .scratch/stmdomains-ui-26/gui_check.py
+```
+
+Lokalny skrypt GUI zapisuje artefakty do jawnego katalogu; przed powtórką
+ustaw w nim nowy katalog wyjściowy, aby nie nadpisać istniejącego eksportu.

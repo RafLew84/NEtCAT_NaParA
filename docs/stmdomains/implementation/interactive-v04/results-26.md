@@ -70,6 +70,7 @@ Poniższe czasy dotyczą samej segmentacji jednego wykonania (bez pomiaru cech).
 
 Wspólny pomiar cech: 1.74–1.85 s/klatkę. Brak dowodu przyspieszenia.
 Po zsumowaniu wystąpień centrów w ośmiu klatkach (nie niezależnych molekuł):
+
 - `geometry_not_2d`: 2064.
 - `levelset_no_component`: 70.
 

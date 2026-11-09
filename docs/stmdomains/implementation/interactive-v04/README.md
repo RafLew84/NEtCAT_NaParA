@@ -1,5 +1,18 @@
 # Interaktywne STM Domains — obliczenia z danych
 
+**2026-11-09 — wykonano SD-V4-26: eksperymentalny Level set** (`d25ec7a`, `7816cf6`).
+**Analiza → Analiza… → Level set (eksperymentalna)**: siła regularyzacji,
+limit iteracji i stan zatrzymania; porównanie z Geometrią bez utraty klatki
+ani zoomu. Wyniki kolejnych klatek, zapis/odczyt, eksport i niezależne
+ręczne korekty działają w netcat. 152 warianty próby: brak wykazanej poprawy
+nad Geometrią; TTMAPP259–266 nadal 32–41 przypisań i 1 domena na klatkę.
+[Obsługa i gotowe kontrole](acceptance-26.md),
+[wyniki](results-26.md), [przegląd](review-26.md).
+**676 testów PASS / 301.89 s**; mypy **134 moduły PASS**, natywne Qt/X11/netcat PASS.
+Standards/Spec: 0 otwartych uwag. **Odbiór ręczny użytkownika 26 otwarty.**
+19–20 pozostają odłożone; nie wybrano kolejnego zadania.
+Poniżej historia wcześniejszych etapów.
+
 **2026-11-09 — wykonano SD-V4-25: eksport ręcznych klas i domen** (`03dfece`, `bf243a0`).
 **Plik → Eksportuj PNG/CSV…**: domyślne Po korektach, opcjonalny bazowy
 automat, jawny zakres; CSV zachowuje bazowe/końcowe przypisania i pochodzenie,
@@ -304,9 +317,8 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 23a ma status `done`; odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”).
 24 ma status `done`; zapis korekt i historii wykonano. Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”).
 25 ma status `done`; Odbiór ręczny użytkownika 25 potwierdzony 2026-11-09 dla wersji `bacd68b` („testy manualne ok”).
-26 ma zakres `ready-for-agent`
-z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
-wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
+26 ma status `done`; implementacja `d25ec7a`, poprawki `7816cf6`. Odbiór ręczny użytkownika otwarty.
+19–20 pozostają `deferred`; nie wybrano kolejnego zadania.
 
 **Rozszerzenie na polecenie użytkownika — 2026-11-03:** dodano
 **21–25 — ręczną edycję domen i klas, zapis historii oraz eksport korekt**.
@@ -352,8 +364,8 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23a | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 | [26 — Porównaj granice domen metodą level-set Gibou–Fedkiwa](26-compare-fedkiw-level-set.md) | SD-V4-17, SD-V4-13, SD-V4-14 | Zmień regularyzację granic, porównaj molekuły i całe domeny z Geometrią oraz przejrzyj obliczone klatki. |
 
-Po wykonanym 25 następny rekomendowany ticket to
-**26 — próba level-set Gibou–Fedkiwa**. Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”). Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”). Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
+Po 25 wykonano **26 — próbę level-set Gibou–Fedkiwa**; oczekuje na ręczny odbiór użytkownika.
+Nie wybrano następnego zadania; 19–20 pozostają odłożone. Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”). Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”). Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
 nie wymaga ukończenia odłożonych 19–20.
 Odbiór użytkownika 13 jest potwierdzony, a 14 potwierdzono dla `4e9f1d9`. 13/14 wykonano po 05;
 16 jest niezależnie dostępny po 05, a 15 po 07. 08 korzysta

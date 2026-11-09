@@ -1,5 +1,18 @@
 # STM Domains — etap 1: działający szkielet
 
+**2026-11-09 — wykonano SD-V4-26: eksperymentalny Level set** (`d25ec7a`, `7816cf6`).
+**Analiza → Analiza… → Level set (eksperymentalna)**: siła regularyzacji,
+limit iteracji i stan zatrzymania; porównanie z Geometrią bez utraty klatki
+ani zoomu. Wyniki kolejnych klatek, zapis/odczyt, eksport i niezależne
+ręczne korekty działają w netcat. 152 warianty próby: brak wykazanej poprawy
+nad Geometrią; TTMAPP259–266 nadal 32–41 przypisań i 1 domena na klatkę.
+[Obsługa i gotowe kontrole](implementation/interactive-v04/acceptance-26.md),
+[wyniki](implementation/interactive-v04/results-26.md), [przegląd](implementation/interactive-v04/review-26.md).
+**676 testów PASS / 301.89 s**; mypy **134 moduły PASS**, natywne Qt/X11/netcat PASS.
+Standards/Spec: 0 otwartych uwag. **Odbiór ręczny użytkownika 26 otwarty.**
+19–20 pozostają odłożone; nie wybrano kolejnego zadania.
+Poniżej historia wcześniejszych etapów.
+
 **2026-11-09 — wykonano SD-V4-25: eksport ręcznych klas i domen** (`03dfece`, `bf243a0`).
 **Plik → Eksportuj PNG/CSV…**: domyślne Po korektach, opcjonalny bazowy
 automat, jawny zakres; CSV zachowuje bazowe/końcowe przypisania i pochodzenie,

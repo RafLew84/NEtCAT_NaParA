@@ -1,3 +1,44 @@
+# STM Domains — SD-V4-26: porównanie Level set
+
+2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
+`domains/interactive-v04-ui`; baza `04d28d5`, protokół **`d949bfe`**,
+implementacja **`d25ec7a`**, poprawki przeglądu **`7816cf6`**.
+**Odbiór ręczny użytkownika 26 pozostaje otwarty.**
+
+Analiza → Analiza… → Level set (eksperymentalna): siła 0–2 i limit 1–500
+iteracji, jawny stan zakończenia, wspólne pomiary geometrii i bariery,
+rzeczywiste przypisania zgodne z maską. Osobne wyniki Geometria/Level set
+na każdej obliczonej klatce; brak wyniku na nieobliczonej. Zapis/odczyt,
+PNG/CSV i ręczne warianty pozostają niezależne. Region modelu nie jest
+klasą ani domeną; typ nieznany, faza niesprawdzana. NaN/Inf jawnie
+odrzuca klatkę w obu metodach (korekta opisu protokołu po przeglądzie).
+
+[Obsługa, gotowe dane i test ręczny](implementation/interactive-v04/acceptance-26.md),
+[protokół](implementation/interactive-v04/experiment-26.md),
+[wyniki](implementation/interactive-v04/results-26.md),
+[przegląd](implementation/interactive-v04/review-26.md).
+**152 warianty bez błędów wykonania; brak wykazanej poprawy nad Geometrią.**
+TTMAPP259–266: domyślnie te same 32–41 przypisań i 1 domena; ważne odmowy
+pomiarów oraz porażka granicy fazowej pozostają. Kontrole ujawniają wpływ
+barier na rozdrobnienie. To jedna akwizycja i ocena eksploracyjna.
+
+Netcat: 17 testów Level set PASS; 17 powiązanych testów PASS;
+mypy **134 moduły PASS**. Pełna regresja po poprawkach: **676 testów PASS / 301.89 s**.
+Natywne Qt/X11 sterowane QTest: kontrole i TTMAPP259–266 PASS, suwak,
+przełączanie/zoom, anulowanie/nawigacja, zapis ręcznych korekt/Cofnij/Ponów,
+CSV/PNG raw/aligned oraz zamknięcie podczas pracy. Artefakty:
+`.scratch/stmdomains-ui-26/`, końcowe GUI `gui-reviewed/`.
+Standards P3 i Spec P2 poprawione; obaj recenzenci potwierdzili **0 otwartych**.
+20 zmienionych plików Python, maksimum **926 linii**; wszystkie poniżej 1000.
+Bez nowych zależności, danych treningowych i zmian współdzielonych.
+
+Uruchomienie: `conda activate netcat`, `python -m stmdomains.main`.
+Interpreter: `/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python`.
+Nie wybrano następnego zadania; **19–20 pozostają odłożone**.
+Ukończenie funkcji nie jest rekomendacją tej metody jako skuteczniejszego detektora.
+
+---
+
 # STM Domains — odbiór ręczny SD-V4-25
 
 **2026-11-09: użytkownik potwierdził „testy manualne ok”.**
