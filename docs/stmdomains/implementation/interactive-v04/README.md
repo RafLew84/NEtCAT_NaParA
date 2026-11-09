@@ -8,7 +8,7 @@ zapisie po cofnięciu i dla atomowych operacji kilku klatek. Odczyt bez
 [Obsługa, gotowe przykłady i test ręczny](acceptance-24.md).
 **645 testów PASS**, mypy **124 moduły PASS**, natywne GUI/netcat PASS.
 Przegląd Standards/Spec: wszystkie uwagi zamknięte.
-**Odbiór ręczny użytkownika 24 otwarty**. Następny **25 → 26**;
+**Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”).** Następny **25 → 26**;
 19–20 pozostają odłożone. Eksport korekt czeka na 25.
 Poniżej historia wcześniejszych etapów.
 
@@ -289,7 +289,7 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 22 ma status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `f37714f` („testy manualne ok”).
 23 ma status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”).
 23a ma status `done`; odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”).
-24 ma status `done`; zapis korekt i historii wykonano, odbiór ręczny użytkownika otwarty.
+24 ma status `done`; zapis korekt i historii wykonano. Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”).
 25–26 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
@@ -339,7 +339,7 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [26 — Porównaj granice domen metodą level-set Gibou–Fedkiwa](26-compare-fedkiw-level-set.md) | SD-V4-17, SD-V4-13, SD-V4-14 | Zmień regularyzację granic, porównaj molekuły i całe domeny z Geometrią oraz przejrzyj obliczone klatki. |
 
 Po wykonanym 23a następny rekomendowany ticket to
-**25 — eksport ręcznych korekt**. Odbiór 24 pozostaje otwarty. Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”). Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
+**25 — eksport ręcznych korekt**. Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”). Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”). Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
 nie wymaga ukończenia odłożonych 19–20.
 Odbiór użytkownika 13 jest potwierdzony, a 14 potwierdzono dla `4e9f1d9`. 13/14 wykonano po 05;
 16 jest niezależnie dostępny po 05, a 15 po 07. 08 korzysta

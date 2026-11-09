@@ -1,7 +1,7 @@
 # Wiele zaznaczeń i łączenie fragmentów klasy
 
 2026-11-09. Poprawka po zgłoszeniu do ręcznej edycji klas, baza `648aa4d`.
-Odbiór ręczny użytkownika tej poprawki i ticketu 24 pozostaje otwarty.
+Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”).
 
 ## Przyczyna i wynik
 

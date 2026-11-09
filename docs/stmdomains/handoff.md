@@ -1,3 +1,21 @@
+# STM Domains — odbiór ręczny 24 i poprawki wyboru molekuł
+
+**2026-11-09: użytkownik potwierdził „temty manualne ok”.**
+Odebrano **SD-V4-24 — zapis korekt i historii** wraz z poprawką
+zaznaczania wielu molekuł oraz opcjonalnego łączenia stykających się
+fragmentów klasy (`8edc163`). Testowana wersja: **`1eb0356`**.
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/interactive-v04-ui`.
+
+Zaktualizowano status odbioru w tickecie, planie i raportach. To zapis
+potwierdzenia użytkownika; kodu nie zmieniono, testów aplikacji nie powtarzano.
+Wcześniejsze wykonane sprawdzenia: [raport 24](implementation/interactive-v04/acceptance-24.md)
+i [poprawka wyboru molekuł](implementation/interactive-v04/manual-class-selection.md).
+
+Następny ticket: **25 — eksport ręcznych korekt**, potem **26**.
+Implementacji 25 nie rozpoczęto; 19–20 pozostają odłożone.
+
+---
+
 # STM Domains — wybór wielu molekuł i fragmenty klas
 
 2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź

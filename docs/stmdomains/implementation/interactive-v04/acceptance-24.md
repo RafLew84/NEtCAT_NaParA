@@ -2,8 +2,7 @@
 
 2026-11-09. Gałąź `domains/interactive-v04-ui`; baza `6b5820c`.
 Implementacja `1c1b798`, poprawki przeglądu `9b7a19b`, poprawka
-automatycznego dopasowania widoku `94803e8`. Odbiór ręczny użytkownika
-pozostaje otwarty.
+automatycznego dopasowania widoku `94803e8`. Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”).
 
 ## Obsługa
 
@@ -90,7 +89,9 @@ przerwano po wykryciu problemu Dopasuj w niezależnej próbie GUI; powyższy
 wynik pochodzi z pełnego biegu po poprawce.
 Automatyczna zmiana skali/środka w trybie Dopasuj nie oznacza niezapisanej
 edycji; ręczny zoom nadal ją oznacza. Dodatkowe 13 testów UI PASS.
-Potwierdzenie użytkownika jest osobnym etapem.
+Odbiór użytkownika potwierdzono 2026-11-09 dla `1eb0356`, także po poprawce
+[wyboru molekuł i łączenia fragmentów](manual-class-selection.md). W tym
+etapie zapisano potwierdzenie; kodu i testów nie uruchamiano ponownie.
 
 Dodatkowe, szersze mypy obejmujące całe `tools/` ujawniło 2 istniejące błędy
 typów w niezmienianym `tools/freud_trial.py:58,63`. Potwierdzono te same

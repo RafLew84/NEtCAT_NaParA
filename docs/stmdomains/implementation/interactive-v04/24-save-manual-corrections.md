@@ -6,7 +6,7 @@
 
 **Blocked by:** [13: Zapisz projekt i otwórz wynik bez ponownych obliczeń](13-save-open-project.md), [23a: Scalaj i dziel klasy ręcznie](23a-split-merge-classes.md).
 
-**Status:** done — implementacja `1c1b798`, poprawki przeglądu `9b7a19b` i Dopasuj/dirty `94803e8` (2026-11-09). Odbiór ręczny użytkownika otwarty. [Instrukcja i sprawdzenia](acceptance-24.md).
+**Status:** done — implementacja `1c1b798`, poprawki przeglądu `9b7a19b` i Dopasuj/dirty `94803e8` (2026-11-09). Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”). [Instrukcja i sprawdzenia](acceptance-24.md).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady edycji ręcznej](README.md#edycja-ręczna-klas-i-domen).
 

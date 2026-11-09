@@ -8,7 +8,7 @@ zapisie po cofnięciu i dla atomowych operacji kilku klatek. Odczyt bez
 [Obsługa, gotowe przykłady i test ręczny](interactive-v04/acceptance-24.md).
 **645 testów PASS**, mypy **124 moduły PASS**, natywne GUI/netcat PASS.
 Przegląd Standards/Spec: wszystkie uwagi zamknięte.
-**Odbiór ręczny użytkownika 24 otwarty**. Następny **25 → 26**;
+**Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”).** Następny **25 → 26**;
 19–20 pozostają odłożone. Eksport korekt czeka na 25.
 Poniżej historia wcześniejszych etapów.
 
