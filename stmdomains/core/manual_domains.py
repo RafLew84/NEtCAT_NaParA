@@ -23,6 +23,14 @@ def _source_metadata(member: MoleculeAssignment) -> dict[str, Any]:
             'status': member.status, 'rejection_reason': member.rejection_reason}
 
 
+def domain_record(domain: int, assignments: Mapping[str, MoleculeAssignment]) -> dict[str, Any]:
+    """One membership/class summary shared by operation history and its UI."""
+    members = sorted(key for key, member in assignments.items() if member.domain_local_id == domain)
+    classes = {assignments[key].class_id for key in members}
+    return {'domain_id': domain, 'member_ids': members,
+            'class_id': next(iter(classes)) if len(classes) == 1 else ''}
+
+
 class ManualDomains:
     def __init__(self, data: AnalysisInput, original: FrameAnalysis | None = None) -> None:
         if (data.frame.image.ndim != 2 or data.frame.image.size > PARAMETERS['maximum_image_pixels']
@@ -124,19 +132,13 @@ class ManualDomains:
         return self._make_preview(assignments, labels, operation, selected, target,
             {'unsupported_domains': unsupported, 'geometry_rule': 'finite_voronoi_0.8_nn_minimum_3_noncollinear'})
 
-    def _domain_record(self, domain: int, assignments: Mapping[str, MoleculeAssignment]) -> dict[str, Any]:
-        members = sorted(key for key, member in assignments.items() if member.domain_local_id == domain)
-        classes = {assignments[key].class_id for key in members}
-        return {'domain_id': domain, 'member_ids': members,
-                'class_id': next(iter(classes)) if len(classes) == 1 else ''}
-
     def _split(self, selected: set[str]) -> FrameAnalysis:
         current = self.current.assignments
         sources = {current[key].domain_local_id for key in selected}
         if len(sources) != 1 or 0 in sources:
             raise ValueError('Podział wymaga części jednej domeny. Wybór zawiera kilka domen lub molekuły bez domeny.')
         source = next(iter(sources))
-        record = self._domain_record(source, current)
+        record = domain_record(source, current)
         if selected == set(record['member_ids']):
             raise ValueError('Wybrano całą domenę. Do podziału zaznacz tylko część jej molekuł.')
         target = max(a.domain_local_id for a in current.values()) + 1
@@ -148,7 +150,7 @@ class ManualDomains:
         labels = split_labels(self.current.domain_labels, self.data.annotations.detections, current,
                               source, target, selected)
         return self._make_preview(assignments, labels, 'split', selected, target,
-            {'source_domains': [record], 'target_domains': [self._domain_record(d, assignments) for d in (source, target)],
+            {'source_domains': [record], 'target_domains': [domain_record(d, assignments) for d in (source, target)],
              'geometry_rule': 'partition_existing_support_nearest_member_v1'})
 
     def _make_preview(self, assignments: Mapping[str, MoleculeAssignment], labels: NDArray[np.int32] | None,
@@ -181,7 +183,7 @@ class ManualDomains:
             raise ValueError('Docelowe ID musi należeć do jednej z wybranych domen.')
         labels = merge_labels(self.current.domain_labels, sources, target,
                               self.data.annotations.detections, current)
-        records = [self._domain_record(d, current) for d in sorted(sources)]
+        records = [domain_record(d, current) for d in sorted(sources)]
         classes = {r['class_id'] for r in records}
         common = next(iter(classes)) if len(classes) == 1 else ''
         assignments = dict(current)
@@ -190,7 +192,7 @@ class ManualDomains:
                 assignments[key] = replace(current[key], domain_local_id=target, class_id=common,
                     metadata={**current[key].metadata, 'manual_source': _source_metadata(self._history[0].assignments[key])})
         return self._make_preview(assignments, labels, 'merge', selected, target,
-            {'source_domains': records, 'target_domains': [self._domain_record(target, assignments)],
+            {'source_domains': records, 'target_domains': [domain_record(target, assignments)],
              'geometry_rule': 'union_existing_support_8_connected_v1'})
 
     def apply(self, preview: FrameAnalysis) -> None:

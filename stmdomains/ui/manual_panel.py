@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
 )
 
 from stmdomains.core.frame_presentation import PresentedFrame
+from stmdomains.core.manual_domains import domain_record
 from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.manual_controller import ManualController, UNSAVED_MANUAL
 from stmdomains.ui.manual_selection import ManualSelection
@@ -184,9 +185,8 @@ class ManualPanel(QWidget):
         self.members.setVisible(operation in ('split', 'merge'))
         member_lines = []
         for domain in sorted(selected_domains):
-            identities = sorted(key for key, member in result.assignments.items() if member.domain_local_id == domain) if result else []
-            classes = {result.assignments[key].class_id for key in identities} if result else set()
-            class_id = next(iter(classes)) if len(classes) == 1 else ''
+            record = domain_record(domain, result.assignments) if result else {}
+            identities, class_id = record.get('member_ids', ()), record.get('class_id', '')
             member_lines.append(f'D{domain}: {len(identities)} molekuł · klasa {class_id or "nieustalona"}\n'
                                 + ', '.join(identities))
         member_text = '\n\n'.join(member_lines) or 'Nie wybrano domen.'
