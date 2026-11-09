@@ -1,3 +1,31 @@
+# STM Domains — domyślne nazwy pustych klas
+
+2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
+`domains/interactive-v04-ui`; baza `27a939c`, poprawka **`7db599f`**.
+Zgłoszenie: tworzenie przez **Nowa pusta** bez nazwy, później podpis `?1`.
+Odtworzono faktyczną sekwencję okna: walidacja odrzucała utworzenie, cel
+pozostawał Nieustalona, a późniejsze przypisanie dawało `?1` zamiast C1.
+
+Tworzenie z pustą nazwą lub spacjami nadaje pierwszą wolną literę pełnej
+listy (także klas pustych); wspólna reguła 23/23a, podpowiedź w polu nazwy.
+Zmiana nazwy istniejącej klasy nadal wymaga niepustej nazwy. `?` pozostaje
+nieustaloną klasą; nie naprawiamy istniejących przypisań automatycznie.
+[Instrukcja bieżącej naprawy bez restartu i odbioru](implementation/interactive-v04/acceptance-23a.md#poprawka-pustej-nazwy-nowej-klasy--2026-11-09).
+
+Netcat: **48 testów PASS / 22,30 s**, mypy **119 modułów PASS**.
+Natywne Qt/X11 TTMAPP268 K5: klasy F/G bez wpisywania nazwy, podpisy F1/G1,
+5→7 domen po dwóch częściowych przypisaniach, Cofnij/Ponów PASS.
+To kontrola edycji, nie pomiar jakości detekcji. Pełnej regresji nie powtarzano;
+624 PASS poniżej dotyczy poprzedniej wersji. Zmieniono 5 plików kodu/testów,
+maksimum 268 linii; wyłącznie zakres STM Domains. Bez nowych zależności,
+bez potrzebnych zmian współdzielonych. Artefakty lokalne:
+`.scratch/stmdomains-class-name-report/`.
+
+**Odbiór użytkownika 23a wraz z poprawką otwarty.** Kolejność 24 → 25 → 26;
+korekty nadal tylko w pamięci sesji, zapis w 24, eksport w 25.
+
+---
+
 # STM Domains — SD-V4-23a: scalanie i dzielenie klas
 
 2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź

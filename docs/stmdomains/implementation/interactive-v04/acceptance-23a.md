@@ -5,6 +5,65 @@ Implementacja `5ca2e6f`, poprawka doboru zgodnych źródeł `5de0d7f`.
 Odbiór ręczny użytkownika **otwarty**. Poniżej wykonane sprawdzenia agenta
 oraz oddzielna instrukcja do samodzielnego odbioru.
 
+## Poprawka pustej nazwy nowej klasy — 2026-11-09
+
+Zgłoszenie użytkownika: po wydzieleniu fragmentów jeden miał podpis `?1`;
+użyta opcja **Nowa pusta — podgląd**, bez jawnej nazwy. Poprawka `7db599f`,
+baza `27a939c`. Odbiór użytkownika tej poprawki pozostaje otwarty.
+
+Odtworzenie w rzeczywistym oknie: utworzenie z pustym polem było odrzucane
+przez walidację nazwy, więc **Zastosuj** pozostawało nieaktywne. Cel nadal
+wskazywał **Nieustalona — usuń przypisanie klasy**. Następne przypisanie
+zaznaczenia do tego celu wydzielało domenę bez klasy, podpisaną `?1`.
+Test sekwencji „Nowa pusta → Zastosuj → zaznaczenie → Przypisz wybraną”
+przed zmianą zwrócił **`?1` zamiast `C1`**. To problem tworzenia klasy,
+nie brak napisu podczas rysowania. „Pusta klasa” oznacza zero członków;
+nie klasę bez nazwy. Wcześniejsza próba dwóch operacji **Podziel klasę**
+bez dotykania podpowiedzianych nazw poprawnie zwróciła C/D.
+
+**Nowe zachowanie:** puste pole lub same spacje przy tworzeniu klasy
+nadają pierwszą wolną literę z pełnej listy, także z uwzględnieniem klas
+obecnie pustych: A…Z, AA… . Dla listy A–E nowa klasa otrzymuje F.
+Jedna reguła obejmuje **Nowa pusta**, **Nowa klasa i przypisanie**, podział
+i scalenie do nowej klasy. Pole podpowiada literę. Jawnie wpisana nazwa
+pozostaje własną nazwą; zmiana nazwy istniejącej klasy na pustą jest odrzucana.
+`?` nadal oznacza nieustaloną klasę. Istniejące przypisania nie są automatycznie
+zmieniane przez tę poprawkę.
+
+**Naprawa obecnego `?1` w już uruchomionym programie, bez restartu:**
+
+1. Zaznacz jedną molekułę w obszarze `?1` i otwórz **Klasy ręczne…**.
+2. Wybierz **Całe domeny wskazane przez zaznaczone molekuły**.
+3. Wpisz wolną nazwę, np. F, i wybierz **Nowa klasa i przypisanie — podgląd**,
+   następnie **Zastosuj**. Cały obszar otrzyma nową klasę i podpis F1.
+
+Nie trzeba odtwarzać geometrii. Gdy docelowa klasa już istnieje, wybierz ją
+w polu celu i użyj **Przypisz wybraną — podgląd**. Ręczne korekty nadal
+są tylko w pamięci; restart przed ukończeniem 24 nie zachowuje tej pracy.
+
+**Test ręczny poprawionej wersji:** pozostaw puste pole nazwy, kliknij
+**Nowa pusta — podgląd**. Tabela powinna pokazać kolejną literę i 0 członków.
+Po **Zastosuj** nowa klasa jest wybranym celem. Przypisz jej zaznaczony
+fragment: widoczny podpis ma mieć tę literę, bez `?`. Wyczyść pole przed
+kolejną nową klasą; ma dostać następną wolną literę. Sprawdź Cofnij/Ponów.
+
+Sprawdzenia agenta w netcat:
+
+- Regresja 48 testów związanych z klasami, nazwami, domenami i oknami:
+  **48 PASS / 22,30 s**; mypy **119 modułów PASS**.
+- Natywne Qt/X11, TTMAPP268, K5: dwukrotne utworzenie pustej klasy
+  z wyczyszczonym klawiaturą polem dało **F/G**. Przypisanie po jednej
+  molekule wydzieliło **F1/G1**; 5→7 domen, K5 bez zmiany, pełne
+  Cofnij/Ponów PASS. Obejrzano zrzut okna.
+- 5 zmienionych plików kodu/testów, maksimum **268 linii**.
+- Artefakty lokalne `.scratch/stmdomains-class-name-report/`; brak nowych
+  zależności i zmian modułów współdzielonych. Pełny zestaw 624 testów poniżej
+  pochodzi sprzed tej poprawki; tutaj wykonano regresję celowaną.
+
+Diagnostyka: po odtworzeniu i potwierdzeniu błędu bezpośrednio na granicy
+walidacji i przypisania pominięto bisekcję oraz dodatkowe instrumentowanie;
+deterministyczny test identyfikował przyczynę bez dalszych hipotez.
+
 ## Obsługa
 
 Uruchom w **netcat**: `python -m stmdomains.main`.

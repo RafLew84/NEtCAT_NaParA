@@ -1,5 +1,12 @@
 # STM Domains — etap 1: działający szkielet
 
+**2026-11-09 — poprawka pustej nazwy nowej klasy (`7db599f`).**
+Puste pole podczas tworzenia klasy nadaje kolejną wolną literę, np. F po A–E.
+Odtworzono i poprawiono sekwencję prowadzącą do przypisania `?1` po odrzuconym
+utworzeniu klasy. 48 testów PASS, mypy 119 modułów PASS, GUI TTMAPP268 PASS.
+[Wyjaśnienie, naprawa bieżącego wyniku i test ręczny](implementation/interactive-v04/acceptance-23a.md#poprawka-pustej-nazwy-nowej-klasy--2026-11-09).
+Odbiór użytkownika 23a i poprawki otwarty; następny 24 → 25 → 26.
+
 **2026-11-09 — wykonano SD-V4-23a: scalanie i dzielenie klas (`5ca2e6f`, poprawka `5de0d7f`).**
 **Edytuj domeny → Klasy ręczne… → Scal klasy… / Podziel klasę…**:
 wybór źródeł i celu, jawny zakres klatek, utrwalone warianty/lista klas,
