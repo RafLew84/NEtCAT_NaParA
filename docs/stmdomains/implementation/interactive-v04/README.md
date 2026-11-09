@@ -9,7 +9,7 @@ Obszary dziedziczą istniejące wsparcie; scalenie nie dorysowuje mostów.
 [przegląd](review-22.md). Natywne GUI X11/netcat na kontrolach
 oraz TTMAPP259–260 PASS; po podziale/scaleniu maska wraca dokładnie do źródła.
 **586 testów PASS**, mypy 112 modułów PASS, Standards/Spec 0 otwartych uwag.
-**Odbiór ręczny użytkownika 22 pozostaje otwarty**; odbiór 21 potwierdzony.
+**Odbiór ręczny użytkownika 22 potwierdzony 2026-11-09 dla wersji `f37714f` („testy manualne ok”)**; odbiór 21 potwierdzony.
 Korekty nadal tylko w sesji, zapis/eksport w 24/25. Następny: **23 — ręczne
 klasy**, potem 23a → 24 → 25 → 26; 19–20 odłożone.
 Poniżej historia wcześniejszych prac.
@@ -241,7 +241,7 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 
 01–03, 05, 05a i 06–18 mają status `done`; odbiór ręczny 18 potwierdzono 2026-11-05 dla `f2e0cbc`.
 21 ma status `done`; odbiór ręczny użytkownika potwierdzono 2026-11-05 dla `e58393c`.
-22 ma status `done`; odbiór ręczny użytkownika pozostaje otwarty.
+22 ma status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `f37714f` („testy manualne ok”).
 23–26 oraz 23a mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
@@ -249,7 +249,7 @@ wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 **Rozszerzenie na polecenie użytkownika — 2026-11-03:** dodano
 **21–25 — ręczną edycję domen i klas, zapis historii oraz eksport korekt**.
 Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
-21 i 22 są zaimplementowane; odbiór 21 potwierdzony, 22 pozostaje otwarty.
+21 i 22 są zaimplementowane i odebrane ręcznie przez użytkownika.
 Następny rekomendowany etap to **23 — ręczne klasy**. 19–20
 pozostają odłożone zgodnie z warunkami opisanymi w ich ticketach.
 
@@ -290,7 +290,7 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [26 — Porównaj granice domen metodą level-set Gibou–Fedkiwa](26-compare-fedkiw-level-set.md) | SD-V4-17, SD-V4-13, SD-V4-14 | Zmień regularyzację granic, porównaj molekuły i całe domeny z Geometrią oraz przejrzyj obliczone klatki. |
 
 Po wykonanym 22 następny rekomendowany ticket to
-**23 — ręczne klasy**. Odbiór użytkownika 22 pozostaje otwarty. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
+**23 — ręczne klasy**. Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
 nie wymaga ukończenia odłożonych 19–20.
 Odbiór użytkownika 13 jest potwierdzony, a 14 potwierdzono dla `4e9f1d9`. 13/14 wykonano po 05;
 16 jest niezależnie dostępny po 05, a 15 po 07. 08 korzysta

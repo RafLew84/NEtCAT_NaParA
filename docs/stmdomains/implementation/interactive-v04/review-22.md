@@ -48,5 +48,5 @@ zgodności**. Wydzielenie `domain_record` zachowuje członków, klasy,
 powiązania historii i informacje panelu. Reguły geometrii są niezmienione.
 
 Końcowo: **Standards 0, Spec 0 — brak otwartych uwag w obu osiach**.
-Odbiór ręczny użytkownika pozostaje otwarty.
+Odbiór ręczny użytkownika 22 potwierdzony 2026-11-09 dla wersji `f37714f` („testy manualne ok”).
 Wykonane testy i GUI opisano w [raporcie odbioru](acceptance-22.md).

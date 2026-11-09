@@ -23,7 +23,7 @@ Obszary dziedziczą istniejące wsparcie; scalenie nie dorysowuje mostów.
 [przegląd](implementation/interactive-v04/review-22.md). Natywne GUI X11/netcat na kontrolach
 oraz TTMAPP259–260 PASS; po podziale/scaleniu maska wraca dokładnie do źródła.
 **586 testów PASS**, mypy 112 modułów PASS, Standards/Spec 0 otwartych uwag.
-**Odbiór ręczny użytkownika 22 pozostaje otwarty**; odbiór 21 potwierdzony.
+**Odbiór ręczny użytkownika 22 potwierdzony 2026-11-09 dla wersji `f37714f` („testy manualne ok”)**; odbiór 21 potwierdzony.
 Korekty nadal tylko w sesji, zapis/eksport w 24/25. Następny: **23 — ręczne
 klasy**, potem 23a → 24 → 25 → 26; 19–20 odłożone.
 Poniżej historia wcześniejszych prac.

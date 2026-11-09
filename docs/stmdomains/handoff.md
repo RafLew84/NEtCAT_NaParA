@@ -2,7 +2,7 @@
 
 2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
 `domains/interactive-v04-ui`, baza `128bcef`. Implementacja **`0910c97`**, poprawka **`62644eb`**.
-Status `done`; **odbiór ręczny użytkownika 22 pozostaje otwarty**.
+Status `done`; **odbiór ręczny użytkownika 22 potwierdzony 2026-11-09 dla wersji `f37714f` („testy manualne ok”)**.
 [Obsługa, reguła geometrii i test ręczny](implementation/interactive-v04/acceptance-22.md),
 [przegląd](implementation/interactive-v04/review-22.md).
 
@@ -45,6 +45,8 @@ artefakty 22 znajdują się w `.scratch/stmdomains-ui-22/`.
 Bez nowych zależności, wspólnych zmian i potrzeb integracyjnych.
 Następny: **23 — ręczne klasy**, potem 23a → 24 → 25 → 26; 19–20 odłożone.
 Odbiór 21 i wcześniejszych wykonanych ticketów pozostaje potwierdzony.
+Potwierdzenie odbioru 22 zmienia wyłącznie dokumentację; sprawdzono diff
+i odnośniki, bez ponawiania testów kodu i GUI.
 
 ---
 

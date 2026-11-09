@@ -6,7 +6,7 @@
 
 **Blocked by:** [21: Twórz domeny ręcznie i zmieniaj ich skład](21-manual-domain-membership.md).
 
-**Status:** done — implementacja `0910c97`, poprawka `62644eb`, 2026-11-09. Odbiór ręczny użytkownika pozostaje otwarty.
+**Status:** done — implementacja `0910c97`, poprawka `62644eb`, 2026-11-09. Odbiór ręczny użytkownika 22 potwierdzony 2026-11-09 dla wersji `f37714f` („testy manualne ok”).
 
 [Obsługa, reguła geometrii, przykład i wykonane sprawdzenia](acceptance-22.md),
 [przegląd Standards/Spec](review-22.md).

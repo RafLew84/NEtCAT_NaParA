@@ -2,7 +2,7 @@
 
 2026-11-09. Gałąź `domains/interactive-v04-ui`, baza `128bcef`.
 Implementacja `0910c97`, poprawka po przeglądzie `62644eb`.
-Implementacja w obecnym Panelu A z 21. Odbiór ręczny użytkownika pozostaje otwarty.
+Implementacja w obecnym Panelu A z 21. Odbiór ręczny użytkownika 22 potwierdzony 2026-11-09 dla wersji `f37714f` („testy manualne ok”).
 
 ## Obsługa
 
