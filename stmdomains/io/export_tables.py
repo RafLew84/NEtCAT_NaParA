@@ -116,12 +116,14 @@ def table_rows(snapshot: ExportSource, index: int, result: FrameAnalysis | None,
             selected = [row for row in domains if row['class_id'] == item.class_id]
             count = result.class_counts[item.class_id]
             area = sum(row['approx_area_px2'] for row in selected) if labels is not None and all(row['approx_area_px2'] is not None for row in selected) else None
+            edge_values = [row['touches_field_edge'] for row in selected]
+            edge = 1 if any(edge_values) else None if labels is None or None in edge_values else 0
             classes.append({**base, 'class_id': item.class_id, 'domain_local_id': None, **class_fields(result, item.class_id),
                 'domain_name': '', 'class_only_count': sum(r['class_id'] == item.class_id and not r['domain_local_id'] for r in members),
                 'assigned_count': count, 'active_denominator': active, 'assigned_percent': percent(count, active),
                 'percentage_status': percentage_state, 'approx_area_px2': area, 'approx_area_status': 'approximate' if area is not None else 'unavailable',
                 'approx_area_percent_field': percent(area, field_area), 'field_area_px2': field_area,
-                'touches_field_edge': int(any(row['touches_field_edge'] for row in selected)) if labels is not None else None,
+                'touches_field_edge': edge,
                 'physical_area_nm2': None, 'physical_area_status': 'unavailable'})
     return {'frames': [frame], 'molecules': molecules, 'domains': domains, 'classes': classes}
 

@@ -92,6 +92,7 @@ def test_manual_without_model_and_unsupported_area_do_not_invent_automatic_zero(
     assert member['base_domain_local_id'] == '' and member['base_class_id'] == ''
     assert member['class_name'] == 'Własna' and member['class_color'] == '#123456'
     assert member['class_origin'] == 'manual'
+    assert rows(target, 'classes')[0]['touches_field_edge'] == ''
     with pytest.raises(ValueError, match='Brak bazowego'):
         c.start_export(tmp_path / 'missing-base', (0,), ExportOptions(), view={}, selection='base')
     opened.export_action.trigger()
@@ -206,3 +207,27 @@ def test_export_cancel_error_and_preview_leave_dirty_work_and_history(qtbot, con
     assert c.displayed_result.class_counts == {'A': 4, 'B': 3}
     m.redo()
     assert c.displayed_result is before
+
+
+def test_shared_class_rename_exports_unvisited_frames_with_same_frozen_revision(qtbot, control, tmp_path):
+    from stmdomains.ui.export_selection import capture_export
+    from stmdomains.io.export_results import export_results
+    c, m = control.controller, control.controller.manual
+    m.preview_classes('update', target='A', name='Wspólna nazwa', color='#123456')
+    m.apply()
+    revision = m.class_list.version
+    frozen = capture_export(c, 'displayed', {})
+    variants = tuple(m.variants)
+    path = tmp_path / 'shared'
+    frames = export(qtbot, c, path, (0, 1, 2))
+    assert frames[1]['frame_state'] == 'corrected'
+    assert frames[1]['class_list_revision'] == frames[0]['class_list_revision'] == revision
+    assert frames[2]['frame_state'] == 'automatic'
+    assert tuple(m.variants) == variants
+    classes = {r['class_name'] for r in rows(path, 'classes') if r['working_index'] == '1'}
+    assert classes == {'Wspólna nazwa', 'B'}
+    m.undo()
+    export_results(tmp_path / 'shared-frozen', frozen, (1,), ExportOptions(png=False))
+    assert rows(tmp_path / 'shared-frozen', 'frames')[0]['class_list_revision'] == revision
+    original = export(qtbot, c, tmp_path / 'shared-base', (1,), selection='base')[0]
+    assert original['class_list_revision'] == ''

@@ -4,7 +4,7 @@ import json
 from dataclasses import asdict
 from typing import Any
 
-from stmdomains.core.analysis_result import FrameAnalysis
+from stmdomains.core.analysis_result import FrameAnalysis, analysis_identifier
 from stmdomains.core.export_snapshot import ExportSource, ExportSnapshot, original_result
 from stmdomains.core.immutable import plain_metadata
 from stmdomains.core.result_names import class_name, domain_name
@@ -18,25 +18,21 @@ COUNT_FIELDS = ('class_assigned_count', 'class_only_count', 'manual_assigned_cou
                 'manual_class_assigned_count', 'automatic_class_assigned_count')
 
 
-def analysis_id(result: FrameAnalysis | None) -> str:
-    return str(result.metadata.get('series_analysis', {}).get('run_id') or result.metadata.get('analysis_id', '')) if result else ''
-
-
 def provenance(snapshot: ExportSource, index: int, result: FrameAnalysis | None) -> dict[str, Any]:
     original = original_result(snapshot, index)
     correction = snapshot.corrections.get(index) if isinstance(snapshot, ExportSnapshot) else None
     variant = snapshot.variant if isinstance(snapshot, ExportSnapshot) else 'automatic'
-    changed = correction is not None and result is not original
+    changed = (correction is not None and result is not original) or bool(result and result.class_list and result.class_list.generation)
     labels = result.class_list if result else None
     revision = result.metadata.get('manual_edit', {}).get('revision', 0) if result else None
-    base_id = analysis_id(original)
-    result_id = (f'{correction.variant_id}:{revision}:{labels.version if labels else ""}'
-                 if correction and changed else base_id)
+    base_id = analysis_identifier(original)
+    result_id = (f'{correction.variant_id if correction else base_id}:{revision}:{labels.version if labels else ""}'
+                 if changed else base_id)
     return {'result_variant': variant,
         'frame_state': 'manual_only' if changed and original is None else 'corrected' if changed else 'automatic' if result else 'unanalysed',
         'result_id': result_id, 'base_analysis_id': base_id, 'automatic_available': int(original is not None),
         'correction_variant_id': correction.variant_id if correction and variant == 'after_corrections' else '',
-        'correction_revision': revision if correction and variant == 'after_corrections' else None,
+        'correction_revision': revision if variant == 'after_corrections' and (correction or changed) else None,
         'class_list_id': labels.identifier if labels else '', 'class_list_revision': labels.version if labels else ''}
 
 

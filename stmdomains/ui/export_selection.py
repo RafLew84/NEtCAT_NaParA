@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from stmdomains.core.export_snapshot import ExportCorrection, ExportSnapshot
+from stmdomains.core.analysis_result import analysis_identifier
 
 if TYPE_CHECKING:
     from stmdomains.ui.session_controller import SessionController
@@ -28,8 +29,7 @@ def export_choices(controller: 'SessionController') -> list[tuple[str, str]]:
         if v.original is not None:
             choices.append((f'base:{v.identifier}', f'Bazowy automat — lista {labels.identifier[:8]}'))
     run = controller.series_run
-    if run is not None and (controller.result is None or
-            controller.result.metadata.get('series_analysis', {}).get('run_id') != run.identifier):
+    if run is not None and analysis_identifier(controller.result) != run.identifier:
         choices.append(('latest', f'Ostatni przebieg automatyczny · {run.identifier[:8]}'))
     choices.append(('none', 'Tylko oznaczenia wejściowe — bez analizy'))
     return choices
@@ -46,6 +46,7 @@ def capture_export(controller: 'SessionController', selection: str,
     anchor = m.variants.get(source[7:]) if source.startswith('manual:') else m.active
     analysis = controller.project_analysis(source)
     corrections = {}
+    shared = {}
     if source == 'displayed' or source.startswith('manual:'):
         family = m.class_lists.get(anchor).source_key if anchor else None
         candidates = [v for v in m.variants.values() if (
@@ -55,6 +56,8 @@ def capture_export(controller: 'SessionController', selection: str,
         candidates.sort(key=lambda v: (m.selected.get(v.data.frame.working_index) == v.identifier, v is anchor))
         for variant in candidates:
             index = variant.data.frame.working_index
+            labels = m.class_lists.get(variant)
+            shared[labels.identifier] = labels
             corrections[index] = ExportCorrection(variant.original if automatic else m.class_lists.display(variant),
                 variant.original, variant.identifier, () if automatic else variant.applied_history)
     # ProjectAnalysis already freezes in-memory frames; disk-backed frames belong
@@ -62,4 +65,5 @@ def capture_export(controller: 'SessionController', selection: str,
     if automatic and not (analysis and analysis.frames) and not any(c.original for c in corrections.values()):
         raise ValueError('Brak bazowego wyniku automatycznego dla wybranego wariantu.')
     return ExportSnapshot(controller.series, view, analysis,
-        'automatic' if automatic or source == 'latest' else 'input' if source == 'none' else 'after_corrections', corrections)
+        'automatic' if automatic or source == 'latest' else 'input' if source == 'none' else 'after_corrections',
+        corrections, tuple(shared.values()))

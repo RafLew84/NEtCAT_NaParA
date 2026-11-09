@@ -9,6 +9,7 @@ from PyQt6.QtGui import QColor, QFont, QFontMetrics, QImage, QPainter
 from PyQt6.QtWidgets import QApplication
 
 from stmdomains.core.export import ExportOptions
+from stmdomains.core.analysis_result import analysis_identifier
 from stmdomains.core.frame_presentation import PresentedFrame
 from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.result_style import LegendEntry, describe_result
@@ -43,7 +44,7 @@ def render_export_png(frame: PresentedFrame, view: Mapping[str, Any], options: E
     if layers.get('barriers') and frame.result is not None and frame.result.barrier_mask is not None:
         legend = (*legend, LegendEntry('Bariery [px]', '#ff8e2e', int(frame.result.barrier_mask.sum())))
     result = frame.result
-    analysis_id = (result.metadata.get('series_analysis', {}).get('run_id') or result.metadata.get('analysis_id', '')) if result else ''
+    analysis_id = analysis_identifier(result)
     catalogue_id = result.metadata.get('model_id', '') if result else ''
     context = context or {}
     analysis_id = context.get('analysis_id', analysis_id)

@@ -4,14 +4,10 @@ from collections.abc import Mapping
 from dataclasses import asdict
 from typing import Any
 
-from stmdomains.core.analysis_result import FrameAnalysis
+from stmdomains.core.analysis_result import FrameAnalysis, analysis_identifier
 from stmdomains.core.project import ProjectAnalysis
 from stmdomains.ui.series_runner import FrameRunStatus, SeriesRun
 from stmdomains.io.project_validation import analysis_plan
-
-
-def analysis_identifier(result: FrameAnalysis) -> str:
-    return str(result.metadata.get('series_analysis', {}).get('run_id') or result.metadata.get('analysis_id', ''))
 
 
 def select_analysis(identifier: str, results: Mapping[int, FrameAnalysis], previous: Mapping[int, FrameAnalysis],

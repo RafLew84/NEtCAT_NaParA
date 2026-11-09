@@ -20,6 +20,11 @@ class AnalysisCancelled(Exception):
     """Cooperative cancellation leaves the previous completed result available."""
 
 
+def analysis_identifier(result: 'FrameAnalysis | None') -> str:
+    """A run identity takes precedence over its per-frame execution identity."""
+    return str(result.metadata.get('series_analysis', {}).get('run_id') or result.metadata.get('analysis_id', '')) if result else ''
+
+
 @dataclass(frozen=True)
 class AnalysisInput:
     series_id: str
