@@ -8,7 +8,6 @@ from PyQt6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
-from stmdomains.core.result_names import class_letter
 from stmdomains.ui.manual_controller import ManualController
 
 
@@ -188,13 +187,11 @@ class ClassOperationDialog(QDialog):
                     self.sources.addItem(item)
                     self.target.addItem(label.name, label.class_id)
                 self.target.setCurrentIndex(max(0, self.target.findData(old_target)))
-            used = {x.name for x in labels.classes}
-            index = 0
-            while class_letter(index) in used:
-                index += 1
-            self.name.setText(class_letter(index))
+            self.name.setText(labels.suggested_name)
             self._labels_version = labels.version
             self._labels_id = labels.identifier
+        if labels is not None:
+            self.name.setPlaceholderText(f'Automatycznie: {labels.suggested_name}')
         if split:
             with QSignalBlocker(self.target):
                 self.target.setCurrentIndex(0)

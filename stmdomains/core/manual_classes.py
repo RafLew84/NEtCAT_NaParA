@@ -35,6 +35,15 @@ class ManualClassList:
                    tuple(ManualClass(c.class_id, class_letter(i), c.color, 'automatic')
                          for i, c in enumerate(result.classes)) if result else ())
 
+    @property
+    def suggested_name(self) -> str:
+        """The first unused letter across the full list, including empty classes."""
+        used = {label.name for label in self.classes}
+        index = 0
+        while class_letter(index) in used:
+            index += 1
+        return class_letter(index)
+
     def edit(self, operation: str, target: str = '', *, name: str = '', color: str = '',
              occupied: Collection[str] = ()) -> 'ManualClassList':
         if operation == 'delete':
@@ -46,6 +55,8 @@ class ManualClassList:
             return replace(self, classes=tuple(c for c in self.classes if c is not member),
                            version=uuid4().hex, generation=self.generation + 1)
         name = name.strip()
+        if operation == 'create' and not name:
+            name = self.suggested_name
         if not name or len(name) > 80:
             raise ValueError('Nazwa klasy musi mieć od 1 do 80 znaków.')
         if not re.fullmatch(r'#[0-9a-fA-F]{6}', color):

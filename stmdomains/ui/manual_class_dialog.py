@@ -142,6 +142,9 @@ class ManualClassDialog(QDialog):
             self.setEnabled(False)
             return
         self.setEnabled(True)
+        self.name.setPlaceholderText(f'Nowa klasa: automatycznie {labels.suggested_name}')
+        self.name.setToolTip('Przy tworzeniu klasy puste pole nada kolejną wolną literę. '
+                             'Zmiana nazwy istniejącej klasy wymaga wpisania nazwy.')
         frame = manual.controller.current_index
         context = labels.identifier, labels.version, frame
         active = manual.active

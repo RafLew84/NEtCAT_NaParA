@@ -6,7 +6,8 @@ import pytest
 
 from test_manual_partition import partition_input
 from stmdomains.core.manual_domains import ManualDomains
-from stmdomains.core.manual_classes import ManualClassList
+from stmdomains.core.manual_classes import ManualClass, ManualClassList
+from stmdomains.core.result_names import class_letter
 
 
 def test_empty_class_has_stable_identity_metadata_and_one_step_history():
@@ -88,7 +89,7 @@ def test_only_empty_manual_classes_can_be_deleted_and_invalid_inputs_leave_histo
     edits = ManualDomains(data, original)
     labels = ManualClassList.from_result(original, 'source-one')
     for operation, kwargs in [('delete', {'target': 'A'}),
-                              ('create', {'name': ' ', 'color': '#123456'}),
+                              ('create', {'name': 'A' * 81, 'color': '#123456'}),
                               ('create', {'name': 'Test', 'color': 'invalid'}),
                               ('assign', {'target': 'foreign', 'selection': ('m-0000',)})]:
         with pytest.raises(ValueError):
@@ -124,3 +125,14 @@ def test_domain_operations_preserve_manual_classes_and_latest_list_metadata():
     assert removed.assignments['m-0000'].class_id == target
     assert removed.assignments['m-0000'].domain_local_id == 0
     assert removed.assignments['m-0001'].class_id == target
+
+
+@pytest.mark.parametrize('existing, expected', [(0, 'A'), (5, 'F'), (26, 'AA')])
+def test_unnamed_class_reserves_names_of_empty_classes(existing, expected):
+    labels = ManualClassList('source', '', tuple(
+        ManualClass(str(i), class_letter(i), '#123456', 'manual') for i in range(existing)))
+    revised = labels.edit('create', color='#abcdef')
+    assert revised.classes[-1].name == expected
+    assert len(labels.classes) == existing
+    with pytest.raises(ValueError, match='Nazwa'):
+        revised.edit('update', revised.classes[-1].class_id, name=' ', color='#abcdef')
