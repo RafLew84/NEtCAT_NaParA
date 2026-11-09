@@ -1,5 +1,17 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**2026-11-09 — wykonano SD-V4-23a: scalanie i dzielenie klas (`5ca2e6f`, poprawka `5de0d7f`).**
+**Edytuj domeny → Klasy ręczne… → Scal klasy… / Podziel klasę…**:
+wybór źródeł i celu, jawny zakres klatek, utrwalone warianty/lista klas,
+podgląd liczników i obrazu oraz wspólne Cofnij/Ponów. Scalenie zachowuje
+osobne domeny; podział części domeny wydziela ją zgodnie z 22/23.
+[Obsługa, gotowy przykład i sprawdzenia](interactive-v04/acceptance-23a.md).
+Próba natywnego GUI/netcat: kontrola 9/7, podziały 5/4 i 1/8, wariant bez
+modelu oraz TTMAPP259–260 PASS. Przegląd: Standards 0; Spec 1 uwaga poprawiona, 0 otwartych.
+Pełna regresja: **624 testy PASS / 280,46 s**, mypy **119 modułów PASS**.
+**Odbiór ręczny użytkownika 23a otwarty**. Korekty tylko w sesji;
+następny **24 → 25 → 26**, 19–20 odłożone. Poniżej historia wcześniejszych etapów.
+
 **2026-11-09 — poprawiono podpisy po zgłoszeniu do 23 (`8d4ec04`).**
 Klasy `A, B, C…`; domeny klasy D `D1, D2…`. Obraz, legenda i edycja
 korzystają ze wspólnych nazw. [Reguły i test ręczny](interactive-v04/acceptance-23.md#poprawka-podpisów-po-zgłoszeniu-użytkownika--2026-11-09).

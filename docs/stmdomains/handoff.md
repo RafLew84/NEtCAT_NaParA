@@ -1,3 +1,52 @@
+# STM Domains — SD-V4-23a: scalanie i dzielenie klas
+
+2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
+`domains/interactive-v04-ui`, baza `ee2071d`, implementacja `5ca2e6f`, poprawka `5de0d7f`.
+**Odbiór ręczny użytkownika 23a otwarty**; 23 odebrano wcześniej.
+
+## Wynik
+
+W oknie **Klasy ręczne…** są **Scal klasy… / Podziel klasę…**. Niemodalne
+okno pokazuje konkretną listę/wersję, wybór źródeł i celu, bieżącą klatkę,
+zakres lub całą serię tej listy. Tabela pokazuje konkretne klatki, liczniki
+przed/po, warianty i przyczyny pominięcia. Dwuklik nawiguje po podglądzie.
+Podział wymaga osobnego zapamiętania wskazań na każdej objętej klatce.
+
+Podgląd jest przygotowywany w tle, zakres i wersje pozostają przypięte;
+anulowanie/zmiana kontekstu unieważnia podgląd. Zatwierdzenie i Cofnij/Ponów
+obejmuje wszystkie zmienione klatki oraz listę klas jednym krokiem, zgodnie
+z globalną kolejnością późniejszych edycji 21–23. Scalenie klas zachowuje
+osobne domeny; częściowy podział korzysta z 22/23. Punkty bez domeny
+zachowują ten stan. Źródłowe ID, model i K nie zmieniają się.
+
+Gotowy przykład: w netcat `python -m stmdomains.tools.class_operations_demo --open`.
+Pliki lokalnie w `.scratch/stmdomains-ui-23a/demo/`; launcher przygotowuje
+przez operacje 23 dwa członkostwa A bez domeny w RAM. Sam zapis bazowy nie
+przechowuje tych korekt — to zakres 24.
+[Instrukcja i próba TTMAPP](implementation/interactive-v04/acceptance-23a.md).
+
+## Weryfikacja i dalsza praca
+
+Netcat/offscreen: pełna regresja **624 PASS / 280,46 s**; testy celowane
+**32 PASS / 22,96 s**, po poprawce zakresu **13 PASS / 7,92 s**.
+Pierwszy pełny przebieg przerwał SIGTERM bez błędu testu; ponowienie w sesji
+terminalowej dało kod 0 i raport `regression.xml`.
+[Przegląd](implementation/interactive-v04/review-23a.md): Standards 0; Spec 1 P2 poprawiona, 0 otwartych.
+Mypy 119 modułów PASS. Natywne Qt/X11: kontrola 9/7, podziały 5/4 i 1/8,
+0 domen bez modelu, anulowanie, nawigacja, historia i TTMAPP259–260 PASS.
+TTMAPP K5: początkowo 7/5 domen i 116/104 przypisania; scalenie A+B do
+Połączone daje 76/82 członków, wydzielona cała domena ma 50 członków;
+maski i K bez zmian. To test edycji, nie ocena skuteczności detektora.
+
+Korekty nadal tylko w sesji. Następny **24 → 25 → 26**, 19–20 `deferred`.
+Brak potrzebnych zmian współdzielonych modułów i nowych zależności.
+Zmieniono tylko `stmdomains/`, `tests/stmdomains/`, `docs/stmdomains/`.
+11 plików kodu/testów, maksimum 891 linii (`ui/session_controller.py`);
+wszystkie poniżej celu 1000. Spójność linków, tabeli 27 ticketów i DAG PASS.
+Artefakty/przebiegi lokalne: `.scratch/stmdomains-ui-23a/`.
+
+---
+
 # STM Domains — poprawka nazw klas i domen po zgłoszeniu do 23
 
 **Odbiór ręczny 23 wraz z poprawką nazw potwierdzony przez użytkownika

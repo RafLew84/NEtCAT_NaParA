@@ -1,6 +1,7 @@
 # SD-V4-23a — scalanie i dzielenie klas
 
 2026-11-09. Gałąź `domains/interactive-v04-ui`, baza `ee2071d`.
+Implementacja `5ca2e6f`, poprawka doboru zgodnych źródeł `5de0d7f`.
 Odbiór ręczny użytkownika **otwarty**. Poniżej wykonane sprawdzenia agenta
 oraz oddzielna instrukcja do samodzielnego odbioru.
 
@@ -118,8 +119,17 @@ Artefakty lokalne: `.scratch/stmdomains-ui-23a/` (zrzuty, skrypt próby,
 Testy automatyczne obejmują błędne źródła, nieaktualny podgląd na drugiej
 klatce przed atomowym zatwierdzeniem, obcy katalog mimo tych samych nazw,
 wskazania osobno dla klatek, mieszanie historii klas z operacjami 23,
-anulowanie pracy w tle i zamykanie okna. Wynik końcowej regresji i przeglądu
-zostanie zapisany po zakończeniu weryfikacji.
+anulowanie pracy w tle i zamykanie okna. Celowany zestaw: **32 PASS / 22,96 s**;
+po poprawce zakresu controls/window: **13 PASS / 7,92 s**.
+Pełna końcowa regresja w netcat/offscreen: **624 PASS / 280,46 s**.
+Pierwszy pełny przebieg przerwał SIGTERM, bez raportu błędu testu; ponowiony
+w sesji terminalowej zakończył się kodem 0. Raport:
+`.scratch/stmdomains-ui-23a/regression.xml`.
+
+[Przegląd](review-23a.md): Standards **0 uwag**; Spec **1 uwaga P2 poprawiona**,
+**0 otwartych** po ponownym przeglądzie. Mypy **119 modułów PASS**.
+Wszystkie **11 zmienionych plików kodu/testów poniżej 1000 linii**;
+maksimum **891** (`ui/session_controller.py`), bez wyjątków od limitu.
 
 ## Ograniczenia
 

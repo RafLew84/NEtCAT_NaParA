@@ -1,5 +1,17 @@
 # Interaktywne STM Domains — obliczenia z danych
 
+**2026-11-09 — wykonano SD-V4-23a: scalanie i dzielenie klas (`5ca2e6f`, poprawka `5de0d7f`).**
+**Edytuj domeny → Klasy ręczne… → Scal klasy… / Podziel klasę…**:
+wybór źródeł i celu, jawny zakres klatek, utrwalone warianty/lista klas,
+podgląd liczników i obrazu oraz wspólne Cofnij/Ponów. Scalenie zachowuje
+osobne domeny; podział części domeny wydziela ją zgodnie z 22/23.
+[Obsługa, gotowy przykład i sprawdzenia](acceptance-23a.md).
+Próba natywnego GUI/netcat: kontrola 9/7, podziały 5/4 i 1/8, wariant bez
+modelu oraz TTMAPP259–260 PASS. Przegląd: Standards 0; Spec 1 uwaga poprawiona, 0 otwartych.
+Pełna regresja: **624 testy PASS / 280,46 s**, mypy **119 modułów PASS**.
+**Odbiór ręczny użytkownika 23a otwarty**. Korekty tylko w sesji;
+następny **24 → 25 → 26**, 19–20 odłożone. Poniżej historia wcześniejszych etapów.
+
 **2026-11-09 — poprawka po zgłoszeniu do 23: nazwy klas i domen (`8d4ec04`).**
 Widok Klasy pokazuje `A, B, C…`, a Domeny np. `D1, D2…` dla domen
 klasy D. Obraz i legenda zgodne; własne nazwy oraz ID zachowane.
@@ -264,7 +276,8 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 21 ma status `done`; odbiór ręczny użytkownika potwierdzono 2026-11-05 dla `e58393c`.
 22 ma status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `f37714f` („testy manualne ok”).
 23 ma status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”).
-24–26 oraz 23a mają zakres `ready-for-agent`
+23a ma status `done`; odbiór ręczny użytkownika pozostaje otwarty.
+24–26 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -272,8 +285,8 @@ wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 **21–25 — ręczną edycję domen i klas, zapis historii oraz eksport korekt**.
 Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
 21 i 22 są zaimplementowane i odebrane ręcznie przez użytkownika.
-23 jest zaimplementowany; odbiór ręczny pozostaje otwarty.
-Następny rekomendowany etap to **23a — scalanie i dzielenie klas**. 19–20
+23 jest zaimplementowany i odebrany ręcznie; 23a zaimplementowany, odbiór otwarty.
+Następny rekomendowany etap to **24 — zapis ręcznych korekt**. 19–20
 pozostają odłożone zgodnie z warunkami opisanymi w ich ticketach.
 
 ## Tickety i kolejność
@@ -312,8 +325,8 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [25 — Eksportuj poprawione klasy i domeny do CSV oraz PNG](25-export-manual-corrections.md) | SD-V4-14, SD-V4-23a | Porównaj CSV/PNG po korektach z obrazem oraz bazowym automatem. |
 | [26 — Porównaj granice domen metodą level-set Gibou–Fedkiwa](26-compare-fedkiw-level-set.md) | SD-V4-17, SD-V4-13, SD-V4-14 | Zmień regularyzację granic, porównaj molekuły i całe domeny z Geometrią oraz przejrzyj obliczone klatki. |
 
-Po wykonanym 23 następny rekomendowany ticket to
-**23a — scalanie i dzielenie klas**. Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
+Po wykonanym 23a następny rekomendowany ticket to
+**24 — zapis ręcznych korekt**. Odbiór użytkownika 23a pozostaje otwarty. Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
 nie wymaga ukończenia odłożonych 19–20.
 Odbiór użytkownika 13 jest potwierdzony, a 14 potwierdzono dla `4e9f1d9`. 13/14 wykonano po 05;
 16 jest niezależnie dostępny po 05, a 15 po 07. 08 korzysta
