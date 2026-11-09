@@ -1,5 +1,19 @@
 # STM Domains
 
+**2026-11-09 — wykonano SD-V4-22 (`0910c97`, poprawka `62644eb`): podział i scalanie domen.**
+W **Edytuj domeny** dostępne są **Podziel domenę** i **Połącz domeny**,
+z podglądem, wyborem docelowego ID, pełną listą członków i Cofnij/Ponów.
+Podział zachowuje klasę; scalenie różnych klas jawnie daje klasę nieustaloną.
+Obszary dziedziczą istniejące wsparcie; scalenie nie dorysowuje mostów.
+[Obsługa, geometria i test ręczny](implementation/interactive-v04/acceptance-22.md),
+[przegląd](implementation/interactive-v04/review-22.md). Natywne GUI X11/netcat na kontrolach
+oraz TTMAPP259–260 PASS; po podziale/scaleniu maska wraca dokładnie do źródła.
+**586 testów PASS**, mypy 112 modułów PASS, Standards/Spec 0 otwartych uwag.
+**Odbiór ręczny użytkownika 22 pozostaje otwarty**; odbiór 21 potwierdzony.
+Korekty nadal tylko w sesji, zapis/eksport w 24/25. Następny: **23 — ręczne
+klasy**, potem 23a → 24 → 25 → 26; 19–20 odłożone.
+Poniżej historia wcześniejszych prac.
+
 **2026-11-05 — wykonano SD-V4-21, Panel A (`a61e1b2`, poprawki `47bafe0`).**
 **Edytuj domeny** otwiera panel, **Zakończ edycję** go chowa, pozostawiając
 korekty widoczne. Kliknięcia/lasso, podgląd, nowe domeny, dodawanie/usuwanie

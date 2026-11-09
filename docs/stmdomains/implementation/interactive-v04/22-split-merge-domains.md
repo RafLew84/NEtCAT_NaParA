@@ -6,18 +6,21 @@
 
 **Blocked by:** [21: Twórz domeny ręcznie i zmieniaj ich skład](21-manual-domain-membership.md).
 
-**Status:** ready-for-agent — dodanie do planu zlecone przez użytkownika 2026-11-03; wykonanie po zależności.
+**Status:** done — implementacja `0910c97`, poprawka `62644eb`, 2026-11-09. Odbiór ręczny użytkownika pozostaje otwarty.
+
+[Obsługa, reguła geometrii, przykład i wykonane sprawdzenia](acceptance-22.md),
+[przegląd Standards/Spec](review-22.md).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady edycji ręcznej](README.md#edycja-ręczna-klas-i-domen).
 
 ## Kryteria akceptacji
 
-- [ ] Podziel domenę wydziela zaznaczony niepusty podzbiór członków do nowej domeny. Pozostała część zachowuje swój identyfikator; nowa dostaje odrębny. Zaznaczenie całej domeny lub punktów z kilku domen daje czytelne wyjaśnienie i nie wykonuje przypadkowego podziału.
-- [ ] Połącz domeny pokazuje listę wybranych domen, ich członków oraz docelowy identyfikator. Po zatwierdzeniu powstaje ich suma bez duplikatów. Wybór jednej domeny nie jest operacją scalenia; anulowanie podglądu niczego nie zmienia.
-- [ ] Podział zachowuje klasę źródła. Scalenie domen jednej klasy zachowuje tę klasę; przy różnych klasach UI jawnie pokazuje wynik z klasą nieustaloną. Źródłowe klasy pozostają w bazowym wyniku. Nadanie wspólnej klasy należy do 23, nie zachodzi przez sam wybór koloru.
-- [ ] Maski i obrysy są zgodne z nowym członkostwem i nie nakładają się. Scalenie nie dorysowuje mostu przez rzeczywistą przerwę; jeśli według opisanej reguły geometrii fragmenty nie tworzą spójnej domeny, program wyjaśnia odmowę. Wspólna klasa kilku osobnych domen pozostaje możliwa w 23.
-- [ ] Obie operacje aktualizują etykiety, liczniki i legendę, zachowują sumę przypisanych molekuł oraz stanowią jeden krok Cofnij/Ponów. Historia wiąże źródłowe i docelowe domeny; nie renumeruje domen niezwiązanych z operacją i nie zmienia innych klatek.
-- [ ] Automatyczny/Po korektach działa po podziale, scaleniu i cofnięciu. Ponowna analiza zachowuje poprawiony wariant zgodnie z 21. Kontrole automatyczne i GUI obejmują podział/scalenie, konflikt klas, przerwę, anulowanie oraz undo/redo; raport potwierdza netcat i limit 1000/1500 linii.
+- [x] Podziel domenę wydziela zaznaczony niepusty podzbiór członków do nowej domeny. Pozostała część zachowuje swój identyfikator; nowa dostaje odrębny. Zaznaczenie całej domeny lub punktów z kilku domen daje czytelne wyjaśnienie i nie wykonuje przypadkowego podziału.
+- [x] Połącz domeny pokazuje listę wybranych domen, ich członków oraz docelowy identyfikator. Po zatwierdzeniu powstaje ich suma bez duplikatów. Wybór jednej domeny nie jest operacją scalenia; anulowanie podglądu niczego nie zmienia.
+- [x] Podział zachowuje klasę źródła. Scalenie domen jednej klasy zachowuje tę klasę; przy różnych klasach UI jawnie pokazuje wynik z klasą nieustaloną. Źródłowe klasy pozostają w bazowym wyniku. Nadanie wspólnej klasy należy do 23, nie zachodzi przez sam wybór koloru.
+- [x] Maski i obrysy są zgodne z nowym członkostwem i nie nakładają się. Scalenie nie dorysowuje mostu przez rzeczywistą przerwę; jeśli według opisanej reguły geometrii fragmenty nie tworzą spójnej domeny, program wyjaśnia odmowę. Wspólna klasa kilku osobnych domen pozostaje możliwa w 23.
+- [x] Obie operacje aktualizują etykiety, liczniki i legendę, zachowują sumę przypisanych molekuł oraz stanowią jeden krok Cofnij/Ponów. Historia wiąże źródłowe i docelowe domeny; nie renumeruje domen niezwiązanych z operacją i nie zmienia innych klatek.
+- [x] Automatyczny/Po korektach działa po podziale, scaleniu i cofnięciu. Ponowna analiza zachowuje poprawiony wariant zgodnie z 21. Kontrole automatyczne i GUI obejmują podział/scalenie, konflikt klas, przerwę, anulowanie oraz undo/redo; raport potwierdza netcat i limit 1000/1500 linii.
 
 ## Test ręczny użytkownika
 

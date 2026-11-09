@@ -1,3 +1,53 @@
+# STM Domains — wykonano SD-V4-22, podział i scalanie domen
+
+2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
+`domains/interactive-v04-ui`, baza `128bcef`. Implementacja **`0910c97`**, poprawka **`62644eb`**.
+Status `done`; **odbiór ręczny użytkownika 22 pozostaje otwarty**.
+[Obsługa, reguła geometrii i test ręczny](implementation/interactive-v04/acceptance-22.md),
+[przegląd](implementation/interactive-v04/review-22.md).
+
+W istniejącym Panelu A dodano Podziel domenę i Połącz domeny. Podział
+wydziela właściwy podzbiór i zachowuje ID reszty. Scalenie przyjmuje
+reprezentantów domen, pokazuje wszystkich członków i wybór ID docelowego.
+Podgląd, anulowanie, porównanie automatu i pojedynczy krok Cofnij/Ponów.
+Podział zachowuje bieżącą klasę; scalenie różnych klas jawnie daje
+nieustaloną. Historia łączy źródłowe/docelowe ID i składy. Kolejna analiza
+zachowuje poprawiony wariant; pozostałe domeny i klatki są niezmienione.
+
+Geometria 22 dziedziczy istniejące wsparcie. Podział rozdziela piksele
+źródła między najbliższych jego członków, bez wzrostu obszaru. Scalenie
+zachowuje dokładną sumę masek i wymaga jednej składowej 8-spójnej oraz
+wsparcia każdego centrum we własnej masce. Brak obszaru lub przerwa
+daje odmowę; bez mostów i wypełniania dziur. To reguła rastrowa,
+nie fizyczny test ciągłości. Podział źródła bez maski pozostaje punktowy.
+Korekty nadal tylko w pamięci sesji; zapis/eksport czeka na 24/25.
+Ochrona niezapisanej pracy z 21 pozostaje aktywna.
+
+Natywne Qt/X11 w **netcat**, 1024×768: kontrola 3 klatek z lasso,
+podglądem/anulowaniem, konfliktem klas i przerwą PASS. TTMAPP259:
+105/312, 5 domen; 4 członków z D2→D6 daje 6 domen; D2+D6→D2 odtwarza
+dokładnie pierwotną maskę. Cofnij/Ponów, raw/aligned, porównanie i izolacja
+260 PASS, brak błędów. Obejrzano zrzuty; podgląd/komunikat/przyciski są
+poza przewijaną listą, aby ostrzeżenie było widoczne w małym oknie.
+To sprawdzenie autora, nie odbiór użytkownika ani ocena skuteczności detekcji.
+
+W **netcat**: pełna regresja **586 testów PASS / 263,36 s** dla implementacji,
+po refaktorze **28 celowanych testów ręcznej edycji PASS / 6,09 s**,
+mypy **112 modułów PASS**. Standards: 1 uwaga heurystyczna o powielaniu
+podsumowania domen zamknięta wspólną funkcją; Spec: 0 uwag. Ponowny
+przegląd `62644eb`: **0 otwartych uwag w obu osiach**. 7 plików kodu/testów,
+maksimum **238 linii**, wszystkie <1000. Sprawdzono 531 odnośników
+w 8 dokumentach, graf 27 ticketów i diff.
+Przykład: `python -m stmdomains.tools.manual_partition_demo` w netcat,
+potem otworzyć `.scratch/stmdomains-ui-22/demo/partition-controls.stmdomains`.
+To kontrola z zadanymi domenami, nie wynik detektora. Wszystkie lokalne
+artefakty 22 znajdują się w `.scratch/stmdomains-ui-22/`.
+Bez nowych zależności, wspólnych zmian i potrzeb integracyjnych.
+Następny: **23 — ręczne klasy**, potem 23a → 24 → 25 → 26; 19–20 odłożone.
+Odbiór 21 i wcześniejszych wykonanych ticketów pozostaje potwierdzony.
+
+---
+
 # STM Domains — wykonano SD-V4-21, Panel A
 
 2026-11-05. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź

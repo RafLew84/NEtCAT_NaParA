@@ -1,6 +1,7 @@
 # SD-V4-22 — dzielenie i scalanie domen
 
 2026-11-09. Gałąź `domains/interactive-v04-ui`, baza `128bcef`.
+Implementacja `0910c97`, poprawka po przeglądzie `62644eb`.
 Implementacja w obecnym Panelu A z 21. Odbiór ręczny użytkownika pozostaje otwarty.
 
 ## Obsługa
@@ -92,7 +93,21 @@ zapis/eksport czeka na 24/25, zamknięcie wymaga decyzji o porzuceniu.
 Interpreter: `/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python`.
 Testy operacji i UI obejmują obszary, klasy, historię, anulowanie, odmowy,
 izolację klatek, ponowną analizę oraz prawdziwe zdarzenia myszy Qt.
-Końcowe wyniki regresji i przeglądu zostaną zapisane po ich zakończeniu.
+Po poprawce wspólnego podsumowania domeny: **28 testów celowanych PASS / 6,09 s**,
+kontrola typów **112 modułów PASS**. Pełna regresja: **586 testów PASS / 263,36 s**.
+Pełny zestaw uruchomiono dla implementacji `0910c97`; po refaktorze
+`62644eb` sprawdzono ponownie wszystkie 28 testów ręcznej edycji i typy.
+Polecenia w netcat:
+
+```bash
+QT_QPA_PLATFORM=offscreen MPLCONFIGDIR=/tmp/netcat-stmdomains-mpl python -m pytest -q tests/stmdomains
+python -m mypy --follow-imports=silent --ignore-missing-imports stmdomains/core stmdomains/analysis stmdomains/ui stmdomains/io stmdomains/tools/manual_partition_demo.py
+```
+
+[Przegląd](review-22.md): Standards 1 uwaga heurystyczna zamknięta wspólną
+funkcją `domain_record`, Spec 0. Po poprawce **0 otwartych uwag w obu osiach**.
+7 plików kodu/testów, maksimum **238 linii**, wszystkie poniżej 1000.
+Sprawdzono odnośniki dokumentacji, graf 27 ticketów i diff.
 
 Natywne Qt/X11 w netcat, **1024×768**, PASS: syntetyczna kontrola
 57 przypisań, lasso 4 członków, podgląd/anulowanie/zastosowanie,
