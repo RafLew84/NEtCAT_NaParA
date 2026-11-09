@@ -4,7 +4,7 @@
 Widok Klasy pokazuje `A, B, C…`, a Domeny np. `D1, D2…` dla domen
 klasy D. Obraz i legenda zgodne; własne nazwy oraz ID zachowane.
 [Reguły i test ręczny](acceptance-23.md#poprawka-podpisów-po-zgłoszeniu-użytkownika--2026-11-09).
-Odbiór 23 nadal otwarty; następny 23a → 24 → 25 → 26.
+Odbiór 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”); następny 23a → 24 → 25 → 26.
 
 **2026-11-09 — wykonano SD-V4-23: ręczne klasy (`94d5a94`, poprawka `b11d09a`).**
 **Edytuj domeny → Klasy ręczne…**: nowa/pusta klasa, nazwa/kolor,
@@ -16,7 +16,7 @@ katalogu; przypisania pozostają na bieżącej klatce, model/K bez zmian.
 GUI X11/netcat na kontrolach oraz TTMAPP259–260 PASS. Cofnij/Ponów,
 porównanie oryginału i ochrona pracy z 21–22 pozostają aktywne.
 **596 testów PASS**, mypy 114 modułów PASS, Standards/Spec 0 otwartych uwag.
-**Odbiór ręczny użytkownika 23 pozostaje otwarty**; odbiór 22 potwierdzony.
+**Odbiór ręczny użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”)**; odbiór 22 potwierdzony.
 Korekty tylko w sesji, zapis/eksport w 24/25. Następny: **23a — scalanie
 i dzielenie klas**, potem 24 → 25 → 26; 19–20 odłożone.
 Poniżej historia wcześniejszych prac.
@@ -263,7 +263,7 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 01–03, 05, 05a i 06–18 mają status `done`; odbiór ręczny 18 potwierdzono 2026-11-05 dla `f2e0cbc`.
 21 ma status `done`; odbiór ręczny użytkownika potwierdzono 2026-11-05 dla `e58393c`.
 22 ma status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `f37714f` („testy manualne ok”).
-23 ma status `done`; odbiór ręczny użytkownika pozostaje otwarty.
+23 ma status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”).
 24–26 oraz 23a mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
@@ -313,7 +313,7 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [26 — Porównaj granice domen metodą level-set Gibou–Fedkiwa](26-compare-fedkiw-level-set.md) | SD-V4-17, SD-V4-13, SD-V4-14 | Zmień regularyzację granic, porównaj molekuły i całe domeny z Geometrią oraz przejrzyj obliczone klatki. |
 
 Po wykonanym 23 następny rekomendowany ticket to
-**23a — scalanie i dzielenie klas**. Odbiór użytkownika 23 pozostaje otwarty. Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
+**23a — scalanie i dzielenie klas**. Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
 nie wymaga ukończenia odłożonych 19–20.
 Odbiór użytkownika 13 jest potwierdzony, a 14 potwierdzono dla `4e9f1d9`. 13/14 wykonano po 05;
 16 jest niezależnie dostępny po 05, a 15 po 07. 08 korzysta

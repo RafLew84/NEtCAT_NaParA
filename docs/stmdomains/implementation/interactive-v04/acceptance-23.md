@@ -2,7 +2,9 @@
 
 2026-11-09. Gałąź `domains/interactive-v04-ui`, baza `09d8001`.
 Implementacja `94d5a94`, poprawka `b11d09a`.
-Odbiór ręczny użytkownika pozostaje otwarty.
+Odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”).
+
+Potwierdzenie obejmuje ticket 23 oraz poprawkę podpisów `8d4ec04` opisaną poniżej.
 
 ## Poprawka podpisów po zgłoszeniu użytkownika — 2026-11-09
 

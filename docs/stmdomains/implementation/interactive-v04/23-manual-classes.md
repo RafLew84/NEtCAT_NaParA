@@ -6,7 +6,7 @@
 
 **Blocked by:** [07: Wybierz liczbę klas i zakres ich odkrywania](07-fit-shared-classes.md), [22: Dziel i łącz domeny na obrazie](22-split-merge-domains.md).
 
-**Status:** done — implementacja `94d5a94`, poprawka `b11d09a`, 2026-11-09. Odbiór ręczny użytkownika pozostaje otwarty.
+**Status:** done — implementacja `94d5a94`, poprawka `b11d09a`, 2026-11-09. Odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”).
 
 [Obsługa, semantyka listy i wykonane sprawdzenia](acceptance-23.md),
 [przegląd Standards/Spec](review-23.md).
@@ -15,7 +15,7 @@
 Domeny pokazuje `A1, A2…`, `B1…`; `D1, D2…` oznaczają domeny klasy D.
 Obraz, legenda i edycja korzystają ze wspólnego nazewnictwa.
 [Reguły i test ręczny poprawki](acceptance-23.md#poprawka-podpisów-po-zgłoszeniu-użytkownika--2026-11-09).
-Odbiór użytkownika nadal otwarty.
+Odbiór użytkownika potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady edycji ręcznej](README.md#edycja-ręczna-klas-i-domen).
 

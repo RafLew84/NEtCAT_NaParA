@@ -1,5 +1,10 @@
 # STM Domains — poprawka nazw klas i domen po zgłoszeniu do 23
 
+**Odbiór ręczny 23 wraz z poprawką nazw potwierdzony przez użytkownika
+2026-11-09: „testy manualne ok”.** Testowana wersja: `14f39d6`,
+kod poprawki: `8d4ec04`. Zaktualizowano statusy w tickecie, planie i raportach.
+Ta aktualizacja dotyczy dokumentacji; nie uruchamiano ponownie testów aplikacji.
+
 2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
 `domains/interactive-v04-ui`, baza `a42ca1c`. Implementacja **`8d4ec04`**.
 Użytkownik skorygował znaczenie nazw: klasa D i jej osobne domeny D1, D2…;
@@ -31,7 +36,7 @@ Sprawdzono 546 odnośników w 7 dokumentach, graf 27 ticketów i `git diff --che
 Nie dodano zależności ani zmian współdzielonych. Diagnostyczne pliki lokalne
 pozostają w `.scratch/`; bez instrumentacji w kodzie aplikacji.
 
-**Odbiór użytkownika 23 pozostaje otwarty.** Następny 23a → 24 → 25 → 26;
+**Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”).** Następny 23a → 24 → 25 → 26;
 19–20 odłożone. Korekty ręczne nadal tylko w sesji; ta poprawka nie dodaje
 zapisu/eksportu korekt planowanych w 24/25.
 
@@ -42,7 +47,7 @@ zapisu/eksportu korekt planowanych w 24/25.
 2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
 `domains/interactive-v04-ui`, baza `09d8001`. Implementacja **`94d5a94`**,
 poprawka **`b11d09a`**. Status `done`;
-**odbiór ręczny użytkownika 23 pozostaje otwarty**.
+**odbiór ręczny użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”)**.
 [Obsługa, semantyka list i test ręczny](implementation/interactive-v04/acceptance-23.md),
 [przegląd](implementation/interactive-v04/review-23.md).
 

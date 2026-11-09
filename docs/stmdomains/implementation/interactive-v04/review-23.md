@@ -46,5 +46,5 @@ niezmienność przypisań. Ponowny przegląd `94d5a94...b11d09a` potwierdził
 zamknięcie błędu i **0 nowych uwag, brak regresji zgodności**.
 
 Końcowo: **Standards 0, Spec 0 — brak otwartych uwag w obu osiach**.
-Odbiór ręczny użytkownika pozostaje otwarty. Testy i wykonane GUI:
+Odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Testy i wykonane GUI:
 [raport odbioru](acceptance-23.md).

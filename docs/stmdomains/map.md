@@ -18,7 +18,7 @@ tego zakresu, bez oczekiwania na wybór metod analizy ani formatu wyników.
 Klasy: `A, B, C…`; osobne domeny klasy D: `D1, D2…`.
 Podpisy na obrazie zależą od widoku Klasy/Domeny i zgadzają się z legendą.
 [Reguły i test ręczny](implementation/interactive-v04/acceptance-23.md#poprawka-podpisów-po-zgłoszeniu-użytkownika--2026-11-09).
-Odbiór 23 nadal otwarty; następny 23a, potem 24 → 25 → 26.
+Odbiór 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”); następny 23a, potem 24 → 25 → 26.
 
 **2026-11-09 — wykonano SD-V4-23: ręczne klasy (`94d5a94`, poprawka `b11d09a`).**
 **Edytuj domeny → Klasy ręczne…**: nowa/pusta klasa, nazwa/kolor,
@@ -30,7 +30,7 @@ katalogu; przypisania pozostają na bieżącej klatce, model/K bez zmian.
 GUI X11/netcat na kontrolach oraz TTMAPP259–260 PASS. Cofnij/Ponów,
 porównanie oryginału i ochrona pracy z 21–22 pozostają aktywne.
 **596 testów PASS**, mypy 114 modułów PASS, Standards/Spec 0 otwartych uwag.
-**Odbiór ręczny użytkownika 23 pozostaje otwarty**; odbiór 22 potwierdzony.
+**Odbiór ręczny użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”)**; odbiór 22 potwierdzony.
 Korekty tylko w sesji, zapis/eksport w 24/25. Następny: **23a — scalanie
 i dzielenie klas**, potem 24 → 25 → 26; 19–20 odłożone.
 Poniżej historia wcześniejszych prac.
