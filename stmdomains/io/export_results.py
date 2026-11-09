@@ -12,14 +12,15 @@ from tempfile import TemporaryDirectory
 from stmdomains.core.export import ExportOptions
 from stmdomains.core.frame_presentation import FramePresenter, PresentedFrame
 from stmdomains.core.immutable import plain_metadata
-from stmdomains.core.project import ProjectSnapshot
+from stmdomains.core.export_snapshot import ExportSource, ExportSnapshot, selected_result, original_result
 from stmdomains.io.export_tables import TABLE_FIELDS, identity, table_rows
+from stmdomains.io.export_provenance import correction_metadata
 from stmdomains.io.project_results import catalogue_record, validate_frame
 from stmdomains.io.project_archive import checkpoint, json_bytes
 from stmdomains.io.source_identity import source_digest
 
 
-EXPORT_README = '''# Eksport STM Domains — wersja 1
+EXPORT_README = '''# Eksport STM Domains — wersja 2
 
 CSV: UTF-8, przecinek, kropka dziesiętna, standardowe cytowanie tekstu.
 Brak wartości liczbowej to puste pole; 0 jest rzeczywiście dostępnym zerem.
@@ -57,10 +58,39 @@ ustawienia PNG i zakres obrazu. Szkic następnej analizy nie zastępuje parametr
 PNG: bieżący tryb, gamma i warstwy; legenda/liczniki dotyczą całej klatki.
 Wyrównane płótno poza obramowaniem pola jest paddingiem, nie pomiarem.
 Eksport nie wykonuje analizy i nie zastępuje projektu .stmdomains.
+
+Korekty ręczne:
+result_variant: after_corrections, automatic lub input — jawnie wybrany wariant.
+frame_state: corrected, manual_only, automatic lub unanalysed. analysis_status
+nadal opisuje wykonanie bazowej analizy albo dostępność końcowego wyniku.
+automatic_available=0 oznacza brak automatu, nie detekcję z wynikiem zero.
+base_* w molecules.csv zachowują automat; class_id/domain_local_id i opis
+klasy/domeny odnoszą się do wybranego końcowego wariantu. Domena 0 przy
+niepustej class_id jest ręczną klasą bez domeny, nie powierzchnią domeny.
+class_origin dotyczy utworzenia etykiety, assignment_origin decyzji o
+członkostwie. manual oznacza zastosowaną zmianę klasy lub domeny; automatic
+oznacza przypisanie bez takiej zmiany. Zmiana samej nazwy nie zmienia pochodzenia
+przypisania. change_type porównuje końcowy stan z automatem; change_operations
+zawiera zastosowane operacje, także gdy później przywrócono dawne członkostwo.
+assigned_count liczy członków domen; class_assigned_count członków klas,
+class_only_count klasy bez domeny. manual_* / automatic_* rozdzielają
+pochodzenie bieżących przypisań według powyższej reguły, bez podwójnego liczenia.
+To nie ocena trafności ani poprawy modelu. confidence jest wyłącznie pewnością
+oznaczenia wejściowego MolTrack; korekty nie otrzymują pewności modelu.
+result_id zawiera wariant, rewizję członkostwa i rewizję listy klas; base_analysis_id
+identyfikuje bazowy automat. catalogue_id nadal oznacza niezmieniony model.
+Nowe klasy ręczne mają własne ID, nazwę i kolor w classes.csv/manual_classes.
+frame-*.json zawiera applied_operations z zakresem transaction_frames (od 0),
+źródłami class_sources i celem class_target po scaleniu/podziale klas.
+Odrzucone podglądy i cofnięte operacje nie należą do eksportowanego stanu.
+Przy domenie bez wystarczającego wsparcia geometrycznego powierzchnia pozostaje
+pusta (unavailable); partial oznacza tylko sumę dostępnych fragmentów klatki.
+Pusta klasa ma 0 członków; nie potwierdza to żadnego fizycznego typu struktury.
+Eksport nie zapisuje historii do wznowienia ani nie oznacza korekt jako zapisane.
 '''
 
 
-def export_results(target: Path, snapshot: ProjectSnapshot, indices: tuple[int, ...], options: ExportOptions,
+def export_results(target: Path, snapshot: ExportSource, indices: tuple[int, ...], options: ExportOptions,
                    *, render_png: Callable[[PresentedFrame], bytes] | None = None,
                    cancelled: Callable[[], bool] = lambda: False,
                    progress: Callable[[str], None] = lambda text: None) -> Path:
@@ -89,16 +119,22 @@ def export_results(target: Path, snapshot: ProjectSnapshot, indices: tuple[int, 
             for number, index in enumerate(indices, 1):
                 check()
                 progress(f'Eksport klatki {index + 1} · {number}/{len(indices)}…')
-                result = analysis.frames.get(index) if analysis else None
+                result = selected_result(snapshot, index)
+                original = original_result(snapshot, index)
+                if original is not None:
+                    validate_frame(original, snapshot.series, presenter)
                 if result is not None:
-                    if result.working_index != index:
+                    if (result.series_id, result.working_index, result.source_index) != (
+                            snapshot.series.identity, index, snapshot.series.source_frame_indices[index]):
                         raise ValueError("Wynik nie odpowiada eksportowanej klatce.")
-                    validate_frame(result, snapshot.series, presenter)
                 raw = presenter.analysis_input(index)
+                if result is not None and set(result.assignments) != {d.detection_id for d in raw.annotations.detections}:
+                    raise ValueError('Wynik nie odpowiada oznaczeniom eksportowanej klatki.')
                 if options.csv:
                     for name, rows in table_rows(snapshot, index, result, raw.annotations).items():
                         writers[name].writerows(rows)
-                metadata = {**identity(snapshot, index, result), 'parameters': plain_metadata(result.parameters) if result else None,
+                metadata = {**identity(snapshot, index, result), **correction_metadata(snapshot, index, result),
+                            'parameters': plain_metadata(result.parameters) if result else None,
                             'execution_metadata': plain_metadata(result.metadata) if result else None,
                             'classes': [asdict(item) for item in result.classes] if result else [],
                             'catalogue': catalogue_record(result.catalogue) if result and result.catalogue else None,
@@ -113,7 +149,8 @@ def export_results(target: Path, snapshot: ProjectSnapshot, indices: tuple[int, 
                 check()
         (root / 'README.md').write_text(EXPORT_README, encoding='utf-8')
         entries = {p.name: {'size': p.stat().st_size, 'sha256': source_digest(p, check)} for p in sorted(root.iterdir())}
-        (root / 'manifest.json').write_bytes(json_bytes({'format': 'stmdomains-export', 'version': 1,
+        (root / 'manifest.json').write_bytes(json_bytes({'format': 'stmdomains-export', 'version': 2,
+            'result_variant': snapshot.variant if isinstance(snapshot, ExportSnapshot) else 'automatic',
             'created_at': datetime.now(timezone.utc).isoformat(), 'analysis_id': analysis.identifier if analysis else None,
             'working_indices': indices, 'source_sha256': snapshot.series.source_sha256,
             'analysis_execution': plain_metadata(analysis.execution) if analysis else None,

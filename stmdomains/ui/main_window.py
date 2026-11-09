@@ -234,8 +234,8 @@ class STMDomainsMainWindow(QMainWindow):
 
     def _refresh_export_action(self, busy: bool, message: str) -> None:
         if self.export_action is not None:
-            self.export_action.setEnabled(self.controller.can_analyze and not self.controller.manual.blocks_persistence)
-            self.export_action.setToolTip("Eksport korekt ręcznych nie jest jeszcze dostępny" if self.controller.manual.blocks_persistence else "Eksportuj wynik")
+            self.export_action.setEnabled(self.controller.can_analyze and not self.controller.manual.blocks_export)
+            self.export_action.setToolTip("Zatwierdź lub anuluj podgląd korekt" if self.controller.manual.blocks_export else "Eksportuj wynik")
 
     def _show_export(self) -> None:
         self.export_dialog.prepare()

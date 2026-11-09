@@ -9,7 +9,7 @@ from PyQt6.QtCore import QCoreApplication, QObject, QThreadPool, pyqtSignal, pyq
 
 from stmdomains.core.export import ExportOptions
 from stmdomains.core.frame_presentation import PresentedFrame
-from stmdomains.core.project import ProjectSnapshot
+from stmdomains.core.export_snapshot import ExportSource
 from stmdomains.io.export_results import export_results
 from stmdomains.io.export_tables import identity
 from stmdomains.io.project_archive import checkpoint
@@ -20,7 +20,7 @@ from stmdomains.ui.tasks import Task
 @dataclass
 class RenderRequest:
     frame: PresentedFrame
-    snapshot: ProjectSnapshot
+    snapshot: ExportSource
     options: ExportOptions
     cancelled: Event
     response: Queue[bytes | Exception] = field(default_factory=lambda: Queue(maxsize=1))
@@ -51,7 +51,7 @@ class ExportRunner(QObject):
     def pending_task_count(self) -> int:
         return len(self._tasks)
 
-    def start(self, path: Path, snapshot: ProjectSnapshot, indices: tuple[int, ...], options: ExportOptions) -> None:
+    def start(self, path: Path, snapshot: ExportSource, indices: tuple[int, ...], options: ExportOptions) -> None:
         if self.running or self._closed:
             return
         self._counter += 1

@@ -47,12 +47,18 @@ def render_export_png(frame: PresentedFrame, view: Mapping[str, Any], options: E
     catalogue_id = result.metadata.get('model_id', '') if result else ''
     context = context or {}
     analysis_id = context.get('analysis_id', analysis_id)
+    catalogue_id = context.get('catalogue_id', catalogue_id)
     analysis_status = context.get('analysis_status', result.status if result else 'unanalysed')
     crop_label = 'wycinek' if options.crop else 'pełny obraz'
     view_label = 'wyrównany' if frame.mode == 'expanded_aligned' else 'oryginalny'
     mode_label = {'domains': 'Domeny', 'classes': 'Klasy', 'input': 'Wejściowe'}[mode]
     caption = (f'Klatka {frame.frame.working_index+1} · źródłowa {frame.frame.source_index+1} · {mode_label}\n'
                f'{view_label} · {crop_label} · gamma {frame.gamma:g} · skala w px\n{description.summary}')
+    variant = context.get('result_variant', 'automatic')
+    label = {'after_corrections': 'Po korektach', 'automatic': 'Bazowy automat', 'input': 'Oznaczenia wejściowe'}[variant]
+    state = {'corrected': 'korekty ręczne', 'manual_only': 'tylko ręczne — brak automatu',
+             'automatic': 'bez korekt', 'unanalysed': 'brak analizy'}.get(context.get('frame_state', ''), '')
+    caption += f'\n{label} · {state}'
     if result is None and analysis_status != 'unanalysed':
         state_label = {'not_in_analysis': 'Klatka poza wybranym przebiegiem', 'not_run': 'Analiza niewykonana',
                        'error': 'Błąd analizy', 'unavailable': 'Wynik niedostępny'}.get(analysis_status, analysis_status)
@@ -75,14 +81,17 @@ def render_export_png(frame: PresentedFrame, view: Mapping[str, Any], options: E
     legend_rows: list[list[LegendEntry]] = [[]]
     used = 0
     for entry in legend:
-        item_width = metrics.horizontalAdvance(f'{entry.label}: {entry.count}') + 36
+        item_width = min(width, metrics.horizontalAdvance(f'{entry.label}: {entry.count}') + 36)
         if used + item_width > width and legend_rows[-1]:
             legend_rows.append([])
             used = 0
         legend_rows[-1].append(entry)
         used += item_width
     image_height = max(1, round(width * source.height() / source.width()))
-    legend_height = len(legend_rows) * (metrics.height() + 8)
+    row_heights = [max((metrics.boundingRect(0, 0, width - 18, 100000, flags,
+                    f'{e.label}: {e.count}').height() for e in row), default=metrics.height()) + 8
+                   for row in legend_rows]
+    legend_height = sum(row_heights)
     total_height = caption_height + image_height + legend_height + notes_height + 48
     if (width + 32) * total_height > 64_000_000:
         raise ValueError('Eksportowany PNG jest zbyt duży. Wybierz szerszy wycinek lub mniejszą szerokość PNG.')
@@ -110,15 +119,15 @@ def render_export_png(frame: PresentedFrame, view: Mapping[str, Any], options: E
     painter.resetTransform()
     painter.setFont(font)
     y = int(image_rect.bottom()) + 10
-    for row in legend_rows:
+    for row, row_height in zip(legend_rows, row_heights):
         x = 16
         for entry in row:
             painter.fillRect(QRectF(x, y + 3, 12, 12), QColor(entry.color))
             painter.setPen(QColor('white'))
             label = f'{entry.label}: {entry.count}'
-            painter.drawText(x + 18, y + metrics.ascent(), label)
-            x += metrics.horizontalAdvance(label) + 36
-        y += metrics.height() + 8
+            painter.drawText(QRectF(x + 18, y, min(width - 18, metrics.horizontalAdvance(label) + 2), row_height), flags, label)
+            x += min(width, metrics.horizontalAdvance(label) + 36)
+        y += row_height
     painter.setPen(QColor('#b6c7d2'))
     painter.drawText(QRectF(16, y, width, notes_height), flags, notes)
     painter.end()

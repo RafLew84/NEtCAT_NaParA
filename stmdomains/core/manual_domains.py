@@ -85,6 +85,11 @@ class ManualDomains:
         return self._cursor > 0
 
     @property
+    def applied_history(self) -> tuple[FrameAnalysis, ...]:
+        """Immutable states up to the current undo position, excluding previews/redo."""
+        return tuple(self._history[:self._cursor + 1])
+
+    @property
     def can_redo(self) -> bool:
         return self._cursor + 1 < len(self._history)
 

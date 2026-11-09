@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from stmdomains.ui.session_controller import SessionController
 
 UNSAVED_MANUAL = ('Korekty ręczne można zapisać w projekcie .stmdomains. '
-                  'Eksport korekt nie jest jeszcze dostępny.')
+                 'Plik → Eksportuj PNG/CSV zapisuje wybrany wynik bez historii.')
 
 
 class ManualController(QObject):
@@ -99,9 +99,8 @@ class ManualController(QObject):
                              if labels is not None and self.class_lists.get(v).identifier == labels.identifier}))
 
     @property
-    def blocks_persistence(self) -> bool:
-        return (self.has_changes or self.preview_result is not None or self.class_operations.transaction is not None
-                or self.displayed_result(self.controller.result) is not self.controller.result)
+    def blocks_export(self) -> bool:
+        return self.preview_result is not None or self.class_operations.transaction is not None
 
     @property
     def can_edit(self) -> bool:

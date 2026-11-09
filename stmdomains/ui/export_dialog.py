@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 )
 
 from stmdomains.core.export import ExportOptions
-from stmdomains.ui.project_selection import analysis_identifier
+from stmdomains.ui.export_selection import capture_export, export_choices
 from stmdomains.ui.project_view import capture_view
 
 if TYPE_CHECKING:
@@ -69,7 +69,8 @@ class ExportDialog(QDialog):
         self.note = QLabel('PNG zachowuje bieżący widok, gammę, tryb Klasy/Domeny i warstwy. '
                            'Wycinek jest ten sam dla wybranych klatek w tym układzie współrzędnych. '
                            'Liczniki CSV dotyczą całych klatek. Braki pozostają brakami; eksport nie uruchamia analizy. '
-                           'Plik .stmdomains służy do zapisania całej pracy.')
+                           'Korekty ręczne nie są oceną trafności modelu. '
+                           'Plik .stmdomains służy do zapisania całej pracy z historią.')
         self.note.setWordWrap(True)
         layout.addWidget(self.note)
         self.status = QLabel()
@@ -101,31 +102,31 @@ class ExportDialog(QDialog):
         controller = self.controller
         controller.pause()
         self.selection.clear()
-        result, run = controller.result, controller.series_run
-        if result is not None:
-            self.selection.addItem(f'Wyświetlany wynik · {analysis_identifier(result)[:8]}', 'displayed')
-        if run and (result is None or analysis_identifier(result) != run.identifier):
-            self.selection.addItem(f'Ostatni przebieg · {run.identifier[:8]}', 'latest')
-        self.selection.addItem('Tylko oznaczenia wejściowe — bez analizy', 'none')
+        self.selection.blockSignals(True)
+        for key, label in export_choices(controller):
+            self.selection.addItem(label, key)
+        self.selection.blockSignals(False)
         count = controller.series.frame_count if controller.series else 1
         for control in (self.first, self.last):
             control.setMaximum(count)
         self._choose_analysis_scope()
         self.name.setText(datetime.now().strftime('eksport-%Y%m%d-%H%M%S'))
-        self.status.setText(f'Bieżąca klatka: {controller.current_index + 1}. Zostanie utworzony nowy podkatalog eksportu.')
         self._refresh()
 
     def _choose_analysis_scope(self) -> None:
-        if self.controller.manual.blocks_persistence:
+        if self.controller.manual.blocks_export or self.selection.currentData() is None:
             return
         choice = self.selection.currentData()
-        if choice not in ('displayed', 'latest', 'none'):
-            return
-        analysis = self.controller.project_analysis(choice)
-        indices = analysis.indices if analysis else (self.controller.current_index,)
+        snapshot = capture_export(self.controller, choice, {})
+        indices = tuple(sorted(set(snapshot.analysis.indices if snapshot.analysis else ()) | set(snapshot.corrections)))
+        indices = indices or (self.controller.current_index,)
         self.first.setValue(min(indices) + 1)
         self.last.setValue(max(indices) + 1)
         self.scope.setCurrentIndex(0 if indices == (self.controller.current_index,) else 1)
+        self.status.setText(f'{self.selection.currentText()}. Bieżąca klatka: {self.controller.current_index + 1}. '
+                           + ('Brak bazowego automatu; dostępne wyłącznie wskazania ręczne.'
+                              if snapshot.corrections and snapshot.analysis is None else
+                              'Zostanie utworzony nowy podkatalog eksportu.'))
 
     def _browse(self) -> None:
         path = QFileDialog.getExistingDirectory(self, 'Wybierz katalog na eksport', self.folder.text())
@@ -133,9 +134,9 @@ class ExportDialog(QDialog):
             self.folder.setText(path)
 
     def _refresh(self) -> None:
-        ready = self.controller.can_analyze and not self.controller.manual.blocks_persistence
-        if self.controller.manual.blocks_persistence:
-            self.status.setText('Korekty można zapisać w projekcie. Eksport korekt nie jest jeszcze dostępny.')
+        ready = self.controller.can_analyze and not self.controller.manual.blocks_export
+        if self.controller.manual.blocks_export:
+            self.status.setText('Zatwierdź lub anuluj podgląd korekt przed eksportem.')
         self.fields.setEnabled(ready)
         self.first.setEnabled(self.scope.currentData() == 'range')
         self.last.setEnabled(self.scope.currentData() == 'range')

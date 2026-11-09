@@ -51,7 +51,7 @@ def test_panel_hides_outside_editing_and_corrected_image_remains(qtbot, opened):
     qtbot.waitUntil(lambda: not panel.isVisible() and opened.image_view.width() == width)
     assert controller.displayed_result is expected
     assert opened.result_controls.summary.text().startswith('Ręcznie')
-    assert not opened.export_action.isEnabled()
+    assert opened.export_action.isEnabled()
     assert all(action.isEnabled() for action in opened.project_actions.save_actions)
     panel.edit.click()
     panel.undo.click()

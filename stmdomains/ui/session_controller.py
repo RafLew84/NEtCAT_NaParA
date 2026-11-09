@@ -41,7 +41,7 @@ from stmdomains.analysis.series_analysis import FrameOutcome
 from stmdomains.io.moltrack_import import ImportCandidate, SourceRequest, prepare_import
 from stmdomains.ui.import_prompts import ImportPrompts
 from stmdomains.ui.tasks import Task
-from stmdomains.ui.manual_controller import ManualController, UNSAVED_MANUAL
+from stmdomains.ui.manual_controller import ManualController
 from stmdomains.ui.series_runner import SeriesRun, SeriesRunner
 
 
@@ -284,9 +284,8 @@ class SessionController(QObject):
         self.pause()
         if not self.can_analyze or self.series is None:
             return
-        if self.manual.blocks_persistence:
-            raise ValueError(UNSAVED_MANUAL)
-        snapshot = ProjectSnapshot(self.series, view, analysis=self.project_analysis(selection))
+        from stmdomains.ui.export_selection import capture_export
+        snapshot = capture_export(self, selection, view)
         self._export_runner.start(path, snapshot, indices, options)
 
     def _cancel_save(self) -> None:
