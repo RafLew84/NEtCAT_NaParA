@@ -10,7 +10,7 @@ nieodwiedzone klatki tego katalogu; braki analizy/geometrii pozostają jawne.
 [przegląd](review-25.md): 0 otwartych uwag Standards/Spec.
 Mypy **127 modułów PASS**; natywne GUI/netcat: kontrole i TTMAPP259 PASS.
 Pełna regresja: **659 testów PASS / 295,49 s**.
-**Odbiór ręczny użytkownika 25 otwarty.** Następny **26**; 19–20 odłożone.
+**Odbiór ręczny użytkownika 25 potwierdzony 2026-11-09 dla wersji `bacd68b` („testy manualne ok”).** Następny **26**; 19–20 odłożone.
 Poniżej historia wcześniejszych etapów.
 
 **2026-11-09 — wykonano SD-V4-24: zapis korekt i historii** (`1c1b798`, `9b7a19b`, `94803e8`).
@@ -303,7 +303,7 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 23 ma status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”).
 23a ma status `done`; odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”).
 24 ma status `done`; zapis korekt i historii wykonano. Odbiór ręczny użytkownika 24 wraz z poprawką zaznaczania i łączenia fragmentów potwierdzony 2026-11-09 dla wersji `1eb0356` („temty manualne ok”).
-25 jest zaimplementowany; odbiór ręczny użytkownika otwarty.
+25 ma status `done`; Odbiór ręczny użytkownika 25 potwierdzony 2026-11-09 dla wersji `bacd68b` („testy manualne ok”).
 26 ma zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.

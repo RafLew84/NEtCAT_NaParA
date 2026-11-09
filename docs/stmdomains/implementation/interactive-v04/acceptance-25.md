@@ -2,7 +2,7 @@
 
 2026-11-09. Gałąź `domains/interactive-v04-ui`, baza `4555908`.
 Implementacja `03dfece`, poprawki przeglądu `bf243a0`.
-**Odbiór ręczny użytkownika pozostaje otwarty.**
+**Odbiór ręczny użytkownika 25 potwierdzony 2026-11-09 dla wersji `bacd68b` („testy manualne ok”).**
 
 ## Obsługa
 

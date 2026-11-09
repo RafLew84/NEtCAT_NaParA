@@ -10,7 +10,7 @@ nieodwiedzone klatki tego katalogu; braki analizy/geometrii pozostają jawne.
 [przegląd](implementation/interactive-v04/review-25.md): 0 otwartych uwag Standards/Spec.
 Mypy **127 modułów PASS**; natywne GUI/netcat: kontrole i TTMAPP259 PASS.
 Pełna regresja: **659 testów PASS / 295,49 s**.
-**Odbiór ręczny użytkownika 25 otwarty.** Następny **26**; 19–20 odłożone.
+**Odbiór ręczny użytkownika 25 potwierdzony 2026-11-09 dla wersji `bacd68b` („testy manualne ok”).** Następny **26**; 19–20 odłożone.
 Poniżej historia wcześniejszych etapów.
 
 **2026-11-09 — wiele zaznaczeń i łączenie fragmentów klasy (`8edc163`).**

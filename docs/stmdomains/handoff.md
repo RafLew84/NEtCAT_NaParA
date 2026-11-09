@@ -1,3 +1,21 @@
+# STM Domains — odbiór ręczny SD-V4-25
+
+**2026-11-09: użytkownik potwierdził „testy manualne ok”.**
+Odebrano **25 — eksport ręcznych klas i domen do CSV oraz PNG**.
+Testowana wersja: **`bacd68b`** (implementacja `03dfece`, poprawki `bf243a0`).
+Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `domains/interactive-v04-ui`.
+
+Potwierdzenie zapisano w tickecie, raporcie odbioru, planie i mapie.
+Kodu aplikacji nie zmieniano; testów aplikacji nie powtarzano.
+Wcześniejsze sprawdzenia: 659 testów PASS, mypy 127 modułów PASS,
+natywne GUI/netcat na kontrolach i TTMAPP259 PASS.
+[Raport i instrukcja](implementation/interactive-v04/acceptance-25.md).
+
+Następny ticket: **26 — próba level-set Gibou–Fedkiwa**.
+Implementacji 26 nie rozpoczęto; 19–20 pozostają odłożone.
+
+---
+
 # STM Domains — SD-V4-25: eksport korekt
 
 2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź

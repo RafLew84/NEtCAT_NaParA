@@ -6,7 +6,7 @@
 
 **Blocked by:** [14: Wyeksportuj przypisania i widok do CSV oraz PNG](14-export-csv-png.md), [23a: Scalaj i dziel klasy ręcznie](23a-split-merge-classes.md).
 
-**Status:** done — 2026-11-09; implementacja `03dfece`, poprawki `bf243a0`. 659 testów PASS, mypy 127 modułów PASS, natywne GUI/netcat kontrole i TTMAPP259 PASS. Odbiór ręczny użytkownika otwarty.
+**Status:** done — 2026-11-09; implementacja `03dfece`, poprawki `bf243a0`. 659 testów PASS, mypy 127 modułów PASS, natywne GUI/netcat kontrole i TTMAPP259 PASS. Odbiór ręczny użytkownika 25 potwierdzony 2026-11-09 dla wersji `bacd68b` („testy manualne ok”).
 
 [Obsługa i raport odbioru](acceptance-25.md), [przegląd Standards/Spec](review-25.md).
 
