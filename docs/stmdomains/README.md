@@ -1,5 +1,13 @@
 # STM Domains
 
+**2026-11-09 — wiele zaznaczeń i łączenie fragmentów klasy (`8edc163`).**
+W oknie Klasy ręczne są Kliknięcia/Lasso oraz Dodaj/Odejmij/Zastąp wybór.
+Opcja **Połącz stykające się domeny tej klasy** porządkuje fragmenty po
+przypisaniu, zachowując rozdzielone obszary i sumę istniejących masek.
+54 testy PASS, mypy 124 moduły PASS, natywne GUI/netcat TTMAPP268 PASS.
+[Obsługa i odbiór ręczny](implementation/interactive-v04/manual-class-selection.md).
+Odbiór tej poprawki i 24 pozostaje otwarty; następne tickety 25 → 26.
+
 **2026-11-09 — wykonano SD-V4-24: zapis korekt i historii** (`1c1b798`, `9b7a19b`, `94803e8`).
 **Plik → Zapisz projekt…**: jawny wybór wyniku po korektach, automatu lub
 samych danych. Projekt odtwarza klasy, domeny i Cofnij/Ponów, także po

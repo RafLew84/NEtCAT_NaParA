@@ -1,3 +1,33 @@
+# STM Domains — wybór wielu molekuł i fragmenty klas
+
+2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
+`domains/interactive-v04-ui`; baza `648aa4d`, poprawka **`8edc163`**.
+Zgłoszenie: każde osobne przypisanie tworzyło kolejną małą domenę tej samej
+klasy, a okno klas zasłaniało wybór narzędzia zaznaczania w panelu.
+
+Dodano wspólne narzędzia Kliknięcia/Lasso i tryby Dodaj/Odejmij/Zastąp w
+oknie klas oraz podziału klasy. Zaznaczenia można zbierać i przypisać raz.
+Opcjonalne, domyślnie wyłączone **Połącz stykające się domeny tej klasy**
+łączy obszary docelowej klasy osiągalne od zaznaczenia. Także dla wcześniej
+utworzonych fragmentów tej samej klasy. Kryterium jak w 22: 8-sąsiedztwo,
+spójny obszar i wsparcie centrów. Nie łączy przez przerwy; zachowuje sumę
+masek, oryginał modelu i osobność punktów bez domeny. Atomowe Cofnij/Ponów
+oraz zapis projektu z 24 obejmują całe przypisanie i połączenie.
+
+[Obsługa i instrukcja ręczna](implementation/interactive-v04/manual-class-selection.md).
+Netcat: **54 testy PASS / 34,44 s**, mypy **124 moduły PASS**. Natywne
+Qt/X11: kontrola 2 kliknięć, naprawa 4→3 domen, zapis/odczyt i historia PASS;
+TTMAPP268 K5, 3 fragmenty → 1, liczba domen 8→6, suma masek bez zmian PASS.
+9 plików Python, maksimum **384 linie**. Bez zależności i zmian wspólnych.
+Pełnej regresji nie powtarzano; 645 PASS poniżej dotyczy wersji przed poprawką.
+Artefakty lokalne: `.scratch/stmdomains-class-selection/`.
+
+**Odbiór użytkownika tej poprawki i ticketu 24 otwarty.** Przed restartem
+zachować bieżące korekty w projekcie Po korektach. Następne 25 → 26;
+19–20 odłożone. To poprawa ręcznej obsługi, nie nowa ocena jakości detekcji.
+
+---
+
 # STM Domains — SD-V4-24: trwałe korekty i historia
 
 2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
