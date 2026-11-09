@@ -1,5 +1,17 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**2026-11-09 — wykonano SD-V4-24: zapis korekt i historii** (`1c1b798`, `9b7a19b`, `94803e8`).
+**Plik → Zapisz projekt…**: jawny wybór wyniku po korektach, automatu lub
+samych danych. Projekt odtwarza klasy, domeny i Cofnij/Ponów, także po
+zapisie po cofnięciu i dla atomowych operacji kilku klatek. Odczyt bez
+źródeł i ponownego dopasowania; praca bez analizy pozostaje bez automatu.
+[Obsługa, gotowe przykłady i test ręczny](interactive-v04/acceptance-24.md).
+**645 testów PASS**, mypy **124 moduły PASS**, natywne GUI/netcat PASS.
+Przegląd Standards/Spec: wszystkie uwagi zamknięte.
+**Odbiór ręczny użytkownika 24 otwarty**. Następny **25 → 26**;
+19–20 pozostają odłożone. Eksport korekt czeka na 25.
+Poniżej historia wcześniejszych etapów.
+
 **2026-11-09 — wykonano SD-V4-23a: scalanie i dzielenie klas (`5ca2e6f`, poprawka `5de0d7f`).**
 **Edytuj domeny → Klasy ręczne… → Scal klasy… / Podziel klasę…**:
 wybór źródeł i celu, jawny zakres klatek, utrwalone warianty/lista klas,

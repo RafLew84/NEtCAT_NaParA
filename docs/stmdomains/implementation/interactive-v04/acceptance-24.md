@@ -1,7 +1,9 @@
 # SD-V4-24 — zapis korekt i wznowienie edycji
 
 2026-11-09. Gałąź `domains/interactive-v04-ui`; baza `6b5820c`.
-Odbiór ręczny użytkownika pozostaje otwarty.
+Implementacja `1c1b798`, poprawki przeglądu `9b7a19b`, poprawka
+automatycznego dopasowania widoku `94803e8`. Odbiór ręczny użytkownika
+pozostaje otwarty.
 
 ## Obsługa
 
@@ -62,7 +64,10 @@ To lokalne artefakty, nie dane wersjonowane w Git.
 
 ## Wykonane sprawdzenia
 
-- Netcat/offscreen: 19 testów interfejsu zapisu, historii i okna PASS.
+- Netcat/offscreen: początkowo 19 testów interfejsu zapisu, historii i okna
+  PASS; po przeglądzie 13 testów trwałości PASS. Osobne testy reprodukują
+  nadpisanie jedynego zapisu, wznowienie tego samego wariantu i próbę
+  rozdzielenia atomowej transakcji (RED przed poprawkami, GREEN po nich).
 - Walidacja pliku: błędne ID molekuł/klas/klatek, konflikt domeny, zakres
   i rewizje transakcji, pozycja historii; kontrola działa także przy
   prawidłowych sumach kontrolnych uszkodzonych danych.
@@ -70,13 +75,27 @@ To lokalne artefakty, nie dane wersjonowane w Git.
   ponowne otwarcie, Cofnij/Ponów i Zapisz jako PASS. Kontrola 9/7 otwiera się
   po usunięciu wyłącznie wygenerowanych źródeł testowych. TTMAPP259–260:
   dokładna zgodność przypisań i rastrów, bazowo 7/5 domen; odczyt z zablokowanym
-  dopasowaniem KMeans. Osobny przykład bez analizy i odmowa uszkodzonego
+  dopasowaniem KMeans. Końcową próbę powtórzono dla `94803e8`, także z
+  wyjściem do automatu i ponownym wznowieniem tego samego wariantu. Osobny przykład bez analizy i odmowa uszkodzonego
   projektu bez utraty otwartej pracy PASS. Źródeł użytkownika nie usuwano.
 - Zrzuty GUI oraz `gui-report.json` w lokalnym katalogu próby. To kontrola
   trwałości i edycji, nie ocena jakości detekcji domen.
 
-Pełna regresja, końcowe sprawdzenie typów, limitów plików i przegląd zostaną
-uzupełnione po ich zakończeniu. Potwierdzenie użytkownika jest osobnym etapem.
+Końcowe mypy: **124 moduły PASS** (core/analysis/ui/io oraz zmienione narzędzia).
+22 zmienione pliki Python, maksimum **912 linii**; każdy poniżej 1000.
+[Przegląd](review-24.md): Standards 1 P1 poprawiona, Spec 2 P2 poprawione,
+0 otwartych uwag. Końcowa pełna regresja dla `94803e8`:
+**645 testów PASS / 292,67 s** (`regression.xml`). Pierwszy rozpoczęty bieg
+przerwano po wykryciu problemu Dopasuj w niezależnej próbie GUI; powyższy
+wynik pochodzi z pełnego biegu po poprawce.
+Automatyczna zmiana skali/środka w trybie Dopasuj nie oznacza niezapisanej
+edycji; ręczny zoom nadal ją oznacza. Dodatkowe 13 testów UI PASS.
+Potwierdzenie użytkownika jest osobnym etapem.
+
+Dodatkowe, szersze mypy obejmujące całe `tools/` ujawniło 2 istniejące błędy
+typów w niezmienianym `tools/freud_trial.py:58,63`. Potwierdzono te same
+błędy na kopii z bazy `6b5820c`; nie są regresją ticketu 24. Log:
+`.scratch/stmdomains-ui-24/preexisting-tools-types.log`.
 
 ## Format i ograniczenia
 

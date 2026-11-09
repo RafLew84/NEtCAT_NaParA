@@ -1,3 +1,41 @@
+# STM Domains — SD-V4-24: trwałe korekty i historia
+
+2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
+`domains/interactive-v04-ui`; baza `6b5820c`. Commity: implementacja
+**`1c1b798`**, poprawki przeglądu **`9b7a19b`**, poprawka Dopasuj/dirty
+**`94803e8`**. **Odbiór ręczny użytkownika 24 pozostaje otwarty.**
+
+**Plik → Zapisz projekt…** zapisuje wybrane korekty, automatyczny oryginał
+(albo jawny brak analizy), klasy/nazwy/kolory, domeny/geometrię i pełną
+historię Cofnij/Ponów z pozycją. Wieloklatkowe operacje pozostają atomowe.
+Po otwarciu bez źródeł i obliczeń można wznowić ten sam wariant. Zapisz jako
+zachowuje poprzedni plik; nadpisanie samym automatem pozostawia pominięte
+korekty jako niezapisane. Zamknięcie/otwarcie: Zapisz/Odrzuć/Anuluj.
+Kontener v2 z sumami kontrolnymi i atomową podmianą; v1 bez korekt działa.
+
+[Obsługa, gotowe pliki i test ręczny](implementation/interactive-v04/acceptance-24.md),
+[przegląd](implementation/interactive-v04/review-24.md).
+Netcat: mypy **124 moduły PASS**; końcowa regresja **645 testów PASS /
+292,67 s** dla `94803e8` (`regression.xml`).
+Natywne Qt/X11 dla końcowej wersji: kontrola 9/7 po usunięciu jej źródeł,
+TTMAPP259–260 K5 (7/5 bazowych domen), dokładne przypisania/rastry,
+Cofnij/Ponów, wznowienie wariantu, Zapisz jako, brak analizy i odrzucenie
+uszkodzenia bez utraty pracy PASS. To kontrola trwałości i UI, nie jakości
+detekcji. Artefakty: `.scratch/stmdomains-ui-24/`.
+
+Standards: 1 P1 poprawiona; Spec: 2 P2 poprawione; recenzenci potwierdzili
+zamknięcie uwag. Dodatkowo natywna próba wykryła fałszywe dirty po dopasowaniu
+układu okna; poprawka z testem RED/GREEN i powtórzonym GUI.
+22 zmienione pliki Python, maksimum **912 linii**, wszystkie poniżej 1000.
+Bez nowych zależności i zmian współdzielonych. Szersze mypy całego `tools/`
+ma 2 uprzednie błędy w `freud_trial.py:58,63`, odtworzone na bazie;
+standardowy zakres oraz zmienione narzędzia przechodzą.
+
+Następne **25 → 26**; 19–20 odłożone. Eksport ręcznych korekt pozostaje
+zablokowany do 25. Starsze wpisy poniżej opisują historyczne ograniczenia.
+
+---
+
 # STM Domains — odbiór ręczny SD-V4-23a
 
 **2026-11-09: użytkownik potwierdził „testy manualne ok”.**

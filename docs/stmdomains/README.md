@@ -1,5 +1,17 @@
 # STM Domains
 
+**2026-11-09 — wykonano SD-V4-24: zapis korekt i historii** (`1c1b798`, `9b7a19b`, `94803e8`).
+**Plik → Zapisz projekt…**: jawny wybór wyniku po korektach, automatu lub
+samych danych. Projekt odtwarza klasy, domeny i Cofnij/Ponów, także po
+zapisie po cofnięciu i dla atomowych operacji kilku klatek. Odczyt bez
+źródeł i ponownego dopasowania; praca bez analizy pozostaje bez automatu.
+[Obsługa, gotowe przykłady i test ręczny](implementation/interactive-v04/acceptance-24.md).
+**645 testów PASS**, mypy **124 moduły PASS**, natywne GUI/netcat PASS.
+Przegląd Standards/Spec: wszystkie uwagi zamknięte.
+**Odbiór ręczny użytkownika 24 otwarty**. Następny **25 → 26**;
+19–20 pozostają odłożone. Eksport korekt czeka na 25.
+Poniżej historia wcześniejszych etapów.
+
 **2026-11-09 — poprawka pustej nazwy nowej klasy (`7db599f`).**
 Puste pole podczas tworzenia klasy nadaje kolejną wolną literę, np. F po A–E.
 Odtworzono i poprawiono sekwencję prowadzącą do przypisania `?1` po odrzuconym

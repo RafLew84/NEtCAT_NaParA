@@ -1,5 +1,17 @@
 # Interaktywne STM Domains — obliczenia z danych
 
+**2026-11-09 — wykonano SD-V4-24: zapis korekt i historii** (`1c1b798`, `9b7a19b`, `94803e8`).
+**Plik → Zapisz projekt…**: jawny wybór wyniku po korektach, automatu lub
+samych danych. Projekt odtwarza klasy, domeny i Cofnij/Ponów, także po
+zapisie po cofnięciu i dla atomowych operacji kilku klatek. Odczyt bez
+źródeł i ponownego dopasowania; praca bez analizy pozostaje bez automatu.
+[Obsługa, gotowe przykłady i test ręczny](acceptance-24.md).
+**645 testów PASS**, mypy **124 moduły PASS**, natywne GUI/netcat PASS.
+Przegląd Standards/Spec: wszystkie uwagi zamknięte.
+**Odbiór ręczny użytkownika 24 otwarty**. Następny **25 → 26**;
+19–20 pozostają odłożone. Eksport korekt czeka na 25.
+Poniżej historia wcześniejszych etapów.
+
 **2026-11-09 — wykonano SD-V4-23a: scalanie i dzielenie klas (`5ca2e6f`, poprawka `5de0d7f`).**
 **Edytuj domeny → Klasy ręczne… → Scal klasy… / Podziel klasę…**:
 wybór źródeł i celu, jawny zakres klatek, utrwalone warianty/lista klas,
@@ -277,7 +289,8 @@ mypy 67 modułów PASS, maksimum 566 linii; Standards 0 / Spec 0.
 22 ma status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `f37714f` („testy manualne ok”).
 23 ma status `done`; odbiór ręczny użytkownika potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”).
 23a ma status `done`; odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”).
-24–26 mają zakres `ready-for-agent`
+24 ma status `done`; zapis korekt i historii wykonano, odbiór ręczny użytkownika otwarty.
+25–26 mają zakres `ready-for-agent`
 z opisanymi zależnościami. 19–20 pozostają `deferred`, z jawnym warunkiem
 wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 
@@ -286,7 +299,7 @@ wyboru. Przygotowany zakres nie oznacza ukończenia wymaganych zależności.
 Zakres i kolejność opisuje [edycja ręczna](#edycja-ręczna-klas-i-domen).
 21 i 22 są zaimplementowane i odebrane ręcznie przez użytkownika.
 23 oraz 23a wraz z poprawką nazw są zaimplementowane i odebrane ręcznie.
-Następny rekomendowany etap to **24 — zapis ręcznych korekt**. 19–20
+Następny rekomendowany etap to **25 — eksport ręcznych korekt**. 19–20
 pozostają odłożone zgodnie z warunkami opisanymi w ich ticketach.
 
 ## Tickety i kolejność
@@ -326,7 +339,7 @@ zależności, kryteria akceptacji i instrukcję testu ręcznego.
 | [26 — Porównaj granice domen metodą level-set Gibou–Fedkiwa](26-compare-fedkiw-level-set.md) | SD-V4-17, SD-V4-13, SD-V4-14 | Zmień regularyzację granic, porównaj molekuły i całe domeny z Geometrią oraz przejrzyj obliczone klatki. |
 
 Po wykonanym 23a następny rekomendowany ticket to
-**24 — zapis ręcznych korekt**. Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”). Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
+**25 — eksport ręcznych korekt**. Odbiór 24 pozostaje otwarty. Odbiór ręczny użytkownika 23a wraz z poprawką nazw potwierdzony 2026-11-09 dla wersji `eb112f6` („testy manualne ok”). Odbiór użytkownika 23 potwierdzony 2026-11-09 dla wersji `14f39d6` („testy manualne ok”). Odbiór użytkownika 22 potwierdzono 2026-11-09 dla `f37714f`. 26 dodano na końcu, po 25; wymaga 17, 13 i 14,
 nie wymaga ukończenia odłożonych 19–20.
 Odbiór użytkownika 13 jest potwierdzony, a 14 potwierdzono dla `4e9f1d9`. 13/14 wykonano po 05;
 16 jest niezależnie dostępny po 05, a 15 po 07. 08 korzysta
@@ -385,12 +398,12 @@ Wspólny zakres i zasady:
   kolejność operacji także między klatkami; UI wskazuje, którą klatkę lub
   wspólną listę klas zmieni cofnięcie. Dzięki temu nie usuwa się klasy użytej
   w późniejszej, jeszcze niecofniętej operacji. Zapis i odtworzenie historii
-  po ponownym uruchomieniu należą do 24.
-- Do wykonania 24/25 zapis/eksport z 13/14 nie może sugerować zachowania
-  korekt, których jeszcze nie obsługuje. UI jawnie wskazuje ograniczenie;
-  ewentualny zapis samego bazowego automatu wymaga świadomego wyboru.
-  Po 24/25 późniejsze prace nad zapisem i eksportem muszą zachować obsługę
-  korekt. Zamknięcie programu nie może bez ostrzeżenia utracić edycji.
+  po ponownym uruchomieniu wykonano w 24.
+- Od 24 zapis projektu zachowuje wybrane korekty i historię. Zapis samego
+  automatu wymaga świadomego wyboru; pominięte korekty pozostają niezapisane.
+  Eksport korekt jest zablokowany do 25. Późniejsze zmiany zapisu i eksportu
+  muszą zachować obsługę korekt. Zamknięcie programu nie może bez ostrzeżenia
+  utracić edycji.
 - Ręczna korekta nie trenuje modelu ani nie przenosi przypisań automatycznie
   na inne klatki. W 23a użytkownik może jawnie objąć operacją wiele klatek
   korzystających z tej samej listy klas; zakres i zmiany widzi w podglądzie.
