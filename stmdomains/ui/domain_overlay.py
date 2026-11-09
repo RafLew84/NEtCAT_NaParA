@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import QGraphicsObject, QStyleOptionGraphicsItem, QWidget
 
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.frame_presentation import PresentedFrame
+from stmdomains.core.result_names import domain_names
 from stmdomains.ui.result_style import assignment_color
 from stmdomains.ui.domain_shapes import domain_shapes
 
@@ -21,6 +22,7 @@ class DomainOverlay(QGraphicsObject):
         self._pixmap = QPixmap()
         self._shapes: dict[int, tuple[QPainterPath, QPointF]] = {}
         self._colors: dict[int, QColor] = {}
+        self._captions: dict[int, str] = {}
         self._mode = "domains"
         self._fill = True
         self._outlines = True
@@ -60,10 +62,12 @@ class DomainOverlay(QGraphicsObject):
     def _recolor(self) -> None:
         self._pixmap = QPixmap()
         self._colors = {}
+        self._captions = {}
         result = self._result
         if result is None or result.domain_labels is None or self._mode == "input":
             return
         labels = result.domain_labels
+        self._captions = domain_names(result, self._mode)
         palette = np.zeros((int(labels.max(initial=0)) + 1, 4), dtype=np.uint8)
         for identity, member in result.assignments.items():
             if 0 < member.domain_local_id < len(palette):
@@ -100,7 +104,7 @@ class DomainOverlay(QGraphicsObject):
                 position = painter.worldTransform().map(anchor)
                 painter.resetTransform()
                 painter.translate(position)
-                text = f"D{identity}"
+                text = self._captions[identity]
                 bounds = QRectF(painter.fontMetrics().boundingRect(text)).adjusted(-3, -2, 3, 2)
                 bounds.moveCenter(QPointF(0, 0))
                 painter.fillRect(bounds, QColor(15, 25, 30, 205))

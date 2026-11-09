@@ -88,7 +88,7 @@ class ClassFields(QWidget):
             form.addRow(label, field)
         form.addRow(self.catalogue_label)
         note = QLabel("K to liczba klas otoczeń molekuł. Jedna klasa może tworzyć wiele domen. "
-                      "Klasa 1 z różnych katalogów nie musi oznaczać tego samego.")
+                      "Klasa A z różnych katalogów nie musi oznaczać tego samego.")
         note.setWordWrap(True)
         form.addRow(note)
         for combo in (self.mode, self.count_mode, self.fit_source, self.catalogue):

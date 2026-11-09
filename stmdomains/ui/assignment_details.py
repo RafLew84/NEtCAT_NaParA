@@ -4,6 +4,7 @@ from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.manual_domains import MANUAL_METHOD
+from stmdomains.core.result_names import class_name, domain_name
 from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings, METHOD
 from stmdomains.analysis.freud_settings import FreudSettings, METHOD as FREUD_METHOD
 from stmdomains.ui.result_style import assignment_description
@@ -17,8 +18,8 @@ def assignment_details(result: FrameAnalysis | None, detection_id: str) -> str:
     if member is not None and result.parameters.get('domain_method') == MANUAL_METHOD:
         source = member.metadata.get('manual_source', {})
         return (summary + '\nKorekta ręczna nie zmienia oceny metody.\n'
-                + f"Źródłowa klasa: {source.get('class_id', member.class_id) or 'nieustalona'}. "
-                + f"Źródłowa domena: {source.get('domain_local_id', member.domain_local_id)}.\n"
+                + f"Źródłowe ID klasy: {source.get('class_id', member.class_id) or 'brak'}. "
+                + f"Źródłowe ID domeny: {source.get('domain_local_id', member.domain_local_id)}.\n"
                 + f"Pierwotny powód odmowy: {member.rejection_reason or 'brak'}.\n"
                 + 'Porównaj z „Automatyczny przed korektą”, aby obejrzeć pierwotną ocenę.')
     if member is not None and result.parameters.get('domain_method') in (METHOD, FREUD_METHOD):
@@ -35,7 +36,7 @@ def assignment_details(result: FrameAnalysis | None, detection_id: str) -> str:
         if result.parameters.get('domain_method') == FREUD_METHOD:
             env = member.metadata.get('freud_environment', {})
             freud_settings = FreudSettings.from_parameters(result.parameters)
-            lines.extend([f'Klasa otoczenia freud: {member.provisional_class_id or "brak"}.',
+            lines.extend([f'Klasa otoczenia freud: {class_name(result, member.provisional_class_id)}.',
                 f'Tolerancja: {freud_settings.tolerance:g} ×NN; zasięg: {freud_settings.radius_factor:g} ×NN; '
                 f'rejestracja: {"obrót lub odbicie płaskiego otoczenia" if freud_settings.registration else "wyłączona"}.',
                 f'NN klatki: {result.parameters.get("spacing_metric", 0):.4g} {unit}.',
@@ -50,7 +51,7 @@ def assignment_details(result: FrameAnalysis | None, detection_id: str) -> str:
     data = member.metadata
     settings = ClassAcceptanceSettings.from_parameters(result.parameters)
     accepted = bool(data.get("class_reliable"))
-    lines = [f"Klasa wstępna: {member.provisional_class_id} (najbliższy wzorzec)",
+    lines = [f"Klasa wstępna: {class_name(result, member.provisional_class_id)} (najbliższy wzorzec)",
              "Akceptacja klasy: " + ("przyjęta" if accepted else "odrzucona")]
     if not data.get("descriptor_valid", True):
         lines.append("Opis otoczenia: niewystarczające dane.")
@@ -81,7 +82,7 @@ def assignment_details(result: FrameAnalysis | None, detection_id: str) -> str:
         lines.append(f"Otoczenie porządku: promień {order_settings.order_radius_factor:g} × d, "
                      f"sigma {order_settings.order_sigma_factor:.6g} × d; d = {result.parameters['spacing_px']:.3f} px.")
         lines.append("Kwantyl nie jest pewnością domeny. Jeden kierunek periodyczności nie potwierdza sieci 2D.")
-    lines.append(f"Domena końcowa: {member.domain_local_id}" if member.domain_local_id else
+    lines.append(f"Domena końcowa: {domain_name(result, member.domain_local_id)} (ID {member.domain_local_id})" if member.domain_local_id else
                  "Domena końcowa: brak — " + summary)
     score = data.get("class_confidence")
     if score is not None:

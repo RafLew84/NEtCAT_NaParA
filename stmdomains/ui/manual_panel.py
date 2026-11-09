@@ -1,6 +1,6 @@
 """Panel A: editing-only side panel, with a persistent result comparison bar."""
 
-from PyQt6.QtCore import QSignalBlocker
+from PyQt6.QtCore import QSignalBlocker, Qt
 from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QCheckBox, QComboBox, QFormLayout, QHBoxLayout, QLabel, QPushButton, QPlainTextEdit,
@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 
 from stmdomains.core.frame_presentation import PresentedFrame
 from stmdomains.core.manual_domains import domain_record
+from stmdomains.core.result_names import class_name, domain_name, domain_names
 from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.manual_controller import ManualController, UNSAVED_MANUAL
 from stmdomains.ui.manual_selection import ManualSelection
@@ -83,8 +84,10 @@ class ManualPanel(QWidget):
         self.review = QPushButton('Pokaż podgląd')
         self.review.clicked.connect(lambda: manual.preview(self.operation.currentData(), self.target.currentData() or 0))
         self.message = QLabel()
+        self.message.setTextFormat(Qt.TextFormat.PlainText)
         self.message.setWordWrap(True)
         self.support = QLabel()
+        self.support.setTextFormat(Qt.TextFormat.PlainText)
         self.support.setWordWrap(True)
         form.addRow(self.support)
         help_text = QLabel('Lasso obejmuje centra molekuł. Shift: dodaj, Alt: odejmij. '
@@ -177,7 +180,8 @@ class ManualPanel(QWidget):
         self.selection.set_selected(manual.selection)
         active = manual.active
         self.selection.eligible_ids = active.eligible_ids if active else None
-        result = active.current if active is not None else controller.result
+        result = (active.original if manual.compare_original and active is not None else manual.current_result)
+        names = domain_names(result) if result else {}
         domains = sorted({a.domain_local_id for a in result.assignments.values() if a.domain_local_id > 0}) if result else []
         operation = self.operation.currentData()
         selected_domains = {result.assignments[key].domain_local_id for key in manual.selection
@@ -188,7 +192,7 @@ class ManualPanel(QWidget):
         with QSignalBlocker(self.target):
             self.target.clear()
             for number in domains:
-                self.target.addItem(f'D{number}', number)
+                self.target.addItem(f'{names[number]} (ID {number})', number)
             self.target.setCurrentIndex(max(0, self.target.findData(target)))
         self.target.setEnabled(manual.can_edit and operation in ('add', 'move', 'merge'))
         self.operation_hint.setVisible(operation in ('split', 'merge'))
@@ -200,7 +204,8 @@ class ManualPanel(QWidget):
         for domain in sorted(selected_domains):
             record = domain_record(domain, result.assignments) if result else {}
             identities, class_id = record.get('member_ids', ()), record.get('class_id', '')
-            member_lines.append(f'D{domain}: {len(identities)} molekuł · klasa {class_id or "nieustalona"}\n'
+            label = class_name(result, class_id) if result and class_id else 'nieustalona'
+            member_lines.append(f'{names[domain]}: {len(identities)} molekuł · klasa {label} · ID {domain}\n'
                                 + ', '.join(identities))
         member_text = '\n\n'.join(member_lines) or 'Nie wybrano domen.'
         if self.members.toPlainText() != member_text:
@@ -209,8 +214,8 @@ class ManualPanel(QWidget):
         self.message.setText(manual.message or 'Zaznacz molekuły i przygotuj podgląd zmiany.')
         shown = controller.displayed_result
         unsupported = shown.metadata.get('manual_edit', {}).get('unsupported_domains', ()) if shown else ()
-        self.support.setText(('Brak obszaru (za mało wsparcia): ' + ', '.join(f'D{i}' for i in unsupported))
-                             if unsupported else 'Obszar przybliża członkostwo; nie potwierdza porządku sieci.')
+        self.support.setText(('Brak obszaru (za mało wsparcia): ' + ', '.join(domain_name(shown, i) for i in unsupported))
+                             if unsupported and shown else 'Obszar przybliża członkostwo; nie potwierdza porządku sieci.')
         self.review.setEnabled(manual.can_edit and bool(manual.selection))
         self.apply.setEnabled(manual.can_edit and manual.preview_result is not None)
         self.cancel.setEnabled(manual.preview_result is not None)

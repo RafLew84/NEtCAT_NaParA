@@ -4,7 +4,9 @@ from dataclasses import replace
 
 import numpy as np
 from PyQt6.QtCore import QPointF
+from PyQt6.QtGui import QImage, QPainter
 
+from stmdomains.ui.domain_overlay import DomainOverlay
 from stmdomains.ui.image_view import ImageView
 from test_analysis_presentation import example_presenter, example_result
 
@@ -19,6 +21,31 @@ def region_result():
 
 def pixel(view, x, y):
     return view.viewport().grab().toImage().pixelColor(view.mapFromScene(QPointF(x, y))).name()
+
+
+def test_region_captions_follow_class_domain_mode(qtbot):
+    """Two separate regions of one class share a letter, not a domain number."""
+    overlay = DomainOverlay()
+    overlay.set_frame(example_presenter().present(0, result=region_result()))
+    overlay.set_layers(fill=False, outlines=False, numbers=True, opacity=0)
+    image = QImage(200, 200, QImage.Format.Format_ARGB32)
+
+    class RecordingPainter(QPainter):
+        def drawText(self, *args):
+            captions.append(args[-1])
+            return super().drawText(*args)
+
+    for mode, expected in (("classes", ["A", "A"]),
+                           ("domains", ["A1", "A2"]), ("input", []),
+                           ("classes", ["A", "A"])):
+        overlay.set_mode(mode)
+        captions = []
+        painter = RecordingPainter(image)
+        try:
+            overlay.paint(painter, None)
+        finally:
+            painter.end()
+        assert captions == expected
 
 
 def test_region_fill_respects_holes_legend_modes_and_unanalysed_frame(qtbot):

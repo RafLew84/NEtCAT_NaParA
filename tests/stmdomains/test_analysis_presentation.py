@@ -39,12 +39,12 @@ def test_legends_count_final_memberships_and_keep_duplicates_out_of_denominator(
     domains = describe_result(result, "domains")
     assert domains.summary == "Domeny: 2 · przypisano 2 / 3"
     assert [(item.label, item.count) for item in domains.legend] == [
-        ("Domena 1", 1), ("Domena 2", 1), ("Nieprzypisane", 1), ("Duplikaty", 1),
+        ("Domena A1", 1), ("Domena A2", 1), ("Nieprzypisane", 1), ("Duplikaty", 1),
     ]
     classes = describe_result(result, "classes")
     assert classes.summary == "Klasy: 1 · przypisano 2 / 3"
     assert [(item.label, item.count) for item in classes.legend] == [
-        ("Klasa 1", 2), ("Nieprzypisane", 1), ("Duplikaty", 1),
+        ("Klasa A", 2), ("Nieprzypisane", 1), ("Duplikaty", 1),
     ]
     assert classes.legend[0].color == "#ff8800"
     assert "lokalne" in classes.note
@@ -69,10 +69,10 @@ def test_no_analysis_insufficient_fit_and_no_annotations_do_not_claim_zero_domai
 
 def test_molecule_details_explain_refusal_and_distinguish_missing_fit():
     result = example_result()
-    assert assignment_description(result, "A") == "Klasa lokalna: 1 · domena lokalna: 1"
+    assert assignment_description(result, "A") == "Klasa lokalna: A · domena lokalna: A1"
     refused = assignment_description(result, "C")
     assert "niejednoznaczna klasa" in refused
-    assert "wstępna: 1" in refused
+    assert "wstępna: A" in refused
     assert "nie jest przypisaniem" in refused
     assert "Pominięty duplikat" in assignment_description(result, "D")
     assert "poza mianownikiem" in assignment_description(result, "D")
@@ -176,13 +176,13 @@ def test_result_panel_is_compact_and_keeps_height_while_legend_and_status_change
     assert height < 48
     assert panel.mode.currentData() == "domains"
     assert panel.summary.text() == "Domeny: 2 · przypisano 2 / 3"
-    assert "Domena 1" in panel.legend.text()
+    assert "Domena A1" in panel.legend.text()
     assert panel.details_button.isEnabled()
     modes = []
     panel.mode_changed.connect(modes.append)
     panel.mode.setCurrentIndex(panel.mode.findData("classes"))
     assert modes == ["classes"]
-    assert "Klasa 1" in panel.legend.text()
+    assert "Klasa A" in panel.legend.text()
     assert "lokalne" in panel.mode.toolTip()
     crowded = replace(example_result(), assignments={
         str(index): MoleculeAssignment(str(index), index, "1", "1", "domain")

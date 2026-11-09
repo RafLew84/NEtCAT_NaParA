@@ -2,6 +2,7 @@
 from html import escape
 from stmdomains.analysis.geometry_summary import summarize_axes
 from stmdomains.core.frame_presentation import PresentedFrame
+from stmdomains.core.result_names import domain_name
 
 STATUS = {'lattice_2d': 'Sieć 2D — dwa kierunki', 'rows_1d': 'Rzędy — jeden kierunek',
           'insufficient': 'Niewystarczające dane', 'unresolved': 'Nierozstrzygnięte'}
@@ -23,12 +24,12 @@ def geometry_text(view: PresentedFrame | None, selected: str | None, domain: boo
         result = view.result
         assignment = result.assignments.get(selected) if result else None
         domain_id = assignment.domain_local_id if assignment else None
-        if domain_id is None or result is None:
+        if not domain_id or result is None:
             return 'Ta molekuła nie należy do domeny w wyświetlanym wyniku. Podsumowanie pomiarów wymaga przypisanej domeny.'
         members = [geometry.molecules[key] for key, a in result.assignments.items()
                    if a.domain_local_id == domain_id and key in geometry.molecules]
         summary = summarize_axes(members)
-        parts = [f'<b>Domena {domain_id}</b>',
+        parts = [f'<b>Domena {escape(domain_name(result, domain_id))}</b> (ID {domain_id})',
                  f'Poprawne pomiary: {summary["valid_count"]} / {summary["total_count"]}']
         for index, axis in enumerate(summary['axes'], 1):
             angle = 'niejednoznaczny' if axis['angle_deg'] is None else f'{axis["angle_deg"]:.1f}°'

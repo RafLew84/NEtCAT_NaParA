@@ -139,7 +139,7 @@ class ManualClassDialog(QDialog):
                 self.target.addItem('Nieustalona — usuń przypisanie klasy', '')
                 for c in labels.classes:
                     identity = c.class_id.removeprefix('manual-')[:8]
-                    self.target.addItem(f'{c.name} · {identity}', c.class_id)
+                    self.target.addItem(f'{c.name} (ID {identity})', c.class_id)
                     self.target.setItemData(self.target.count() - 1, c.class_id, Qt.ItemDataRole.ToolTipRole)
                 self.target.setCurrentIndex(max(0, self.target.findData(target)))
             label = next((c for c in labels.classes if c.class_id == target), None)

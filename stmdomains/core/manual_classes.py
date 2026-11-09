@@ -6,6 +6,8 @@ import re
 from typing import TYPE_CHECKING, Literal
 from uuid import uuid4
 
+from stmdomains.core.result_names import class_letter
+
 if TYPE_CHECKING:
     from stmdomains.core.analysis_result import FrameAnalysis
 
@@ -30,8 +32,8 @@ class ManualClassList:
     @classmethod
     def from_result(cls, result: 'FrameAnalysis | None', source_key: str) -> 'ManualClassList':
         return cls(source_key, result.catalogue.identifier if result and result.catalogue else '',
-                   tuple(ManualClass(c.class_id, f'Klasa {c.class_id}', c.color, 'automatic')
-                         for c in result.classes) if result else ())
+                   tuple(ManualClass(c.class_id, class_letter(i), c.color, 'automatic')
+                         for i, c in enumerate(result.classes)) if result else ())
 
     def edit(self, operation: str, target: str = '', *, name: str = '', color: str = '',
              occupied: Collection[str] = ()) -> 'ManualClassList':

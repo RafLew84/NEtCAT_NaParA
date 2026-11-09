@@ -37,7 +37,7 @@ def test_split_merge_preview_cancel_history_and_original_in_panel(qtbot, opened)
     choose(opened, 'split', *chosen)
     preview = controller.manual.preview_result
     assert preview.domain_count == 3 and preview.assigned_count == 57
-    assert 'D7 (48)' in panel.message.text() and 'D12 (6)' in panel.message.text()
+    assert 'A1 (48)' in panel.message.text() and 'A2 (6)' in panel.message.text()
     panel.cancel.click()
     assert controller.displayed_result is original and not controller.manual.has_changes
     panel.review.click()
@@ -49,9 +49,10 @@ def test_split_merge_preview_cancel_history_and_original_in_panel(qtbot, opened)
     choose(opened, 'merge', chosen[0], 'frame-1-molecule-3')
     panel.target.setCurrentIndex(panel.target.findData(7))
     panel.review.click()
-    assert 'D7: 42' in panel.members.toPlainText() and 'D12: 6' in panel.members.toPlainText()
+    assert 'A1: 42' in panel.members.toPlainText() and 'A2: 6' in panel.members.toPlainText()
     assert 'frame-1-molecule-48' in panel.members.toPlainText()
     assert [panel.target.itemData(i) for i in range(panel.target.count())] == [7, 12]
+    assert [panel.target.itemText(i) for i in range(panel.target.count())] == ['A1 (ID 7)', 'A2 (ID 12)']
     assert 'Podgląd: 48 molekuł' in panel.message.text()
     panel.cancel.click()
     assert controller.displayed_result is split
@@ -101,7 +102,7 @@ def test_merge_conflict_is_explicit_and_gap_is_refused_without_losing_edits(qtbo
     panel.target.setCurrentIndex(panel.target.findData(9))
     assert controller.manual.preview_result is None  # A target change requires a fresh preview.
     panel.review.click()
-    assert 'D9 (48)' in panel.message.text()
+    assert '?1 (48)' in panel.message.text()
     panel.apply.click()
     assert controller.displayed_result.assignments['frame-2-molecule-1'].class_id == ''
     assert controller.displayed_result.assignments['frame-2-molecule-1'].domain_local_id == 9

@@ -9,6 +9,7 @@ from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.manual_domains import ManualDomains
 from stmdomains.core.manual_classes import ManualClassList
 from stmdomains.core.manual_class_lists import ManualClassLists
+from stmdomains.core.result_names import class_name, domain_name, domain_names
 from stmdomains.analysis.geometry_domain_settings import METHOD as GEOMETRY_METHOD
 from stmdomains.analysis.freud_settings import METHOD as FREUD_METHOD
 
@@ -70,6 +71,14 @@ class ManualController(QObject):
     @property
     def class_list(self) -> ManualClassList | None:
         return self.class_lists.get(self.active) if self.active is not None else None
+
+    @property
+    def current_result(self) -> FrameAnalysis | None:
+        """Applied memberships with current shared names, before any preview."""
+        active = self.active
+        if active is None:
+            return self.controller.result
+        return self.class_lists.display(active) or active.current
 
     def class_member_count(self, class_id: str) -> int:
         labels = self.class_list
@@ -217,6 +226,8 @@ class ManualController(QObject):
             result = active.preview(operation, self.selection, target,
                                     class_list=labels if labels.generation else None)
             self.preview_result = result
+            current = self.current_result or active.current
+            source_names, target_names = domain_names(current), domain_names(result)
             edit = result.metadata['manual_edit']
             destination = edit['target']
             before = sum(a.domain_local_id == destination for a in active.current.assignments.values()) if destination else 0
@@ -224,14 +235,14 @@ class ManualController(QObject):
             sources = edit.get('source_domains', ())
             count = sum(len(source['member_ids']) for source in sources) if operation == 'merge' else len(self.selection)
             self.message = (f'Podgląd: {count} molekuł. '
-                            + (f'Domena D{destination}: {before} → {after}. ' if destination else 'Usunięcie przypisania. ')
+                            + (f'Domena {target_names[destination]}: {before} → {after}. ' if destination else 'Usunięcie przypisania. ')
                             + f'Domeny: {active.current.domain_count} → {result.domain_count}.')
             if destination:
                 member = next(a for a in result.assignments.values() if a.domain_local_id == destination)
-                self.message += f' Klasa: {member.class_id or "nieustalona"}.'
+                self.message += f' Klasa: {class_name(result, member.class_id) if member.class_id else "nieustalona"}.'
             if sources:
-                source_text = ', '.join(f"D{s['domain_id']} ({len(s['member_ids'])})" for s in sources)
-                target_text = ', '.join(f"D{s['domain_id']} ({len(s['member_ids'])})" for s in edit['target_domains'])
+                source_text = ', '.join(f"{source_names[s['domain_id']]} ({len(s['member_ids'])})" for s in sources)
+                target_text = ', '.join(f"{target_names[s['domain_id']]} ({len(s['member_ids'])})" for s in edit['target_domains'])
                 self.message = f'{source_text} → {target_text}.\n' + self.message
                 if operation == 'merge' and len({s['class_id'] for s in sources}) > 1:
                     self.message += '\nRóżne klasy źródłowe: wynik ma klasę nieustaloną.'
@@ -263,8 +274,11 @@ class ManualController(QObject):
             self.message = (f'Podgląd klas · {len(edit["selection"])} molekuł w klatce '
                             f'{self.controller.current_index + 1}. ')
             if splits:
+                current = self.current_result or active.current
                 self.message += 'Podział: ' + ', '.join(
-                    f'D{s["source_domain"]} → D{s["source_domain"]} + D{s["target_domain"]}' for s in splits) + '. '
+                    f'{domain_name(current, s["source_domain"])} → '
+                    f'{domain_name(result, s["source_domain"])} + {domain_name(result, s["target_domain"])}'
+                    for s in splits) + '. '
             if result.class_list is not labels:
                 self.message += 'Zmiana listy klas dotyczy wszystkich korzystających z niej klatek. '
             self.message += 'Model pozostaje bez zmian.'

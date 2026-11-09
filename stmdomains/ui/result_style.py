@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.manual_domains import MANUAL_METHOD
+from stmdomains.core.result_names import class_name, domain_name, domain_names
 from stmdomains.analysis.geometry_domain_settings import METHOD
 from stmdomains.analysis.freud_settings import METHOD as FREUD_METHOD
 
@@ -62,16 +63,17 @@ def assignment_description(result: FrameAnalysis | None, detection_id: str) -> s
         return "Brak rekordu przypisania dla tego ID"
     if result.class_list is not None and assignment.metadata.get('class_assignment_origin') == 'manual':
         label = next((c.name for c in result.class_list.classes if c.class_id == assignment.class_id), 'nieustalona')
-        domain = f'domena D{assignment.domain_local_id}' if assignment.domain_local_id else 'bez domeny'
+        domain = f'domena {domain_name(result, assignment.domain_local_id)}' if assignment.domain_local_id else 'bez domeny'
         return f'Klasa ustawiona ręcznie: {label} · {domain} · nie jest rozpoznaniem modelu'
     if assignment.status == "domain":
         if result.parameters.get('domain_method') == MANUAL_METHOD:
-            return (f'Ręczna domena D{assignment.domain_local_id} · '
-                    + (f'klasa {assignment.class_id}' if assignment.class_id else 'klasa nieustalona'))
+            return (f'Ręczna domena {domain_name(result, assignment.domain_local_id)} · '
+                    + (f'klasa {class_name(result, assignment.class_id)}' if assignment.class_id else 'klasa nieustalona'))
         if result.parameters.get('domain_method') == METHOD:
-            return f'Domena lokalna: {assignment.domain_local_id} · typ nieznany · zgodność fazy niesprawdzona'
+            return f'Domena lokalna: {domain_name(result, assignment.domain_local_id)} · typ nieznany · zgodność fazy niesprawdzona'
         scope = "wspólna" if result.catalogue is not None and result.catalogue.scope != "current_frame" else "lokalna"
-        description = f"Klasa {scope}: {assignment.class_id} · domena lokalna: {assignment.domain_local_id}"
+        description = (f"Klasa {scope}: {class_name(result, assignment.class_id)} · "
+                       f"domena lokalna: {domain_name(result, assignment.domain_local_id)}")
         return description + (f" · katalog {result.catalogue.identifier[:8]}" if result.catalogue else "")
     reasons = {
         'freud_incomplete': 'za mało sąsiadów w dozwolonym zasięgu',
@@ -94,9 +96,9 @@ def assignment_description(result: FrameAnalysis | None, detection_id: str) -> s
     reason = reasons.get(assignment.rejection_reason, assignment.rejection_reason or "brak przyczyny")
     description = f"Nieprzypisana · {reason}"
     if assignment.provisional_class_id:
-        description += (f' · klasa otoczenia: {assignment.provisional_class_id} (bez domeny)'
+        description += (f' · klasa otoczenia: {class_name(result, assignment.provisional_class_id)} (bez domeny)'
                         if result.parameters.get('domain_method') == FREUD_METHOD else
-                        f" · etykieta wstępna: {assignment.provisional_class_id} (nie jest przypisaniem)")
+                        f" · etykieta wstępna: {class_name(result, assignment.provisional_class_id)} (nie jest przypisaniem)")
     return description
 
 
@@ -137,7 +139,7 @@ def describe_result(result: FrameAnalysis | None, mode: str) -> ResultPresentati
         class_only = sum(bool(a.class_id) and a.domain_local_id == 0
                          and a.status not in ('suppressed_duplicate', 'outside_field')
                          for a in result.assignments.values())
-        entries = [LegendEntry(c.name, c.color, manual_counts[c.class_id]) for c in labels.classes]
+        entries = [LegendEntry(f'Klasa {c.name}', c.color, manual_counts[c.class_id]) for c in labels.classes]
         if result.active_count > count:
             entries.append(LegendEntry('Klasa nieustalona', UNASSIGNED_COLOR, result.active_count - count))
         entries.extend(_excluded_entries(result))
@@ -152,7 +154,8 @@ def describe_result(result: FrameAnalysis | None, mode: str) -> ResultPresentati
                                   'Metoda geometryczna nie dopasowuje klas; wybierz widok Domeny.')
     if mode == 'classes' and result.parameters.get('domain_method') == FREUD_METHOD:
         environment_counts = Counter(m.provisional_class_id for m in result.assignments.values() if m.provisional_class_id)
-        entries = [LegendEntry(f'Klasa {item.class_id}', item.color, environment_counts[item.class_id]) for item in result.classes]
+        entries = [LegendEntry(f'Klasa {class_name(result, item.class_id)}', item.color, environment_counts[item.class_id])
+                   for item in result.classes]
         compared = sum(environment_counts.values())
         if result.active_count > compared:
             entries.append(LegendEntry('Nieporównane otoczenia', UNASSIGNED_COLOR, result.active_count-compared))
@@ -163,18 +166,21 @@ def describe_result(result: FrameAnalysis | None, mode: str) -> ResultPresentati
     if mode == "domains":
         counts = Counter(item.domain_local_id for item in result.assignments.values()
                          if item.domain_local_id > 0)
-        entries = [LegendEntry(f"Domena {identity}", domain_color(identity), count)
+        names = domain_names(result)
+        entries = [LegendEntry(f"Domena {names[identity]}", domain_color(identity), count)
                    for identity, count in sorted(counts.items())]
         title = f"Domeny: {result.domain_count}"
-        note = "Domeny lokalne dla klatki; kolory nie oznaczają śledzenia w czasie."
+        note = ("A1, A2… to osobne domeny klasy A; ? oznacza nieustaloną klasę. "
+                "Numery lokalne dla klatki, według ID w obrębie klasy; mogą zmienić się po korekcie. "
+                "Kolory i nazwy nie oznaczają śledzenia w czasie.")
     else:
         counts_by_class = result.class_counts
-        entries = [LegendEntry(f"Klasa {item.class_id}", item.color, counts_by_class[item.class_id])
+        entries = [LegendEntry(f"Klasa {class_name(result, item.class_id)}", item.color, counts_by_class[item.class_id])
                    for item in result.classes]
         title = f"Klasy: {sum(count > 0 for count in counts_by_class.values())}"
         note = "Końcowe klasy lokalne dla klatki; wstępne etykiety nie są przypisaniami."
         if result.catalogue is not None and result.catalogue.scope != "current_frame":
-            note = f"Końcowe klasy wspólnego katalogu {result.catalogue.identifier[:8]}; numery klas są porównywalne tylko w tym katalogu."
+            note = f"Końcowe klasy wspólnego katalogu {result.catalogue.identifier[:8]}; nazwy klas są porównywalne tylko w tym katalogu."
         unknown = sum(a.domain_local_id > 0 and not a.class_id for a in result.assignments.values())
         if unknown:
             entries.append(LegendEntry('Klasa nieustalona', UNASSIGNED_COLOR, unknown))

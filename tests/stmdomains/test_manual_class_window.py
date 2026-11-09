@@ -179,3 +179,8 @@ def test_navigation_renders_shared_names_even_after_editing_panel_is_closed(qtbo
     assert 'Wspólna nazwa na obu klatkach' in opened.result_controls.legend.text()
     assert c.displayed_result.assignments == second.assignments
     assert not opened.manual_panel.isVisible()
+    m.set_editing(True)
+    domain = next(a.domain_local_id for a in second.assignments.values()
+                  if a.domain_local_id and a.class_id == target)
+    combo = opened.manual_panel.target
+    assert combo.itemText(combo.findData(domain)).startswith('Wspólna nazwa na obu klatkach · ')

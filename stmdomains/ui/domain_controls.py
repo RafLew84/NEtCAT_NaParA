@@ -21,7 +21,7 @@ class DomainControls(QToolButton):
         layout = QVBoxLayout(panel)
         self.fill = QCheckBox("Wypełnienie domen")
         self.outlines = QCheckBox("Obrysy domen")
-        self.numbers = QCheckBox("Numery domen (D1, D2…)")
+        self.numbers = QCheckBox("Podpisy klas / domen")
         for checkbox in (self.fill, self.outlines, self.numbers):
             checkbox.setChecked(True)
             checkbox.toggled.connect(self.layers_changed)
@@ -34,7 +34,9 @@ class DomainControls(QToolButton):
         self.opacity.valueChanged.connect(self._opacity_changed)
         layout.addWidget(self.opacity_label)
         layout.addWidget(self.opacity)
-        note = QLabel("D1, D2… to numery lokalne dla klatki.\nObrys przybliża obszar wsparty molekułami.")
+        note = QLabel("Klasy: A, B… · Domeny klasy A: A1, A2…\n"
+                      "? — klasa nieustalona. Numery lokalne dla klatki.\n"
+                      "Obrys przybliża obszar wsparty molekułami.")
         layout.addWidget(note)
         action = QWidgetAction(menu)
         action.setDefaultWidget(panel)
@@ -49,7 +51,7 @@ class DomainControls(QToolButton):
         available = (result is not None and result.status == "complete"
                      and result.domain_labels is not None and result.domain_count > 0 and mode != "input")
         self.setEnabled(available)
-        self.setToolTip("Wypełnienie, obrysy i numery obliczonych domen"
+        self.setToolTip("Wypełnienie, obrysy i podpisy obliczonych domen"
                         if available else "Dostępne dla wyniku z domenami w trybie Domeny lub Klasy")
         menu = self.menu()
         if not available and menu is not None:
