@@ -43,6 +43,13 @@ część według reguł 22/23, w ramach tej samej operacji. Molekuły bez domeny
 pozostają bez domeny. Nazwy prezentacyjne A1/B1 zmieniają się wraz z klasą;
 wewnętrzne ID niepowiązanych domen pozostają.
 
+Dobór klatek respektuje katalog/listę, metodę i przebieg źródłowego wariantu.
+Na jego klatce obowiązuje wskazany wariant; na pozostałych pierwszeństwo ma
+zgodny wybrany wariant, potem ostatnio utworzony zgodny wariant ręczny,
+a następnie zgodny wynik automatyczny (nowy, później poprzedni). Wariant
+obcego katalogu nie przesłania dostępnego zgodnego wyniku. Tabela ujawnia
+wybrane ID; zmiana tego wyboru wymaga odświeżenia zakresu.
+
 ## Gotowy przykład i test użytkownika
 
 W katalogu projektu, w środowisku netcat:

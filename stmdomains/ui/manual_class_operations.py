@@ -97,11 +97,8 @@ class ManualClassOperations(QObject):
                 indices = tuple(range(start, end + 1))
             else:
                 raise ValueError('Niepoprawny zakres klatek.')
-            method = c._method_name(anchor.original)
-            version = c.result_version
-            source_run = anchor.original.metadata.get('series_analysis', {}).get('run_id') if anchor.original else None
             self.labels = labels
-            self._capture_work = self._capture_frames(indices, c.series.identity, labels, method, version, source_run, anchor)
+            self._capture_work = self._capture_frames(indices, c.series.identity, labels, anchor)
             self.message = 'Sprawdzanie zakresu…'
             serial = self._capture_serial
             QTimer.singleShot(0, lambda: self._advance_capture(serial))
@@ -110,20 +107,46 @@ class ManualClassOperations(QObject):
         c._busy()
         m._notify()
 
+    def _resolve_variant(self, index: int, anchor: ManualDomains, labels: ManualClassList) -> ManualDomains | None:
+        """Resolve only compatible sources, independently of other frames' view choices."""
+        m, c = self.manual, self.manual.controller
+        if index == anchor.data.frame.working_index:
+            return anchor
+        method = c._method_name(anchor.original)
+        run = anchor.original.metadata.get('series_analysis', {}).get('run_id') if anchor.original else None
+
+        def compatible(result: FrameAnalysis | None) -> bool:
+            candidate_run = result.metadata.get('series_analysis', {}).get('run_id') if result else None
+            return (ManualClassLists.source_key(anchor.data.series_id, result) == labels.source_key
+                    and c._method_name(result) == method and candidate_run == run)
+
+        selected = m.variants.get(m.selected.get(index, ''))
+        if selected is not None and compatible(selected.original):
+            return selected
+        # Resume the most recently created compatible manual variant before
+        # creating a wrapper for an automatic result. The table exposes its ID.
+        for variant in reversed(tuple(m.variants.values())):
+            if variant.data.frame.working_index == index and compatible(variant.original):
+                return variant
+        for version in ('new', 'previous'):
+            result = c.result_at(index, method, version)
+            if compatible(result):
+                return m.variant_for(index, result)
+        return None
+
     def _capture_frames(self, indices: tuple[int, ...], series_id: str, labels: ManualClassList,
-                        method: str, version: str, source_run: str | None, anchor: ManualDomains) -> Iterator[None]:
+                        anchor: ManualDomains) -> Iterator[None]:
         m, c = self.manual, self.manual.controller
         for index in indices:
-            selected = anchor if index == anchor.data.frame.working_index else m.variants.get(m.selected.get(index, ''))
-            original = selected.original if selected else c.result_at(index, method, version)
-            key = ManualClassLists.source_key(series_id, original)
-            run = original.metadata.get('series_analysis', {}).get('run_id') if original else None
-            if key != labels.source_key:
-                self.skipped[index] = 'inny katalog / lista klas' if original else 'brak wyniku tej listy'
-            elif source_run and run != source_run:
-                self.skipped[index] = 'inny przebieg analizy'
+            variant = self._resolve_variant(index, anchor, labels)
+            if variant is None:
+                candidates = [v.original for v in m.variants.values() if v.data.frame.working_index == index]
+                candidates.extend(c.result_at(index, c._method_name(anchor.original), version) for version in ('new', 'previous'))
+                same_list = any(r is not None and ManualClassLists.source_key(series_id, r) == labels.source_key for r in candidates)
+                self.skipped[index] = ('inny przebieg analizy / metoda' if same_list else
+                                       'inny katalog / lista klas' if any(r is not None for r in candidates) else
+                                       'brak wyniku tej listy')
             else:
-                variant = selected or m.variant_for(index, original)
                 if not any(a.class_id and k in variant.eligible_ids for k, a in variant.current.assignments.items()):
                     self.skipped[index] = 'brak przypisań klas'
                 else:

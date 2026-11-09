@@ -215,3 +215,30 @@ def test_reused_dialog_updates_range_for_a_longer_series(qtbot, control, tmp_pat
     qtbot.waitUntil(lambda: not c.is_busy)
     c.manual.set_editing(True)
     assert dialog.start.maximum() == dialog.end.maximum() == 5
+
+
+def test_foreign_selected_variant_does_not_hide_a_matching_result(qtbot, control):
+    c, m = control.controller, control.controller.manual
+    anchor = m.active
+    original = c.result_at(1, 'baseline')
+    foreign = replace(original, catalogue=replace(original.catalogue, parameters={'different': True}))
+    other = m.variant_for(1, foreign)
+    m.selected[1] = other.identifier
+    op = m.class_operations
+    op.capture('selected_range', 0, 1, variant_id=anchor.identifier)
+    qtbot.waitUntil(lambda: not op.running)
+    assert tuple(op.frames) == (0, 1) and not op.skipped
+    assert op.frames[1].original is original
+    assert not other.changed
+
+
+def test_scope_uses_matching_previous_result_independently_of_view_version(qtbot, control):
+    c, m = control.controller, control.controller.manual
+    original = c.result_at(1, 'baseline')
+    c._previous_results[1] = original
+    c._results[1] = replace(original, catalogue=replace(original.catalogue, parameters={'different': True}))
+    op = m.class_operations
+    op.capture('selected_range', 0, 1)
+    qtbot.waitUntil(lambda: not op.running)
+    assert tuple(op.frames) == (0, 1) and not op.skipped
+    assert op.frames[1].original is original
