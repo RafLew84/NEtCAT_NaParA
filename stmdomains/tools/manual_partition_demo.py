@@ -60,7 +60,7 @@ def create_partition_demo(directory: Path) -> Path:
         'Klatka 2: sąsiadujące D7 (24, A), D9 (24, B). Połącz daje 48 członków, klasę nieustaloną.\n'
         'Klatka 3: D7 i D9 dzieli przerwa. Połącz odmawia, nie dorysowując mostu.\n'
         'W każdej klatce 57 przypisań. Cofnij/Ponów przywraca całą operację.\n'
-        'Korekty pozostają tylko w sesji. Oryginał kontrolny służy wyłącznie testom UI.\n',
+        'Korekty można zapisać przez Plik → Zapisz projekt…. Oryginał kontrolny służy wyłącznie testom UI.\n',
         encoding='utf-8')
     return path
 

@@ -369,7 +369,7 @@ class STMDomainsMainWindow(QMainWindow):
             active_manual = self.controller.manual.active
             text = ('Automatyczny przed korektą' if self.controller.manual.compare_original else
                     'PODGLĄD korekty' if self.controller.manual.preview_result is not None else
-                    'Po korektach · tylko w sesji' if active_manual.changed else 'Edycja ręczna · brak zmian')
+                    'Po korektach · zapis: Plik → Zapisz projekt…' if active_manual.changed else 'Edycja ręczna · brak zmian')
             if active_manual.original is None:
                 text += ' · brak analizy automatycznej'
         self.details_label.setText(text)

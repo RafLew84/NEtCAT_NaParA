@@ -135,7 +135,7 @@ class ExportDialog(QDialog):
     def _refresh(self) -> None:
         ready = self.controller.can_analyze and not self.controller.manual.blocks_persistence
         if self.controller.manual.blocks_persistence:
-            self.status.setText('Korekty ręczne są tylko w sesji. Eksport korekt nie jest jeszcze dostępny.')
+            self.status.setText('Korekty można zapisać w projekcie. Eksport korekt nie jest jeszcze dostępny.')
         self.fields.setEnabled(ready)
         self.first.setEnabled(self.scope.currentData() == 'range')
         self.last.setEnabled(self.scope.currentData() == 'range')

@@ -9,6 +9,7 @@ from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.core.class_catalogue import ClassCatalogue
 from stmdomains.core.immutable import freeze_metadata
 from stmdomains.core.series import Series
+from stmdomains.core.manual_project import ManualProjectState
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,7 @@ class ProjectSnapshot:
     view: Mapping[str, Any] = field(default_factory=dict)
     draft: Mapping[str, Any] = field(default_factory=dict)
     analysis: ProjectAnalysis | None = None
+    manual: ManualProjectState | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, 'view', freeze_metadata(self.view))

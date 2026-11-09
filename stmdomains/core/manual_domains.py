@@ -14,6 +14,7 @@ from stmdomains.analysis.manual_regions import manual_regions
 from stmdomains.analysis.manual_partition import split_labels, merge_labels
 from stmdomains.core.analysis_result import AnalysisInput, FrameAnalysis, MoleculeAssignment
 from stmdomains.core.manual_classes import ManualClassList
+from stmdomains.core.manual_project import ManualVariantState
 
 MANUAL_METHOD = 'manual_membership_v1'
 EXCLUDED = ('outside_field', 'suppressed_duplicate')
@@ -89,6 +90,26 @@ class ManualDomains:
     @property
     def eligible_ids(self) -> frozenset[str]:
         return frozenset(key for key, value in self.current.assignments.items() if value.status not in EXCLUDED)
+
+    def snapshot(self, class_list_id: str, operation_count: int) -> ManualVariantState:
+        # Discard redo states no longer reachable after another variant branched.
+        return ManualVariantState(self.identifier, class_list_id, self.original,
+                                  tuple(self._history[:operation_count + 1]), self._cursor, self._revision)
+
+    @classmethod
+    def restore(cls, data: AnalysisInput, state: ManualVariantState) -> 'ManualDomains':
+        variant = cls(data, state.original)
+        if not state.frames:
+            raise ValueError('Brak początkowego stanu korekt.')
+        initial, expected = state.frames[0], variant.current
+        if (initial.assignments != expected.assignments or initial.classes != expected.classes
+                or initial.parameters != expected.parameters or initial.metadata != expected.metadata
+                or not np.array_equal(np.asarray(initial.domain_labels), np.asarray(expected.domain_labels))):
+            raise ValueError('Początek historii nie odpowiada wynikowi bazowemu.')
+        variant.identifier = state.identifier
+        variant._history = list(state.frames)
+        variant._cursor, variant._revision = state.cursor, state.revision
+        return variant
 
     def preview(self, operation: str, selection: tuple[str, ...], target: int = 0, *,
                 class_list: ManualClassList | None = None) -> FrameAnalysis:
@@ -167,7 +188,7 @@ class ManualDomains:
         details.setdefault('unsupported_domains', tuple(sorted(domains - visible)))
         self._pending = FrameAnalysis(
             self.data.series_id, self.data.frame.working_index, self.data.frame.source_index,
-            'complete', 'Korekta ręczna · tylko w tej sesji.', assignments,
+            'complete', 'Korekta ręczna.', assignments,
             original.classes if original else (), {'domain_method': MANUAL_METHOD},
             {'manual_edit': {'variant_id': self.identifier, 'revision': self._revision,
                              'operation': operation, 'selection': sorted(selected), 'target': target,

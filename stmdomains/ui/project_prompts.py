@@ -38,9 +38,10 @@ class QtProjectPrompts:
     def choose_analysis(self, options: list[tuple[str, str]]) -> str | None:
         choice, accepted = QInputDialog.getItem(
             self.parent, 'Wynik w projekcie',
-            'Zapisz jeden przebieg analizy wraz ze stanami jego klatek.\n'
+            'Wybierz wynik: po korektach z pełną historią lub automatyczny.\n'
             'Projekt zawiera cały oryginalny MPP, oznaczenia, widok i szkic parametrów.\n'
-            'Inne przebiegi zachowasz osobno przez „Zapisz jako…”.',
+            'Powiązane klatki i wspólne klasy zapisują się razem.\n'
+            'Pozostałe warianty zachowasz osobno przez „Zapisz jako…”.',
             [label for _, label in options], 0, False,
         )
         return next(key for key, label in options if label == choice) if accepted else None
@@ -59,13 +60,5 @@ class QtProjectPrompts:
         return 'save' if box.clickedButton() is save else 'discard' if box.clickedButton() is discard else 'cancel'
 
     def confirm_manual_unsaved(self) -> str:
-        box = QMessageBox(QMessageBox.Icon.Warning, 'Korekty ręczne tylko w sesji',
-                          'Korekty ręczne nie mają jeszcze zapisu.\n'
-                          'Zamknięcie lub otwarcie innych danych utraci korekty.\n'
-                          'Możesz anulować i kontynuować pracę.', QMessageBox.StandardButton.NoButton, self.parent)
-        discard = box.addButton('Odrzuć korekty i kontynuuj', QMessageBox.ButtonRole.DestructiveRole)
-        cancel = box.addButton('Anuluj', QMessageBox.ButtonRole.RejectRole)
-        box.setDefaultButton(cancel)
-        box.setEscapeButton(cancel)
-        box.exec()
-        return 'discard' if box.clickedButton() is discard else 'cancel'
+        """Compatibility for callers predating manual project persistence."""
+        return self.confirm_unsaved()

@@ -10,7 +10,6 @@ from PyQt6.QtWidgets import QMenu
 
 from stmdomains.core.project import ProjectSnapshot
 from stmdomains.ui.project_prompts import ProjectPrompts
-from stmdomains.ui.manual_controller import UNSAVED_MANUAL
 from stmdomains.ui.project_selection import analysis_identifier
 from stmdomains.ui.project_view import capture_view, capture_draft, restore_view, restore_draft
 
@@ -25,6 +24,7 @@ class ProjectActions:
         self._saving_state: tuple | None = None
         self._after_save: Callable[[], object] | None = None
         self._revision = 0
+        self._saving_label = ''
         self.controller.series_analysis_changed.connect(self._analysis_changed)
         self.controller.project_opened.connect(self._opened)
         self.controller.project_saved.connect(self._saved)
@@ -59,12 +59,17 @@ class ProjectActions:
 
     @property
     def dirty(self) -> bool:
-        return self.controller.manual.has_changes or (self.controller.series is not None and self._state() != self._baseline)
+        return (self.controller.manual.persistence.dirty or self._has_preview()
+                or (self.controller.series is not None and self._state() != self._baseline))
+
+    def _has_preview(self) -> bool:
+        manual = self.controller.manual
+        return manual.preview_result is not None or manual.class_operations.transaction is not None
 
     def _refresh(self) -> None:
         for action in self.save_actions:
-            action.setEnabled(self.controller.can_analyze and not self.controller.manual.blocks_persistence)
-            action.setToolTip(UNSAVED_MANUAL if self.controller.manual.blocks_persistence else '')
+            action.setEnabled(self.controller.can_analyze)
+            action.setToolTip('Zatwierdź lub anuluj podgląd korekt przed zapisem.' if self._has_preview() else '')
 
     def _opened(self, snapshot: ProjectSnapshot) -> None:
         restore_view(self.window, snapshot.view)
@@ -79,8 +84,6 @@ class ProjectActions:
             self._leave(lambda: self.controller.open_session(path))
 
     def allow_close(self) -> bool:
-        if self.controller.manual.has_changes:
-            return self._allow_discard_manual()
         if not self.dirty:
             return True
         decision = self.prompts.confirm_unsaved()
@@ -92,10 +95,6 @@ class ProjectActions:
         return False
 
     def _leave(self, action: Callable[[], object]) -> None:
-        if self.controller.manual.has_changes:
-            if self._allow_discard_manual():
-                action()
-            return
         if not self.dirty:
             action()
             return
@@ -106,16 +105,11 @@ class ProjectActions:
             self.controller.cancel()
             self.save(after_save=action)
 
-    def _allow_discard_manual(self) -> bool:
-        # Older injected prompts fail closed; the application has the explicit dialog.
-        prompt = getattr(self.prompts, 'confirm_manual_unsaved', None)
-        return prompt is not None and prompt() == 'discard'
-
     def save(self, *, save_as: bool = False, after_save: Callable[[], object] | None = None) -> None:
         controller = self.controller
         controller.pause()
-        if controller.manual.blocks_persistence:
-            controller.prompts.show_error(UNSAVED_MANUAL)
+        if self._has_preview():
+            controller.prompts.show_error('Zatwierdź lub anuluj podgląd korekt przed zapisem.')
             return
         if not controller.can_analyze or controller.series is None:
             return
@@ -126,16 +120,17 @@ class ProjectActions:
             path = self.prompts.choose_path(suggested)
         if path is None:
             return
-        options = []
+        options = controller.manual.persistence.options()
         result, run = controller.result, controller.series_run
         if result is not None:
-            options.append(('displayed', f'Wyświetlany wynik — cały dostępny przebieg {analysis_identifier(result)[:8]}'))
+            options.append(('automatic', f'Automatyczny — przebieg {analysis_identifier(result)[:8]} · bez korekt'))
         if run is not None and (result is None or analysis_identifier(result) != run.identifier):
             options.append(('latest', f'Ostatni przebieg {run.identifier[:8]} — gotowe klatki {run.processed_count}/{len(run.indices)}'))
-        options.append(('none', 'Bez analizy — obrazy, oznaczenia, widok i szkic parametrów'))
+        options.append(('none', 'Bez analizy i korekt — obrazy, oznaczenia, widok i szkic parametrów'))
         selection = self.prompts.choose_analysis(options) if len(options) > 1 else 'none'
         if selection is None:
             return
+        self._saving_label = dict(options).get(selection, selection)
         self._saving_state = self._state()
         try:
             controller.save_project(path, view=capture_view(self.window),
@@ -150,6 +145,8 @@ class ProjectActions:
         self.window.source_label.setText(path.name)
         self.window.source_label.setToolTip(str(path))
         callback, self._after_save = self._after_save, None
+        note = ' Pozostają niezapisane warianty lub zmiany w sesji.' if self.dirty else ''
+        self.window.progress_label.setText(f'Zapisano: {self._saving_label}.{note}')
         # Changes made while copying a large source remain unsaved.
         if callback is not None and not self.dirty:
             QTimer.singleShot(0, callback)

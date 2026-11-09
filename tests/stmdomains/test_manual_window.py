@@ -52,7 +52,7 @@ def test_panel_hides_outside_editing_and_corrected_image_remains(qtbot, opened):
     assert controller.displayed_result is expected
     assert opened.result_controls.summary.text().startswith('Ręcznie')
     assert not opened.export_action.isEnabled()
-    assert all(not action.isEnabled() for action in opened.project_actions.save_actions)
+    assert all(action.isEnabled() for action in opened.project_actions.save_actions)
     panel.edit.click()
     panel.undo.click()
     assert controller.displayed_result is None
@@ -117,8 +117,7 @@ def test_new_analysis_does_not_overwrite_manual_variant_or_transfer_it_to_next_f
     controller.show_frame(0)
     qtbot.waitUntil(lambda: not controller.is_busy)
     assert controller.displayed_result is corrected
-    with pytest.raises(ValueError, match='Korekty ręczne'):
-        controller.project_analysis()
+    assert controller.project_analysis() is None
 
 
 def test_cancel_leaving_keeps_manual_changes_and_source(qtbot, opened, tmp_path, monkeypatch):
@@ -128,15 +127,15 @@ def test_cancel_leaving_keeps_manual_changes_and_source(qtbot, opened, tmp_path,
     controller.manual.apply()
     corrected = controller.displayed_result
     source = controller.series
-    monkeypatch.setattr(QtProjectPrompts, 'confirm_manual_unsaved', lambda self: 'cancel')
+    monkeypatch.setattr(QtProjectPrompts, 'confirm_unsaved', lambda self: 'cancel')
     opened.close()
     assert opened.isVisible() and controller.displayed_result is corrected
     opened.project_actions.open(tmp_path/'different.moltrack.json')
     assert controller.series is source and not controller.is_busy
-    with pytest.raises(ValueError, match='Korekty ręczne'):
-        controller.save_project(tmp_path/'unsafe.stmdomains')
-    assert not (tmp_path/'unsafe.stmdomains').exists()
-    monkeypatch.setattr(QtProjectPrompts, 'confirm_manual_unsaved', lambda self: 'discard')
+    controller.save_project(tmp_path/'corrected.stmdomains')
+    qtbot.waitUntil(lambda: not controller.is_busy)
+    assert (tmp_path/'corrected.stmdomains').exists()
+    monkeypatch.setattr(QtProjectPrompts, 'confirm_unsaved', lambda self: 'discard')
 
 
 def test_playback_ends_editing_and_preserves_the_variant(qtbot, opened):

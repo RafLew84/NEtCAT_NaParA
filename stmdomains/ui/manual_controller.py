@@ -1,7 +1,6 @@
 """Session-only manual variants, independent of automatic workers and run tables."""
 
 from typing import TYPE_CHECKING
-from dataclasses import dataclass
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
@@ -11,23 +10,17 @@ from stmdomains.core.manual_classes import ManualClassList
 from stmdomains.core.manual_class_lists import ManualClassLists
 from stmdomains.core.result_names import class_name, domain_name, domain_names
 from stmdomains.core.class_operations import ClassTransaction
+from stmdomains.core.manual_project import ManualStep
 from stmdomains.ui.manual_class_operations import ManualClassOperations
+from stmdomains.ui.manual_persistence import ManualPersistence
 from stmdomains.analysis.geometry_domain_settings import METHOD as GEOMETRY_METHOD
 from stmdomains.analysis.freud_settings import METHOD as FREUD_METHOD
 
 if TYPE_CHECKING:
     from stmdomains.ui.session_controller import SessionController
 
-UNSAVED_MANUAL = ('Korekty ręczne są przechowywane tylko w tej sesji. '
-                  'Zapis i eksport korekt nie są jeszcze dostępne.')
-
-
-@dataclass(frozen=True)
-class ManualStep:
-    variant_id: str
-    before: ManualClassList | None = None
-    after: ManualClassList | None = None
-    variant_ids: tuple[str, ...] = ()
+UNSAVED_MANUAL = ('Korekty ręczne można zapisać w projekcie .stmdomains. '
+                  'Eksport korekt nie jest jeszcze dostępny.')
 
 
 class ManualController(QObject):
@@ -48,11 +41,13 @@ class ManualController(QObject):
         self._redo: list[ManualStep] = []
         self._frame_index = -1
         self.class_operations = ManualClassOperations(self)
+        self.persistence = ManualPersistence(self)
         controller.series_changed.connect(self.reset)
         controller.frame_changed.connect(self._frame_changed)
 
     def reset(self, *_: object) -> None:
         self.class_operations.invalidate()
+        self.persistence.reset()
         self.variants.clear()
         self.class_lists = ManualClassLists()
         self._undo.clear()

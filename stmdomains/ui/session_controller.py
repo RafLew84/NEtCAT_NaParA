@@ -28,6 +28,7 @@ from stmdomains.core.result_store import ResultStore
 from stmdomains.core.export import ExportOptions
 from stmdomains.ui.export_runner import ExportRunner
 from stmdomains.core.project import ProjectAnalysis, ProjectSnapshot
+from stmdomains.core.manual_project import ManualProjectState
 from stmdomains.io.project import open_project, save_project
 from stmdomains.ui.project_selection import analysis_identifier, select_analysis, restored_run
 from stmdomains.analysis import analyze_frame, recalculate_domains, discover_classes, recalculate_class_acceptance, recalculate_order
@@ -96,6 +97,7 @@ class SessionController(QObject):
         self._saving_path: Path | None = None
         self.project_path: Path | None = None
         self.loaded_project: ProjectSnapshot | None = None
+        self._saving_manual: ManualProjectState | None = None
         self._previous_results: dict[int, FrameAnalysis] = {}
         self._selected_versions: dict[int, str] = {}
         self._active_catalogue: ClassCatalogue | None = None
@@ -222,15 +224,15 @@ class SessionController(QObject):
         return self._results.memory if isinstance(self._results, ResultStore) else self._results
 
     def project_analysis(self, selection: str = "displayed") -> ProjectAnalysis | None:
-        if self.manual.blocks_persistence:
-            raise ValueError(UNSAVED_MANUAL)
         if selection == "none":
             return None
         run = self.series_run
         if selection == "latest":
             identifier = run.identifier if run else ""
-        elif selection == "displayed":
-            identifier = analysis_identifier(self.result) if self.result else ""
+        elif selection in ('displayed', 'automatic') or selection.startswith('manual:'):
+            active = self.manual.variants.get(selection.removeprefix('manual:')) if selection.startswith('manual:') else self.manual.active
+            result = active.original if active and selection != 'automatic' else self.result
+            identifier = analysis_identifier(result) if result else ""
         else:
             raise ValueError("Nieznany wybór wyniku do zapisu.")
         if not identifier:
@@ -238,18 +240,28 @@ class SessionController(QObject):
         saved = self.loaded_project.analysis if self.loaded_project else None
         if saved is not None and saved.identifier == identifier:
             return saved
-        if selection == 'displayed' and self.domain_method in ('geometry', 'freud') and self.result is not None:
+        if self.result is not None and analysis_identifier(self.result) == identifier and self.domain_method in ('geometry', 'freud'):
             return select_analysis(identifier, {self.current_index: self.result}, {}, None, {})
-        return select_analysis(identifier, self._memory_results, self._previous_results, run, self._run_results)
+        frames = {v.data.frame.working_index: v.original for v in self.manual.variants.values()
+                  if v.original is not None and analysis_identifier(v.original) == identifier}
+        frames.update({i: r for i, r in self._memory_results.items() if analysis_identifier(r) == identifier})
+        return select_analysis(identifier, frames, self._previous_results, run, self._run_results)
 
     def save_project(self, path: Path, *, view: Mapping[str, Any] | None = None,
                      draft: Mapping[str, Any] | None = None, selection: str = "displayed") -> None:
         self.pause()
         if not self.can_analyze or self.series is None:
             return
+        if self.manual.preview_result is not None or self.manual.class_operations.transaction is not None:
+            raise ValueError('Zatwierdź lub anuluj podgląd korekt przed zapisem.')
+        analysis = self.project_analysis(selection)
+        anchor = self.manual.variants.get(selection.removeprefix('manual:')) if selection.startswith('manual:') else self.manual.active
+        manual = self.manual.persistence.snapshot(analysis, anchor) if selection == 'displayed' or selection.startswith('manual:') else None
+        analysis = self.manual.persistence.base_analysis(manual, analysis)
         snapshot = ProjectSnapshot(self.series, view or {'current_index': self.current_index,
                                     'mode': self.view_mode, 'gamma': self.gamma}, draft or {},
-                                    self.project_analysis(selection))
+                                    analysis, manual)
+        self._saving_manual = manual
         self._saving_path = Path(path).resolve()
         self._save_token = self._submit(lambda cancelled, report: save_project(
             Path(path), snapshot, cancelled=cancelled.is_set, progress=report))
@@ -272,6 +284,8 @@ class SessionController(QObject):
         self.pause()
         if not self.can_analyze or self.series is None:
             return
+        if self.manual.blocks_persistence:
+            raise ValueError(UNSAVED_MANUAL)
         snapshot = ProjectSnapshot(self.series, view, analysis=self.project_analysis(selection))
         self._export_runner.start(path, snapshot, indices, options)
 
@@ -279,6 +293,7 @@ class SessionController(QObject):
         self._abandon(self._save_token)
         self._save_token = None
         self._saving_path = None
+        self._saving_manual = None
 
     @property
     def catalogue_status(self) -> str:
@@ -718,6 +733,8 @@ class SessionController(QObject):
             self._save_token = None
             self.project_path = self._saving_path
             self._saving_path = None
+            self.manual.persistence.mark_saved(self._saving_manual)
+            self._saving_manual = None
             self._busy()
             self.project_saved.emit(self.project_path)
         elif token == self._geometry_token and isinstance(result, FrameGeometry):
@@ -806,6 +823,8 @@ class SessionController(QObject):
                 self._active_catalogue = self._series_runner.state.catalogue
             self._published = None
             self.series_changed.emit(self.series)
+            if result.project:
+                self.manual.persistence.restore(result.project.manual)
             self._publish(result.view)
             if result.project:
                 self.project_opened.emit(result.project)
@@ -846,6 +865,7 @@ class SessionController(QObject):
         if token == self._save_token:
             self._save_token = None
             self._saving_path = None
+            self._saving_manual = None
         elif token == self._geometry_token:
             self._geometry_token = None
         elif token == self._analysis_token:

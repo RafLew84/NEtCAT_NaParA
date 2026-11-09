@@ -14,6 +14,7 @@ from stmdomains.core.project import ProjectSnapshot
 from stmdomains.io.moltrack_import import _series_from_source
 from stmdomains.io.project_validation import validate_project_state
 from stmdomains.io.project_results import save_analysis, load_analysis
+from stmdomains.io.project_manual import save_manual, load_manual
 from stmdomains.io.project_archive import (ProjectCancelled, ProjectError, atomic_archive, checkpoint,
     extract_checked, json_bytes, put_bytes, put_source, read_json)
 
@@ -33,7 +34,7 @@ def save_project(path: Path, snapshot: ProjectSnapshot, *, cancelled: Callable[[
     record: dict = {'source_frame_indices': series.source_frame_indices, 'diagnostics': series.diagnostics,
               'frame_keys': [f'{series.source_sha256}:{index}' for index in series.source_frame_indices],
               'provenance': series.provenance, 'view': plain_metadata(snapshot.view),
-              'draft': plain_metadata(snapshot.draft), 'analysis': None}
+              'draft': plain_metadata(snapshot.draft), 'analysis': None, 'manual': snapshot.manual is not None}
     with atomic_archive(target, check) as archive:
         entries: dict = {}
         progress('Kopiowanie oryginalnego MPP…')
@@ -42,9 +43,12 @@ def save_project(path: Path, snapshot: ProjectSnapshot, *, cancelled: Callable[[
         if snapshot.analysis is not None:
             progress("Zapisywanie wybranego wyniku…")
             record["analysis"] = save_analysis(archive, entries, snapshot.analysis, series, check)
+        if snapshot.manual is not None:
+            progress('Zapisywanie korekt i historii Cofnij/Ponów…')
+            save_manual(archive, entries, snapshot.manual, series, check)
         put_bytes(archive, entries, 'project.json', json_bytes(record))
         put_bytes(archive, {}, 'manifest.json', json_bytes({
-            'format': 'stmdomains', 'version': 1, 'application': 'STM Domains SD-V4-13',
+            'format': 'stmdomains', 'version': 2, 'application': 'STM Domains SD-V4-24',
             'saved_at': datetime.now(timezone.utc).isoformat(), 'entries': entries,
         }))
         check()
@@ -81,8 +85,16 @@ def open_project(path: Path, *, cancelled: Callable[[], bool] = lambda: False,
                          diagnostics=tuple(record['diagnostics']), provenance=record['provenance'])
         check()
         validate_project_state(record['view'], record['draft'], series.frame_count)
-        analysis = load_analysis(record['analysis'], root, series, manifest['entries'], check)
-        return ProjectSnapshot(series, record['view'], record['draft'], analysis)
+        entries = manifest['entries']
+        manual_present = record.get('manual', False)
+        if type(manual_present) is not bool or (manifest['version'] == 1 and manual_present):
+            raise ProjectError('Niepoprawny opis korekt projektu.')
+        if manual_present != any(name.startswith('manual/') for name in entries):
+            raise ProjectError('Niezgodna obecność korekt w projekcie.')
+        analysis = load_analysis(record['analysis'], root, series,
+                                 {k: v for k, v in entries.items() if not k.startswith('manual/')}, check)
+        manual = load_manual(root, entries, series, check) if manual_present else None
+        return ProjectSnapshot(series, record['view'], record['draft'], analysis, manual)
     except ProjectCancelled:
         cache.cleanup()
         raise

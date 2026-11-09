@@ -92,7 +92,7 @@ class ManualClassDialog(QDialog):
             actions.addWidget(button)
         layout.addLayout(actions)
         note = QLabel('Zaznaczaj molekuły w głównym oknie. Nazwa nie potwierdza typu fizycznego. '
-                      'Korekty tylko w sesji; model nie jest douczany.')
+                      'Korekty można zapisać w projekcie; model nie jest douczany.')
         note.setWordWrap(True)
         layout.addWidget(note)
         self.target.currentIndexChanged.connect(self._target_changed)

@@ -114,7 +114,7 @@ class ManualPanel(QWidget):
         history.addWidget(self.undo)
         history.addWidget(self.redo)
         outer.addLayout(history)
-        note = QLabel('Korekty tylko w sesji · bez zapisu i eksportu')
+        note = QLabel('Korekty: Plik → Zapisz projekt…')
         note.setWordWrap(True)
         note.setToolTip(UNSAVED_MANUAL)
         outer.addWidget(note)
@@ -223,7 +223,7 @@ class ManualPanel(QWidget):
             history_target = manual.history_target(redo=redo)
             label = 'Ponów' if redo else 'Cofnij'
             button.setText(f'{label} · {manual.history_label(redo=redo)}' if history_target else label)
-            button.setToolTip('Historia operacji w sesji; przechodzi do klatki wskazanej na przycisku.')
+            button.setToolTip('Historia operacji projektu; przechodzi do klatki wskazanej na przycisku.')
             button.setEnabled(manual.can_edit and history_target is not None)
         for widget in (self.operation, self.clear, self.tool, self.mode):
             widget.setEnabled(manual.can_edit)

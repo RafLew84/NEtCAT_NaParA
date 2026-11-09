@@ -67,7 +67,7 @@ def create_class_operations_demo(directory: Path) -> Path:
         'Stan startowy w RAM: klatka 1 A=6 B=3 (2 domeny, 2 punkty bez domeny), klatka 2 A=4 B=3.\n'
         'Klatka 3 ma inny katalog i pozostaje poza wspólnym zakresem.\n'
         'Sam plik projektu ma na klatce 1 A=4 B=3 i dwa punkty nieprzypisane.\n'
-        'Korekty nie są zapisywane przed ticketem 24; launcher przygotowuje je jawnie w sesji.\n', encoding='utf-8')
+        'Launcher przygotowuje korekty w sesji; zapisz je przez Plik → Zapisz projekt….\n', encoding='utf-8')
     return path
 
 

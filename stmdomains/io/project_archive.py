@@ -86,7 +86,7 @@ def extract_checked(path: Path, directory: Path, check: Callable[[], None]) -> d
         if archive.getinfo('manifest.json').file_size > MAX_JSON:
             raise ProjectError('Manifest projektu jest zbyt duży.')
         manifest = json.loads(archive.read('manifest.json'))
-        if manifest.get('format') != 'stmdomains' or type(manifest.get('version')) is not int or manifest['version'] != 1:
+        if manifest.get('format') != 'stmdomains' or type(manifest.get('version')) is not int or manifest['version'] not in (1, 2):
             raise ProjectError('Nieobsługiwana wersja formatu STM Domains.')
         entries = manifest['entries']
         if set(entries) != set(names) - {'manifest.json'} or not {'source.mpp', 'input.json', 'project.json'} <= set(entries):
@@ -94,6 +94,8 @@ def extract_checked(path: Path, directory: Path, check: Callable[[], None]) -> d
         if sum(info.file_size for info in archive.infolist()) > MAX_TOTAL:
             raise ProjectError('Projekt przekracza limit 16 GiB.')
         pattern = r'(source\.mpp|input\.json|project\.json|catalogues/[0-9a-f]{64}\.json|frames/[0-9]+\.(json|npy|barriers\.npy))'
+        if manifest['version'] == 2:
+            pattern = pattern[:-1] + r'|manual/state\.json|manual/results/[0-9]+\.json|manual/catalogues/[0-9a-f]{64}\.json|manual/arrays/[0-9a-f]{64}\.npy)'
         for name, entry in entries.items():
             check()
             if not re.fullmatch(pattern, name) or archive.getinfo(name).file_size != entry['size']:
