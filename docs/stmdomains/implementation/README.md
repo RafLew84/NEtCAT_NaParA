@@ -1,5 +1,20 @@
 # Budowa i odbiór szkieletu STM Domains
 
+**2026-11-09 — wykonano SD-V4-23: ręczne klasy (`94d5a94`, poprawka `b11d09a`).**
+**Edytuj domeny → Klasy ręczne…**: nowa/pusta klasa, nazwa/kolor,
+przypisanie molekuł lub całych domen i usuwanie pustych klas ręcznych.
+Częściowa zmiana klasy pokazuje atomowy podział domeny; klasa bez domeny
+nie tworzy obszaru. Wersjonowane listy współdzielą metadane tylko w swoim
+katalogu; przypisania pozostają na bieżącej klatce, model/K bez zmian.
+[Obsługa i test ręczny](interactive-v04/acceptance-23.md), [przegląd](interactive-v04/review-23.md).
+GUI X11/netcat na kontrolach oraz TTMAPP259–260 PASS. Cofnij/Ponów,
+porównanie oryginału i ochrona pracy z 21–22 pozostają aktywne.
+**596 testów PASS**, mypy 114 modułów PASS, Standards/Spec 0 otwartych uwag.
+**Odbiór ręczny użytkownika 23 pozostaje otwarty**; odbiór 22 potwierdzony.
+Korekty tylko w sesji, zapis/eksport w 24/25. Następny: **23a — scalanie
+i dzielenie klas**, potem 24 → 25 → 26; 19–20 odłożone.
+Poniżej historia wcześniejszych prac.
+
 **2026-11-09 — wykonano SD-V4-22 (`0910c97`, poprawka `62644eb`): podział i scalanie domen.**
 W **Edytuj domeny** dostępne są **Podziel domenę** i **Połącz domeny**,
 z podglądem, wyborem docelowego ID, pełną listą członków i Cofnij/Ponów.

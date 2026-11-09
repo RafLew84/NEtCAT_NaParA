@@ -1,3 +1,54 @@
+# STM Domains — wykonano SD-V4-23, ręczne klasy
+
+2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź
+`domains/interactive-v04-ui`, baza `09d8001`. Implementacja **`94d5a94`**,
+poprawka **`b11d09a`**. Status `done`;
+**odbiór ręczny użytkownika 23 pozostaje otwarty**.
+[Obsługa, semantyka list i test ręczny](implementation/interactive-v04/acceptance-23.md),
+[przegląd](implementation/interactive-v04/review-23.md).
+
+**Edytuj domeny → Klasy ręczne…** otwiera niemodalne okno. Pusta klasa,
+nazwa/kolor, przypisanie istniejącej lub utworzenie z przypisaniem,
+usunięcie wyłącznie pustej ręcznej klasy. Wybór molekuł lub całych domen;
+zmiana klasy części domeny pokazuje podział z 22 w jednym kroku historii.
+Klasa punktu bez domeny nie tworzy obszaru; widok Klasy liczy go osobno.
+Wspólna klasa kilku domen zachowuje ich ID i geometrię.
+
+Listy mają stabilne UUID, niezmienne wersje i źródło. Metadane wspólne
+wyłącznie w swoim katalogu; przypisania bieżącej klatki. Bez analizy
+osobna lista bez modelu; lokalne wyniki bez katalogu mają własne listy.
+UI pokazuje zakres, wersję, K modelu, klasy ręczne i obecne na klatce.
+Nowe dopasowanie nie rozpoznaje ręcznych klas i nie usuwa wcześniejszych
+korekt. Model, centroidy, K oraz automatyczne wyniki pozostają bez zmian.
+Chronologiczne Cofnij/Ponów obejmuje listę i przypisania. Zapis/eksport
+pozostają blokowane dla korekt; 24/25 dodadzą trwałość. Źródła tylko odczytano.
+
+Natywne Qt/X11 w **netcat**, główne okno 1024×768, klasy 620×680:
+kontrola K2 (357/405, 17 domen) i TTMAPP259–260 ze wspólnym K5
+(259: 116/312, 7 domen) PASS. Wspólna ręczna klasa dwóch domen zachowuje
+maskę; częściowe przypisanie tworzy jeden cofany podział; punkt bez domeny
+otrzymuje samą klasę. Metadane wspólne, przypisania osobne, porównanie,
+Cofnij/Ponów, raw/aligned i osobna lista bez modelu PASS. Obejrzano zrzuty.
+To sprawdzenie autora, nie odbiór użytkownika ani ocena detekcji.
+
+Testy celowane po poprawce nawigacji: **16 testów UI PASS / 17,14 s**;
+mypy **114 modułów PASS**. Pełna regresja po poprawce `b11d09a`:
+**596 testów PASS / 272,59 s**.
+Standards: 1 uwaga heurystyczna zamknięta wydzieleniem zapytań o listę;
+Spec: niezależnie 0 uwag, root wykrył błąd nadpisania legendy po nawigacji,
+potwierdził testem RED i usunął, przygotowując wariant przed publikacją
+klatki. Ponowny przegląd `b11d09a`: **0 otwartych uwag w obu osiach**.
+11 plików kodu/testów, maksimum **875 linii**, wszystkie <1000.
+Sprawdzono 543 odnośniki w 8 dokumentach, graf 27 ticketów i diff.
+
+Artefakty lokalne: `.scratch/stmdomains-ui-23/` (skrypt, zrzuty, raport,
+syntetyczne wejścia generatora `class_discovery_demo`). Instrukcja użycia
+przykładu znajduje się w raporcie odbioru. Bez nowych zależności,
+wspólnych zmian i potrzeb integracyjnych. Następny: **23a — scalanie
+i dzielenie klas**, potem 24 → 25 → 26; 19–20 odłożone. Odbiór 22 potwierdzony.
+
+---
+
 # STM Domains — wykonano SD-V4-22, podział i scalanie domen
 
 2026-11-09. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź

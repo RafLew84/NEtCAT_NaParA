@@ -6,20 +6,23 @@
 
 **Blocked by:** [07: Wybierz liczbę klas i zakres ich odkrywania](07-fit-shared-classes.md), [22: Dziel i łącz domeny na obrazie](22-split-merge-domains.md).
 
-**Status:** ready-for-agent — dodanie do planu zlecone przez użytkownika 2026-11-03; wykonanie po zależnościach.
+**Status:** done — implementacja `94d5a94`, poprawka `b11d09a`, 2026-11-09. Odbiór ręczny użytkownika pozostaje otwarty.
+
+[Obsługa, semantyka listy i wykonane sprawdzenia](acceptance-23.md),
+[przegląd Standards/Spec](review-23.md).
 
 Obowiązują [wspólne kryteria odbioru](README.md#wspólne-kryteria-odbioru) oraz [zasady edycji ręcznej](README.md#edycja-ręczna-klas-i-domen).
 
 ## Kryteria akceptacji
 
-- [ ] Okno klas umożliwia dodanie klasy, zmianę nazwy/koloru oraz wybór klasy docelowej. Każda ma trwałe ID i pochodzenie automatyczne lub ręczne; zmiana nazwy/koloru nie zmienia jej tożsamości. Nowa klasa może początkowo nie mieć członków. Usunięcie jest dostępne tylko dla pustej klasy utworzonej ręcznie.
-- [ ] Można nadać klasę całej domenie lub kilku wskazanym domenom, dodać kolejne molekuły do istniejącej klasy, zmienić klasę i przywrócić stan nieustalony. Usunięcie klasy z przypisania nie usuwa molekuły ani domeny. Dwie rozdzielone domeny tej samej klasy mają wspólny kolor Klasy i odrębne ID/obrysy Domeny.
-- [ ] Zmiana klasy tylko części domeny pokazuje podgląd wydzielenia jej do osobnej domeny przez operację z 22. Nie zmienia pozostałych członków i nie pozostawia wieloklasowej domeny. Przypisanie klasy molekułom bez domeny nie tworzy domeny samoczynnie; widok oraz licznik klasy potrafią pokazać takie wskazania osobno od udziału domen.
-- [ ] Lista klas do ręcznych przypisań ma jawną tożsamość i wersję, powiązaną z konkretnym katalogiem automatycznym albo z ręczną pracą bez dopasowania. Zmiany nazwy/koloru dotyczą tej listy i są widoczne na korzystających z niej klatkach; historyczne wersje są zachowane. Przypisania zmieniają się tylko dla wskazanych molekuł na bieżącej klatce.
-- [ ] Na kolejnej klatce korzystającej z tej samej listy można jawnie wybrać istniejącą klasę i dodać do niej wskazania. Zgodność numeru lub nazwy w innym katalogu nie pozwala automatycznie utożsamić klas. UI pokazuje zakres listy i odróżnia ustawione K modelu od liczby ręcznych klas oraz klas obecnych na klatce.
-- [ ] Model dopasowany w 07/08/12 pozostaje niezmieniony. Ręczna klasa nie dostaje fikcyjnego centroidu, ufności ani statusu rozpoznania przez model. Nowa analiza nie przypisuje tej klasy automatycznie; wynik i korekty pozostają rozdzielone. Nazwa klasy nie jest potwierdzeniem fizycznego typu z 20.
-- [ ] Cofnij/Ponów obejmuje utworzenie klasy, metadane, przypisania i ewentualny podział jako jedną operację. Podgląd Automatyczny/Po korektach zachowuje własne legendy i liczniki. Zmiana listy klas oraz nawigacja nie przenoszą korekt do innych katalogów.
-- [ ] Kontrole obejmują nową/pustą klasę, dodawanie członków, wspólną klasę kilku domen, podział przy częściowej zmianie, klasę bez domeny, różne katalogi i niezmienność modelu. Wykonano test GUI na TTMAPP oraz opisanych przykładach, w netcat; kod i testy spełniają 1000/1500 linii.
+- [x] Okno klas umożliwia dodanie klasy, zmianę nazwy/koloru oraz wybór klasy docelowej. Każda ma trwałe ID i pochodzenie automatyczne lub ręczne; zmiana nazwy/koloru nie zmienia jej tożsamości. Nowa klasa może początkowo nie mieć członków. Usunięcie jest dostępne tylko dla pustej klasy utworzonej ręcznie.
+- [x] Można nadać klasę całej domenie lub kilku wskazanym domenom, dodać kolejne molekuły do istniejącej klasy, zmienić klasę i przywrócić stan nieustalony. Usunięcie klasy z przypisania nie usuwa molekuły ani domeny. Dwie rozdzielone domeny tej samej klasy mają wspólny kolor Klasy i odrębne ID/obrysy Domeny.
+- [x] Zmiana klasy tylko części domeny pokazuje podgląd wydzielenia jej do osobnej domeny przez operację z 22. Nie zmienia pozostałych członków i nie pozostawia wieloklasowej domeny. Przypisanie klasy molekułom bez domeny nie tworzy domeny samoczynnie; widok oraz licznik klasy potrafią pokazać takie wskazania osobno od udziału domen.
+- [x] Lista klas do ręcznych przypisań ma jawną tożsamość i wersję, powiązaną z konkretnym katalogiem automatycznym albo z ręczną pracą bez dopasowania. Zmiany nazwy/koloru dotyczą tej listy i są widoczne na korzystających z niej klatkach; historyczne wersje są zachowane. Przypisania zmieniają się tylko dla wskazanych molekuł na bieżącej klatce.
+- [x] Na kolejnej klatce korzystającej z tej samej listy można jawnie wybrać istniejącą klasę i dodać do niej wskazania. Zgodność numeru lub nazwy w innym katalogu nie pozwala automatycznie utożsamić klas. UI pokazuje zakres listy i odróżnia ustawione K modelu od liczby ręcznych klas oraz klas obecnych na klatce.
+- [x] Model dopasowany w 07/08/12 pozostaje niezmieniony. Ręczna klasa nie dostaje fikcyjnego centroidu, ufności ani statusu rozpoznania przez model. Nowa analiza nie przypisuje tej klasy automatycznie; wynik i korekty pozostają rozdzielone. Nazwa klasy nie jest potwierdzeniem fizycznego typu z 20.
+- [x] Cofnij/Ponów obejmuje utworzenie klasy, metadane, przypisania i ewentualny podział jako jedną operację. Podgląd Automatyczny/Po korektach zachowuje własne legendy i liczniki. Zmiana listy klas oraz nawigacja nie przenoszą korekt do innych katalogów.
+- [x] Kontrole obejmują nową/pustą klasę, dodawanie członków, wspólną klasę kilku domen, podział przy częściowej zmianie, klasę bez domeny, różne katalogi i niezmienność modelu. Wykonano test GUI na TTMAPP oraz opisanych przykładach, w netcat; kod i testy spełniają 1000/1500 linii.
 
 ## Test ręczny użytkownika
 

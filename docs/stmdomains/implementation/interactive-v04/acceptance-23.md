@@ -1,6 +1,7 @@
 # SD-V4-23 — ręczne klasy i przypisania
 
 2026-11-09. Gałąź `domains/interactive-v04-ui`, baza `09d8001`.
+Implementacja `94d5a94`, poprawka `b11d09a`.
 Odbiór ręczny użytkownika pozostaje otwarty.
 
 ## Obsługa
@@ -111,9 +112,21 @@ obecnie wszystkie ustawienia są w **Analiza → Analiza…**.
 Interpreter: `/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python`.
 Testy publicznych operacji oraz okna obejmują puste klasy, metadane,
 przypisania/podziały, klasy bez domeny, historię, różne katalogi,
-ponowną analizę i ochronę modelu. Końcowe wyniki zostaną dopisane.
+ponowną analizę i ochronę modelu. Po poprawce nawigacji: **16 testów UI
+PASS / 17,14 s**, mypy **114 modułów PASS**. **Pełna regresja: 596 testów PASS / 272,59 s** po poprawce `b11d09a`.
 
-Natywne Qt/X11/netcat: główne okno **1024×768**, klasy **620×650**.
+```bash
+QT_QPA_PLATFORM=offscreen MPLCONFIGDIR=/tmp/netcat-stmdomains-mpl python -m pytest -q tests/stmdomains
+python -m mypy --follow-imports=silent --ignore-missing-imports stmdomains/core stmdomains/analysis stmdomains/ui stmdomains/io
+```
+
+Przegląd Standards zamknął 1 uwagę heurystyczną; Spec oraz ponowny przegląd
+poprawki nawigacji: **0 otwartych uwag**. Test widocznej legendy odtworzył
+błąd przed poprawką i przeszedł po przygotowaniu wariantu przed publikacją
+klatki. 11 zmienionych plików kodu/testów, maksimum **875 linii**,
+wszystkie <1000. Sprawdzono odnośniki dokumentacji, graf 27 ticketów i diff.
+
+Natywne Qt/X11/netcat: główne okno **1024×768**, klasy **620×680**.
 Kontrola K2: 357 przypisań / 405 centrów, 17 domen. TTMAPP259 przy K5
 dopasowanym wspólnie z 259–260: **116/312, 7 domen**. Nadanie wspólnej
 klasy dwóm domenom zachowało dokładną maskę i liczniki domen. Punkt bez
