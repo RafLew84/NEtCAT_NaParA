@@ -803,6 +803,7 @@ class SessionController(QObject):
     def _publish(self, frame: PresentedFrame) -> None:
         index = frame.frame.working_index
         self.current_index = index
+        self.manual.prepare_frame()
         result = self.displayed_result
         frame = replace(frame, result=result, geometry=self._geometries.get(index))
         self._published = frame

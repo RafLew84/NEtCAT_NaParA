@@ -156,3 +156,26 @@ def test_shared_class_used_on_another_frame_cannot_be_deleted(qtbot, opened):
     dialog = opened.manual_panel.class_dialog
     dialog.target.setCurrentIndex(dialog.target.findData(target))
     assert not dialog.delete.isEnabled()
+
+
+def test_navigation_renders_shared_names_even_after_editing_panel_is_closed(qtbot, opened):
+    c, m = opened.controller, opened.controller.manual
+    m.set_editing(False)
+    c.show_frame(1)
+    qtbot.waitUntil(lambda: not c.is_busy)
+    c.analyze_current_frame()
+    qtbot.waitUntil(lambda: not c.is_busy, timeout=20000)
+    second = c.result
+    c.show_frame(0)
+    qtbot.waitUntil(lambda: not c.is_busy)
+    m.set_editing(True)
+    target = m.class_list.classes[0].class_id
+    m.preview_classes('update', target=target, name='Wspólna nazwa na obu klatkach', color='#123456')
+    m.apply()
+    m.set_editing(False)
+    opened.result_controls.mode.setCurrentIndex(opened.result_controls.mode.findData('classes'))
+    c.show_frame(1)
+    qtbot.waitUntil(lambda: not c.is_busy)
+    assert 'Wspólna nazwa na obu klatkach' in opened.result_controls.legend.text()
+    assert c.displayed_result.assignments == second.assignments
+    assert not opened.manual_panel.isVisible()

@@ -32,6 +32,10 @@ class ManualClassLists:
     def get(self, variant: ManualDomains) -> ManualClassList:
         return self.current[self.bindings[variant.identifier]]
 
+    def original(self, variant: ManualDomains) -> ManualClassList:
+        labels = self.get(variant)
+        return next(v for v in self.revisions.values() if v.identifier == labels.identifier and v.generation == 0)
+
     def publish(self, labels: ManualClassList) -> None:
         self.current[labels.source_key] = labels
         self.revisions[labels.identifier, labels.version] = labels

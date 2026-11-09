@@ -17,7 +17,7 @@ class ManualClassDialog(QDialog):
         self.manual = manual
         self._context: tuple[object, ...] = ()
         self.setWindowTitle('Klasy ręczne — bieżąca klatka')
-        self.resize(620, 650)
+        self.resize(620, 680)
         layout = QVBoxLayout(self)
         self.scope = QLabel()
         self.scope.setWordWrap(True)
@@ -148,8 +148,7 @@ class ManualClassDialog(QDialog):
             self._context = context
         shown_labels = (manual.preview_result.class_list if manual.preview_result is not None else None) or labels
         if manual.compare_original:
-            shown_labels = next(v for v in manual.class_lists.revisions.values()
-                                if v.identifier == labels.identifier and v.generation == 0)
+            shown_labels = manual.original_class_list or labels
         result = manual.displayed_result(manual.controller.result)
         assignments = result.assignments.values() if result else ()
         classes = shown_labels.classes
@@ -173,8 +172,7 @@ class ManualClassDialog(QDialog):
         model = f'K modelu: {catalogue.k} · katalog {catalogue.identifier[:8]}' if catalogue else 'Brak dopasowanego modelu'
         scope = ('wspólny katalog' if catalogue else
                  'ręczna praca bez analizy' if active.original is None else 'lokalny wynik bez katalogu')
-        frames = sorted({v.data.frame.working_index + 1 for v in manual.variants.values()
-                         if manual.class_lists.get(v).identifier == labels.identifier})
+        frames = [index + 1 for index in manual.class_scope_frames]
         frames_text = ', '.join(map(str, frames[:8])) + (f'… ({len(frames)} klatek)' if len(frames) > 8 else '')
         prefix = 'Oryginał · ' if manual.compare_original else 'Podgląd · ' if manual.preview_result else ''
         self.scope.setText(f'{prefix}Lista {shown_labels.identifier[:8]} · wersja {shown_labels.version[:8]} · {scope}\n'

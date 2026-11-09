@@ -78,6 +78,16 @@ class ManualController(QObject):
                    for a in v.current.assignments.values())
 
     @property
+    def original_class_list(self) -> ManualClassList | None:
+        return self.class_lists.original(self.active) if self.active is not None else None
+
+    @property
+    def class_scope_frames(self) -> tuple[int, ...]:
+        labels = self.class_list
+        return tuple(sorted({v.data.frame.working_index for v in self.variants.values()
+                             if labels is not None and self.class_lists.get(v).identifier == labels.identifier}))
+
+    @property
     def blocks_persistence(self) -> bool:
         return (self.has_changes or self.preview_result is not None
                 or self.displayed_result(self.controller.result) is not self.controller.result)
@@ -99,6 +109,10 @@ class ManualController(QObject):
         self.changed.emit()
 
     def _frame_changed(self, *_: object) -> None:
+        self.changed.emit()
+
+    def prepare_frame(self) -> None:
+        """Resolve the frame's variant before the controller publishes its view."""
         if self._frame_index != self.controller.current_index:
             self._frame_index = self.controller.current_index
             self.selection = ()
@@ -115,8 +129,6 @@ class ManualController(QObject):
                 except ValueError as error:
                     self.message = str(error)
                     self.editing = False
-            self.controller._refresh_result()
-        self.changed.emit()
 
     def choices(self) -> list[tuple[str, str]]:
         entries = [('', 'Bieżący wynik automatyczny')]
