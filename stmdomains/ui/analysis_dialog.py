@@ -22,7 +22,7 @@ from stmdomains.ui.geometry_domain_fields import GeometryDomainFields
 from stmdomains.analysis.freud_settings import FreudSettings, METHOD as FREUD_METHOD
 from stmdomains.ui.freud_fields import FreudFields
 from stmdomains.analysis.levelset_settings import LevelSetSettings, METHOD as LEVELSET_METHOD
-from stmdomains.ui.levelset_fields import LevelSetFields, STOPPING_LABELS
+from stmdomains.ui.levelset_fields import LevelSetFields, levelset_description
 from stmdomains.ui.acceptance_fields import AcceptanceFields
 from stmdomains.analysis.descriptor_settings import DescriptorSettings
 from stmdomains.analysis.barrier_settings import BarrierSettings
@@ -421,12 +421,10 @@ class AnalysisDialog(QDialog):
             self.displayed.setToolTip("")
             return
         if result.parameters.get('domain_method') == LEVELSET_METHOD:
-            levelset = LevelSetSettings.from_parameters(result.parameters)
             info = result.metadata.get('levelset', {})
-            reason = STOPPING_LABELS.get(info.get('stopping_reason', ''), 'brak ewolucji')
             text = (f'Level set · kl. {result.working_index+1}: {result.domain_count} domen, '
                     f'{result.assigned_count}/{result.active_count} molekuł.\n'
-                    f'Użyto: siła {levelset.regularization:g}, iteracje {info.get("iterations", 0)}/{levelset.iterations} · {reason}.\n'
+                    f'Użyto: {levelset_description(result)}.\n'
                     f'Regiony modelu: {info.get("initial_model_regions", 0)} → {info.get("final_model_regions", 0)}; typ nieznany, faza niesprawdzana.')
             self.displayed.setText(text)
             self.displayed.setToolTip(text + '\n' + result.message)

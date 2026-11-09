@@ -77,7 +77,7 @@ def segment_levelset(data: AnalysisInput, geometry: FrameGeometry, *,
     barrier, barrier_metadata = image_barriers(np.asarray(data.frame.image, float), spacing_px, check, settings=barrier_settings)
     eligible = np.array([not reasons[r.detection_id] for r in active], bool)
     nearest, valid = spatial_support(points, eligible, scale, spacing, constraints.raster_radius_factor,
-                                    barrier | ~np.isfinite(data.frame.image), check)
+                                    barrier, check)
     supported_records = [r for r, yes in zip(active, eligible) if yes]
     prototypes = initial_prototypes(supported_records, geometry_settings, check)
     values = np.zeros((len(active), 2, 3), float)

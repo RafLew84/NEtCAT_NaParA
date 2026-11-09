@@ -22,6 +22,8 @@ def test_levelset_comparison_draft_navigation_and_cancellation(qtbot, opened):
     result = controller.result
     assert result.parameters['domain_method'] == 'gibou_fedkiw_features_v1'
     assert result.domain_count > 0
+    assert 'Level set' in opened.details_label.text()
+    assert 'iteracje' in opened.details_label.text()
     assert opened.image_view.view_state() == viewport
     opened.method_controls.geometric.click()
     assert controller.result is geometric

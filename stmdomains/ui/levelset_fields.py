@@ -4,10 +4,19 @@ from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QFormLayout, QLabel, QSpinBox, QVBoxLayout, QWidget
 
 from stmdomains.analysis.levelset_settings import LevelSetSettings
+from stmdomains.core.analysis_result import FrameAnalysis
 from stmdomains.ui.domain_fields import DomainSettingsFields
 
 STOPPING_LABELS = {'single_region': 'jeden region modelu', 'stable_partition': 'stabilny podział',
                    'iteration_limit': 'osiągnięto limit', 'no_support': 'brak wsparcia'}
+
+
+def levelset_description(result: FrameAnalysis) -> str:
+    settings = LevelSetSettings.from_parameters(result.parameters)
+    info = result.metadata.get('levelset', {})
+    reason = STOPPING_LABELS.get(info.get('stopping_reason', ''), 'brak ewolucji')
+    return (f'Siła {settings.regularization:g}, iteracje {info.get("iterations", 0)}/{settings.iterations}'
+            f' · {reason}')
 
 
 class LevelSetFields(QWidget):

@@ -17,6 +17,7 @@ from stmdomains.ui.annotation_controls import AnnotationControls
 from stmdomains.ui.analysis_dialog import AnalysisDialog
 from stmdomains.ui.analysis_status import STATUS_TEXT
 from stmdomains.ui.catalogue_style import catalogue_description
+from stmdomains.ui.levelset_fields import levelset_description
 from stmdomains.ui.image_view import ImageView
 from stmdomains.ui.manual_panel import ManualPanel
 from stmdomains.ui.geometry_card import GeometryCard
@@ -358,6 +359,8 @@ class STMDomainsMainWindow(QMainWindow):
             text = prefix + " · " + catalogue_description(result.catalogue)
         if self.controller.domain_method == 'geometry' and result is not None:
             text = 'Geometria · ' + result.message
+        if self.controller.domain_method == 'levelset' and result is not None:
+            text = 'Level set · ' + levelset_description(result)
         if self.controller.domain_method == 'freud' and result is not None:
             text = 'freud · klasy otoczeń i spójne domeny; etykiety lokalne dla tego wyniku'
         run = self.controller.series_run

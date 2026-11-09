@@ -183,3 +183,19 @@ def test_empty_annotations_have_explicit_state():
     data = analysis_input(np.zeros((0, 2)), state='missing')
     result = segment_levelset(data, measure_geometry(data))
     assert result.status == 'no_annotations' and result.assigned_count == 0
+
+
+def test_both_compared_methods_reject_nonfinite_image_without_filling_pixels():
+    import pytest
+    from dataclasses import replace
+    from stmdomains.analysis.geometry_domains import segment_geometry
+    from stmdomains.analysis.levelset_domains import segment_levelset
+    from stmdomains.analysis.provenance import input_fingerprint
+    data, measured = measured_input()
+    image = data.frame.image.copy()
+    image[50, 60] = np.nan
+    data = replace(data, frame=replace(data.frame, image=image))
+    measured = replace(measured, metadata={**measured.metadata, 'input_sha256': input_fingerprint(data)})
+    for calculate in (segment_geometry, segment_levelset):
+        with pytest.raises(ValueError, match='finite'):
+            calculate(data, measured)

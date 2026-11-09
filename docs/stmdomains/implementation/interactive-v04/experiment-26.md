@@ -54,8 +54,9 @@ stałe są naszą adaptacją; nie odtworzeniem wyników ani wydajności publikac
    przekroczenie daje jawny błąd zasobów, nie obcięcie danych. To regiony
    modelu, nie klasy fizyczne ani końcowe domeny.
 3. Mapy pikselowe: najbliższe aktywne centrum w metryce skalibrowanej,
-   w promieniu 0,85 NN. Niepoprawny pomiar, niefinitywny obraz oraz bariera
-   dają twardą maskę nieważności. Braki pozostają brakami; bez interpolacji
+   w promieniu 0,85 NN. Niepoprawny pomiar oraz bariera dają twardą maskę
+   nieważności. Obie metody wymagają skończonych wartości obrazu; NaN/Inf
+   odrzuca całą klatkę (korekta opisu poniżej). Braki pozostają brakami; bez interpolacji
    przez lukę. Limit piksele × regiony modelu: 4 miliony.
 4. Dla regionu r funkcja φ dodatnia wewnątrz, odległość do innego ważnego
    regionu minus odległość do własnego. Rekonstrukcja przez dokładny EDT
@@ -89,6 +90,12 @@ pozostaje jawnym ograniczeniem niezależnie od wygładzania.
 Wyłączenie barier realizuje istniejący parametr minimalnej długości = 100 NN
 (zasięg przekracza szerokość tych obrazów). Skrypt sprawdza, że maska jest
 pusta; ustawienie stosowane identycznie do obu metod. Nie zmienia obrazów.
+
+Korekta opisu po przeglądzie kodu, 2026-11-09: pierwotny pkt 3 zapowiadał
+maskowanie niefinitywnych pikseli. Wspólny detektor barier wymaga całego
+obrazu ze skończonymi wartościami; NaN/Inf daje jawny błąd w obu metodach.
+Nie wprowadzono asymetrycznej naprawy obrazów. Wszystkie 19 wejść próby
+spełniały ten warunek; korekta nie zmienia metody, ustawień ani wyników.
 
 Przygotowanie protokołu wspierała procedura `experimental-design`. Źródło
 oprogramowania: Timothy Kassis, Vinayak Agarwal, Yuhuan He, Darshil Patel,

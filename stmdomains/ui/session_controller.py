@@ -145,34 +145,23 @@ class SessionController(QObject):
         return self.result_for_method(self.domain_method)
 
     def result_for_method(self, method: str) -> FrameAnalysis | None:
-        if method == 'levelset':
-            return self.levelset_result
-        if method == 'freud':
-            return self.freud_result
-        return self.geometric_result if method == 'geometry' else self.baseline_result
+        return self.result_at(self.current_index, method, self.result_version)
 
     @property
     def baseline_result(self) -> FrameAnalysis | None:
-        result = self.previous_result if self.result_version == 'previous' else self.latest_result
-        return result if result is not None and result.parameters.get('domain_method') not in (METHOD, FREUD_METHOD, LEVELSET_METHOD) else None
+        return self.result_for_method('baseline')
 
     @property
     def geometric_result(self) -> FrameAnalysis | None:
-        result = self._geometric_results.get(self.current_index)
-        saved = self.latest_result
-        return result or (saved if saved and saved.parameters.get('domain_method') == METHOD else None)
+        return self.result_for_method('geometry')
 
     @property
     def freud_result(self) -> FrameAnalysis | None:
-        result = self._freud_results.get(self.current_index)
-        saved = self.latest_result
-        return result or (saved if saved and saved.parameters.get('domain_method') == FREUD_METHOD else None)
+        return self.result_for_method('freud')
 
     @property
     def levelset_result(self) -> FrameAnalysis | None:
-        result = self._levelset_results.get(self.current_index)
-        saved = self.latest_result
-        return result or (saved if saved and saved.parameters.get('domain_method') == LEVELSET_METHOD else None)
+        return self.result_for_method('levelset')
 
     def _method_store(self, method: str) -> dict[int, FrameAnalysis]:
         return {'geometry': self._geometric_results, 'freud': self._freud_results,
