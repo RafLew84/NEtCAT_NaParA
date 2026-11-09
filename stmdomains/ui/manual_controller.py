@@ -1,5 +1,7 @@
 """Session-only manual variants, independent of automatic workers and run tables."""
 
+from stmdomains.analysis.levelset_settings import METHOD as LEVELSET_METHOD
+
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QObject, pyqtSignal
@@ -149,7 +151,7 @@ class ManualController(QObject):
             if variant.data.frame.working_index == self.controller.current_index:
                 method = variant.original.parameters.get('domain_method', '') if variant.original else ''
                 source = ('bez analizy' if variant.original is None else
-                          {GEOMETRY_METHOD: 'Geometria', FREUD_METHOD: 'freud'}.get(method, 'Bazowa'))
+                          {GEOMETRY_METHOD: 'Geometria', FREUD_METHOD: 'freud', LEVELSET_METHOD: 'Level set'}.get(method, 'Bazowa'))
                 entries.append((key, f'Korekta {len(entries)} · {source}'))
         return entries
 

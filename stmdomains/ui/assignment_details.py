@@ -1,5 +1,7 @@
 """Explain independent class, order and domain decisions in user-facing terms."""
 
+from stmdomains.analysis.levelset_settings import METHOD as LEVELSET_METHOD
+
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.core.analysis_result import FrameAnalysis
@@ -22,12 +24,14 @@ def assignment_details(result: FrameAnalysis | None, detection_id: str) -> str:
                 + f"Źródłowe ID domeny: {source.get('domain_local_id', member.domain_local_id)}.\n"
                 + f"Pierwotny powód odmowy: {member.rejection_reason or 'brak'}.\n"
                 + 'Porównaj z „Automatyczny przed korektą”, aby obejrzeć pierwotną ocenę.')
-    if member is not None and result.parameters.get('domain_method') in (METHOD, FREUD_METHOD):
+    if member is not None and result.parameters.get('domain_method') in (METHOD, FREUD_METHOD, LEVELSET_METHOD):
         measured = member.metadata.get('geometry', {})
         geometric_settings = GeometryDomainSettings.from_parameters(result.parameters)
         axes = measured.get('axes', ())
         unit = result.parameters.get('calibration', {}).get('unit', 'px')
-        lines = [summary, f'Użyte limity całego regionu: {geometric_settings.angle_degrees:g}°, {geometric_settings.spacing_percent:g}%.',
+        limits = ('Skale cech / inicjalizacja Level set' if result.parameters.get('domain_method') == LEVELSET_METHOD
+                  else 'Użyte limity całego regionu')
+        lines = [summary, f'{limits}: {geometric_settings.angle_degrees:g}°, {geometric_settings.spacing_percent:g}%.',
                  f'Minimum koherencji: {geometric_settings.minimum_coherence:g}; lokalnych punktów: {geometric_settings.minimum_local_count}.',
                  f"Pomiar: {measured.get('status', '—')}; punkty {measured.get('local_count', '—')}; "
                  f"efektywne {measured.get('effective_count', 0):.2f}."]

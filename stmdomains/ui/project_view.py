@@ -10,6 +10,7 @@ from stmdomains.io.project_validation import analysis_plan
 from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings
 from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.analysis.freud_settings import FreudSettings
+from stmdomains.analysis.levelset_settings import LevelSetSettings
 
 if TYPE_CHECKING:
     from stmdomains.ui.analysis_dialog import AnalysisDialog
@@ -47,7 +48,7 @@ def restore_view(window: 'STMDomainsMainWindow', view: Mapping[str, Any]) -> Non
 
 def capture_draft(dialog: 'AnalysisDialog') -> dict:
     classes = dialog.class_fields
-    geometric = dialog.method.currentData() in ('geometry', 'freud')
+    geometric = dialog.method.currentData() in ('geometry', 'freud', 'levelset')
     # Inactive edits may be cross-field-invalid; keep their raw values separately.
     # The canonical plan is only a transport for the other baseline fields here.
     inactive = {'domain_settings': dialog.domain_fields.draft_values(),
@@ -58,6 +59,7 @@ def capture_draft(dialog: 'AnalysisDialog') -> dict:
             'geometry_tolerances': asdict(dialog.geometry_fields.settings()),
             'geometry_constraints': asdict(dialog.geometry_fields.constraints()),
             'freud_settings': asdict(dialog.freud_fields.settings()),
+            'levelset_settings': asdict(dialog.levelset_fields.settings()),
             'scope_start': dialog.scope_fields.start.value() - 1,
             'class_mode': classes.mode.currentData(), 'catalogue_id': classes.catalogue.currentData(),
             'discovery_source': classes.fit_source.currentData()}
@@ -90,6 +92,7 @@ def restore_draft(dialog: 'AnalysisDialog', draft: Mapping[str, Any]) -> None:
     dialog.geometry_fields.load(GeometryDomainSettings(**draft.get('geometry_tolerances', {})),
                                 DomainSettings(**draft.get('geometry_constraints', {})))
     dialog.freud_fields.load(FreudSettings(**draft.get('freud_settings', {})))
+    dialog.levelset_fields.load(LevelSetSettings(**draft.get('levelset_settings', {})))
     inactive = draft.get('inactive_baseline', {})
     if inactive:
         dialog.domain_fields.load_draft(inactive['domain_settings'])

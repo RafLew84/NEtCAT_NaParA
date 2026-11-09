@@ -18,7 +18,9 @@ class GeometryDomainFields(QWidget):
                       'Wymagane dwa stabilne kierunki; typ struktury pozostaje nieznany.')
         note.setWordWrap(True)
         layout.addWidget(note)
+        self.note = note
         form = QFormLayout()
+        self.form = form
         number = DomainSettingsFields._number
         self.angle = number(.1, 45., 1., '°')
         self.spacing = number(.1, 100., 1., '%')
@@ -47,6 +49,17 @@ class GeometryDomainFields(QWidget):
         layout.addWidget(warning)
         layout.addStretch(1)
         self.load(GeometryDomainSettings(), DomainSettings())
+
+    def set_levelset(self, enabled: bool) -> None:
+        self.distance.setEnabled(not enabled)
+        self.form.labelForField(self.angle).setText('Skala kąta / inicjalizacja' if enabled else 'Tolerancja kąta całej domeny')
+        self.form.labelForField(self.spacing).setText('Skala rozstawu / inicjalizacja' if enabled else 'Tolerancja rozstawu')
+        self.angle.setToolTip('Level set: tolerancja inicjalizacji i normalizacja kosztu kąta; bez gwarancji maksymalnej różnicy w domenie.' if enabled else
+            'Maksymalna różnica dowolnej pary pomiarów w całej domenie; osie modulo 180°.')
+        self.spacing.setToolTip('Level set: tolerancja inicjalizacji i skala log-rozstawu kosztu.' if enabled else
+            '100 × |a−b| / min(a,b), osobno dla obu dopasowanych kierunków w całym regionie.')
+        self.distance.setToolTip('Łączenie krawędzi grafu nie jest używane w Level set.' if enabled else
+            'Maksymalna długość krawędzi grafu w jednostkach mediany NN.')
 
     def settings(self) -> GeometryDomainSettings:
         return GeometryDomainSettings(self.angle.value(), self.spacing.value(), self.quality.value(), self.support.value())

@@ -27,6 +27,7 @@ from stmdomains.io.project_validation import validate_execution, validate_select
 from stmdomains.analysis.acceptance_settings import ClassAcceptanceSettings
 from stmdomains.analysis.domain_settings import DomainSettings
 from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings, METHOD
+from stmdomains.analysis.levelset_settings import LevelSetSettings, METHOD as LEVELSET_METHOD
 from stmdomains.analysis.freud_settings import FreudSettings, METHOD as FREUD_METHOD
 from stmdomains.analysis.order_settings import OrderSettings
 from stmdomains.io.project_archive import ProjectError, json_bytes, put_bytes, read_json
@@ -89,7 +90,15 @@ def frame_record(result: FrameAnalysis) -> dict:
 
 
 def validate_frame(result: FrameAnalysis, series: Series, presenter: FramePresenter) -> None:
-    geometric = result.parameters.get('domain_method') == METHOD
+    geometric = result.parameters.get('domain_method') in (METHOD, LEVELSET_METHOD)
+    if result.parameters.get('domain_method') == LEVELSET_METHOD:
+        levelset_settings = LevelSetSettings.from_parameters(result.parameters)
+        if result.status == 'complete':
+            solver = result.metadata.get('levelset', {})
+            if (solver.get('stopping_reason') not in ('single_region', 'stable_partition', 'iteration_limit', 'no_support')
+                    or type(solver.get('iterations')) is not int
+                    or not 0 <= solver['iterations'] <= levelset_settings.iterations):
+                raise ProjectError('Niepoprawny stan zakończenia Level set.')
     if result.parameters.get('domain_method') == FREUD_METHOD:
         FreudSettings.from_parameters(result.parameters)
         GeometryDomainSettings.from_parameters(result.parameters)

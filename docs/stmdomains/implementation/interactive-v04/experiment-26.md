@@ -83,3 +83,16 @@ Parametr łączenia krawędzi grafu jest nieaktywny w Level set.
 Zmiana pól jest szkicem; obliczenie tworzy osobny wynik. Zapis/eksport
 zachowują parametry, maskę i przypisania. Brak sygnału fazy w cechach
 pozostaje jawnym ograniczeniem niezależnie od wygładzania.
+
+## Uzupełnienia wykonawcze
+
+Wyłączenie barier realizuje istniejący parametr minimalnej długości = 100 NN
+(zasięg przekracza szerokość tych obrazów). Skrypt sprawdza, że maska jest
+pusta; ustawienie stosowane identycznie do obu metod. Nie zmienia obrazów.
+
+Przygotowanie protokołu wspierała procedura `experimental-design`. Źródło
+oprogramowania: Timothy Kassis, Vinayak Agarwal, Yuhuan He, Darshil Patel,
+Aubrey M. Brueckner (2026), *Scientific Agent Skills: A Library of Procedural
+Knowledge for Research Agents*, [arXiv:2609.00065](https://arxiv.org/abs/2609.00065).
+Sprawdzono aktualny rekord 2026-11-09 (rewizja z 2026-09-02); ta publikacja
+nie jest dowodem skuteczności algorytmu domen.

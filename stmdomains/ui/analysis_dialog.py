@@ -21,6 +21,8 @@ from stmdomains.analysis.geometry_domain_settings import GeometryDomainSettings,
 from stmdomains.ui.geometry_domain_fields import GeometryDomainFields
 from stmdomains.analysis.freud_settings import FreudSettings, METHOD as FREUD_METHOD
 from stmdomains.ui.freud_fields import FreudFields
+from stmdomains.analysis.levelset_settings import LevelSetSettings, METHOD as LEVELSET_METHOD
+from stmdomains.ui.levelset_fields import LevelSetFields, STOPPING_LABELS
 from stmdomains.ui.acceptance_fields import AcceptanceFields
 from stmdomains.analysis.descriptor_settings import DescriptorSettings
 from stmdomains.analysis.barrier_settings import BarrierSettings
@@ -52,6 +54,7 @@ class AnalysisDialog(QDialog):
         self.method.addItem('Bazowa — klasy i porządek', 'baseline')
         self.method.addItem('Geometria — tolerancje (eksperymentalna)', 'geometry')
         self.method.addItem('freud — podobieństwo otoczeń (eksperymentalna)', 'freud')
+        self.method.addItem('Level set (eksperymentalna)', 'levelset')
         method_row.addWidget(self.method, 1)
         layout.addLayout(method_row)
         self.tabs = QTabWidget()
@@ -86,6 +89,12 @@ class AnalysisDialog(QDialog):
         freud_scroll.setWidget(self.freud_fields)
         self.tabs.addTab(freud_scroll, 'Otoczenia freud')
         self.tabs.setTabVisible(6, False)
+        self.levelset_fields = LevelSetFields()
+        levelset_scroll = QScrollArea()
+        levelset_scroll.setWidgetResizable(True)
+        levelset_scroll.setWidget(self.levelset_fields)
+        self.tabs.addTab(levelset_scroll, 'Level set')
+        self.tabs.setTabVisible(7, False)
         layout.addWidget(self.tabs, 1)
         edits = QHBoxLayout()
         self.copy_result = QPushButton("Z wyświetlanego wyniku")
@@ -142,6 +151,7 @@ class AnalysisDialog(QDialog):
             fields.changed.connect(self._validate)
         self.geometry_fields.changed.connect(self._validate)
         self.freud_fields.changed.connect(self._validate)
+        self.levelset_fields.changed.connect(self._validate)
         self.method.currentIndexChanged.connect(self._method_changed)
         self.class_fields.mode.currentIndexChanged.connect(self._load_catalogue_descriptor)
         self.class_fields.catalogue.currentIndexChanged.connect(self._load_catalogue_descriptor)
@@ -183,13 +193,16 @@ class AnalysisDialog(QDialog):
         )
 
     def _method_changed(self) -> None:
-        geometric = self.method.currentData() in ('geometry', 'freud')
+        geometric = self.method.currentData() in ('geometry', 'freud', 'levelset')
         freud = self.method.currentData() == 'freud'
+        levelset = self.method.currentData() == 'levelset'
+        self.geometry_fields.set_levelset(levelset)
         for index in range(4):
             self.tabs.setTabVisible(index, not geometric)
         self.tabs.setTabVisible(5, geometric)
         self.tabs.setTabVisible(6, freud)
-        self.tabs.setCurrentIndex(6 if freud else 5 if geometric else 0)
+        self.tabs.setTabVisible(7, levelset)
+        self.tabs.setCurrentIndex(7 if levelset else 6 if freud else 5 if geometric else 0)
         self.advanced_fields.descriptor.setVisible(not geometric)
         self.auto_summary.setVisible(not geometric)
         self.auto_details.setVisible(not geometric)
@@ -202,6 +215,7 @@ class AnalysisDialog(QDialog):
         self._loading = True
         self.geometry_fields.load(GeometryDomainSettings(), DomainSettings())
         self.freud_fields.load(FreudSettings())
+        self.levelset_fields.load(LevelSetSettings())
         self.domain_fields.load(DomainSettings())
         self.acceptance_fields.load(ClassAcceptanceSettings())
         self.order_fields.load(OrderSettings())
@@ -215,8 +229,9 @@ class AnalysisDialog(QDialog):
         if result is None:
             return
         self._loading = True
-        self.method.setCurrentIndex({METHOD: 1, FREUD_METHOD: 2}.get(result.parameters.get('domain_method', ''), 0))
+        self.method.setCurrentIndex({METHOD: 1, FREUD_METHOD: 2, LEVELSET_METHOD: 3}.get(result.parameters.get('domain_method', ''), 0))
         self.freud_fields.load(FreudSettings.from_parameters(result.parameters))
+        self.levelset_fields.load(LevelSetSettings.from_parameters(result.parameters))
         self.geometry_fields.load(GeometryDomainSettings.from_parameters(result.parameters), DomainSettings.from_parameters(result.parameters))
         self.domain_fields.load(DomainSettings.from_parameters(result.parameters))
         self.acceptance_fields.load(ClassAcceptanceSettings.from_parameters(result.parameters))
@@ -254,7 +269,7 @@ class AnalysisDialog(QDialog):
             series = self.controller.series
             if series is None:
                 raise ValueError("Najpierw otwórz serię.")
-            if self.method.currentData() in ('geometry', 'freud'):
+            if self.method.currentData() in ('geometry', 'freud', 'levelset'):
                 self.geometry_fields.settings()
                 self.geometry_fields.constraints()
                 self.advanced_fields.barriers.settings()
@@ -262,7 +277,10 @@ class AnalysisDialog(QDialog):
                     self.freud_fields.settings()
                     from stmdomains.analysis.freud_adapter import require_freud
                     require_freud()
-                name = 'freud + geometria + bariery' if self.method.currentData() == 'freud' else 'geometria + bariery'
+                if self.method.currentData() == 'levelset':
+                    self.levelset_fields.settings()
+                name = {'freud': 'freud + geometria + bariery', 'levelset': 'Level set + geometria + bariery'}.get(
+                    self.method.currentData(), 'geometria + bariery')
                 self.validation.setText(f'Szkic: {name} · kl. {self.controller.current_index + 1}.\n'
                                         'Analizuj zastosuje ustawienia. Edycja nie zmienia obrazu.')
                 self.validation.setToolTip(self.validation.text())
@@ -291,6 +309,12 @@ class AnalysisDialog(QDialog):
 
     def _calculate(self) -> None:
         try:
+            if self.method.currentData() == 'levelset':
+                self.controller.analyze_levelset_domains(self.levelset_fields.settings(),
+                    geometry_settings=self.geometry_fields.settings(), constraints=self.geometry_fields.constraints(),
+                    barrier_settings=self.advanced_fields.barriers.settings())
+                self.close()
+                return
             if self.method.currentData() == 'freud':
                 self.controller.analyze_freud_domains(self.freud_fields.settings(),
                     geometry_settings=self.geometry_fields.settings(), constraints=self.geometry_fields.constraints(),
@@ -319,6 +343,7 @@ class AnalysisDialog(QDialog):
             self.method.setCurrentIndex(0)
             self.geometry_fields.load(GeometryDomainSettings(), DomainSettings())
             self.freud_fields.load(FreudSettings())
+            self.levelset_fields.load(LevelSetSettings())
             count, index = (series.frame_count, series.active_frame_index) if series else (1, 0)
             self.scope_fields.reset(count, index)
             self.class_fields.reset(count, index)
@@ -346,7 +371,7 @@ class AnalysisDialog(QDialog):
         with QSignalBlocker(self.comparison):
             self.comparison.setCurrentIndex(self.comparison.findData(controller.result_version))
         self.progress.setText(run.message if run else "Nie uruchomiono analizy. Nowa seria zaczyna od bazowych ustawień.")
-        if self.method.currentData() in ('geometry', 'freud'):
+        if self.method.currentData() in ('geometry', 'freud', 'levelset'):
             method = self.method.currentData()
             self.progress.setText('Trwa obliczanie — postęp także pod obrazem.' if controller.is_busy else
                                   f'{method}: wynik dostępny na obrazie.' if controller.result_for_method(method) else
@@ -394,6 +419,17 @@ class AnalysisDialog(QDialog):
         if result is None:
             self.displayed.setText("Brak wyniku na oglądanej klatce.")
             self.displayed.setToolTip("")
+            return
+        if result.parameters.get('domain_method') == LEVELSET_METHOD:
+            levelset = LevelSetSettings.from_parameters(result.parameters)
+            info = result.metadata.get('levelset', {})
+            reason = STOPPING_LABELS.get(info.get('stopping_reason', ''), 'brak ewolucji')
+            text = (f'Level set · kl. {result.working_index+1}: {result.domain_count} domen, '
+                    f'{result.assigned_count}/{result.active_count} molekuł.\n'
+                    f'Użyto: siła {levelset.regularization:g}, iteracje {info.get("iterations", 0)}/{levelset.iterations} · {reason}.\n'
+                    f'Regiony modelu: {info.get("initial_model_regions", 0)} → {info.get("final_model_regions", 0)}; typ nieznany, faza niesprawdzana.')
+            self.displayed.setText(text)
+            self.displayed.setToolTip(text + '\n' + result.message)
             return
         if result.parameters.get('domain_method') == FREUD_METHOD:
             settings = FreudSettings.from_parameters(result.parameters)

@@ -1,5 +1,7 @@
 """Display rules for computed memberships, shared by image and legend."""
 
+from stmdomains.analysis.levelset_settings import METHOD as LEVELSET_METHOD
+
 from colorsys import hsv_to_rgb
 from collections import Counter
 from dataclasses import dataclass
@@ -69,7 +71,7 @@ def assignment_description(result: FrameAnalysis | None, detection_id: str) -> s
         if result.parameters.get('domain_method') == MANUAL_METHOD:
             return (f'Ręczna domena {domain_name(result, assignment.domain_local_id)} · '
                     + (f'klasa {class_name(result, assignment.class_id)}' if assignment.class_id else 'klasa nieustalona'))
-        if result.parameters.get('domain_method') == METHOD:
+        if result.parameters.get('domain_method') in (METHOD, LEVELSET_METHOD):
             return f'Domena lokalna: {domain_name(result, assignment.domain_local_id)} · typ nieznany · zgodność fazy niesprawdzona'
         scope = "wspólna" if result.catalogue is not None and result.catalogue.scope != "current_frame" else "lokalna"
         description = (f"Klasa {scope}: {class_name(result, assignment.class_id)} · "
@@ -79,6 +81,7 @@ def assignment_description(result: FrameAnalysis | None, detection_id: str) -> s
         'freud_incomplete': 'za mało sąsiadów w dozwolonym zasięgu',
         'freud_edge': 'otoczenie ucięte przez brzeg pola',
         'freud_ambiguous_shell': 'remis odległości na granicy wyboru sąsiadów',
+        'levelset_no_component': 'brak wsparcia centrum lub za mała składowa Level set',
         'geometry_not_2d': 'brak dwóch stabilnych kierunków geometrii',
         'geometry_invalid': 'niepoprawny pomiar geometrii',
         'geometry_low_support': 'za mało punktów lokalnego pomiaru',
@@ -149,9 +152,9 @@ def describe_result(result: FrameAnalysis | None, mode: str) -> ResultPresentati
                 f'Przypisania do domen: {result.assigned_count}/{result.active_count}. '
                 'Klasy po korektach; nazwa nie potwierdza fizycznego typu. Model nie jest douczany.')
         return ResultPresentation(title, tuple(entries), note)
-    if mode == 'classes' and result.parameters.get('domain_method') == METHOD:
+    if mode == 'classes' and result.parameters.get('domain_method') in (METHOD, LEVELSET_METHOD):
         return ResultPresentation('Typ nieznany', (LegendEntry('Bez typu', UNASSIGNED_COLOR, result.active_count),),
-                                  'Metoda geometryczna nie dopasowuje klas; wybierz widok Domeny.')
+                                  'Ta metoda nie dopasowuje klas; wybierz widok Domeny.')
     if mode == 'classes' and result.parameters.get('domain_method') == FREUD_METHOD:
         environment_counts = Counter(m.provisional_class_id for m in result.assignments.values() if m.provisional_class_id)
         entries = [LegendEntry(f'Klasa {class_name(result, item.class_id)}', item.color, environment_counts[item.class_id])
