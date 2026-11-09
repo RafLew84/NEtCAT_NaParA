@@ -1,12 +1,17 @@
 """One source-bound manual variant with immutable previews and undo/redo."""
 
 from dataclasses import replace
+from collections.abc import Mapping
 from typing import Any
 from uuid import uuid4
+
+import numpy as np
+from numpy.typing import NDArray
 
 from stmdomains.analysis.features import prepare_points
 from stmdomains.analysis.config import PARAMETERS
 from stmdomains.analysis.manual_regions import manual_regions
+from stmdomains.analysis.manual_partition import split_labels, merge_labels
 from stmdomains.core.analysis_result import AnalysisInput, FrameAnalysis, MoleculeAssignment
 
 MANUAL_METHOD = 'manual_membership_v1'
@@ -80,6 +85,10 @@ class ManualDomains:
         selected = set(selection)
         if not selected or not selected <= self.eligible_ids:
             raise ValueError('Wybierz aktywne molekuły; duplikaty i punkty poza polem są wyłączone.')
+        if operation == 'split':
+            return self._split(selected)
+        if operation == 'merge':
+            return self._merge(selected, target)
         assignments = dict(self.current.assignments)
         domains = {a.domain_local_id for a in assignments.values() if a.domain_local_id > 0}
         if operation == 'new':
@@ -112,8 +121,43 @@ class ManualDomains:
                     metadata={**assignments[key].metadata, 'manual_source': _source_metadata(source_member)})
         height, width = self.data.frame.image.shape
         labels, unsupported = manual_regions(self.data.annotations.detections, assignments, (height, width))
+        return self._make_preview(assignments, labels, operation, selected, target,
+            {'unsupported_domains': unsupported, 'geometry_rule': 'finite_voronoi_0.8_nn_minimum_3_noncollinear'})
+
+    def _domain_record(self, domain: int, assignments: Mapping[str, MoleculeAssignment]) -> dict[str, Any]:
+        members = sorted(key for key, member in assignments.items() if member.domain_local_id == domain)
+        classes = {assignments[key].class_id for key in members}
+        return {'domain_id': domain, 'member_ids': members,
+                'class_id': next(iter(classes)) if len(classes) == 1 else ''}
+
+    def _split(self, selected: set[str]) -> FrameAnalysis:
+        current = self.current.assignments
+        sources = {current[key].domain_local_id for key in selected}
+        if len(sources) != 1 or 0 in sources:
+            raise ValueError('Podział wymaga części jednej domeny. Wybór zawiera kilka domen lub molekuły bez domeny.')
+        source = next(iter(sources))
+        record = self._domain_record(source, current)
+        if selected == set(record['member_ids']):
+            raise ValueError('Wybrano całą domenę. Do podziału zaznacz tylko część jej molekuł.')
+        target = max(a.domain_local_id for a in current.values()) + 1
+        assignments = dict(current)
+        for key in record['member_ids']:
+            assignments[key] = replace(current[key], domain_local_id=target if key in selected else source,
+                class_id=record['class_id'], metadata={**current[key].metadata,
+                    'manual_source': _source_metadata(self._history[0].assignments[key])})
+        labels = split_labels(self.current.domain_labels, self.data.annotations.detections, current,
+                              source, target, selected)
+        return self._make_preview(assignments, labels, 'split', selected, target,
+            {'source_domains': [record], 'target_domains': [self._domain_record(d, assignments) for d in (source, target)],
+             'geometry_rule': 'partition_existing_support_nearest_member_v1'})
+
+    def _make_preview(self, assignments: Mapping[str, MoleculeAssignment], labels: NDArray[np.int32] | None,
+                      operation: str, selected: set[str], target: int, details: dict[str, Any]) -> FrameAnalysis:
         self._revision += 1
         original = self.original
+        domains = {a.domain_local_id for a in assignments.values() if a.domain_local_id > 0}
+        visible = set(np.unique(labels)) if labels is not None else set()
+        details.setdefault('unsupported_domains', tuple(sorted(domains - visible)))
         self._pending = FrameAnalysis(
             self.data.series_id, self.data.frame.working_index, self.data.frame.source_index,
             'complete', 'Korekta ręczna · tylko w tej sesji.', assignments,
@@ -123,10 +167,31 @@ class ManualDomains:
                              'automatic_available': original is not None,
                              'source_analysis_id': original.metadata.get('analysis_id', '') if original else '',
                              'source_parameters': dict(original.parameters) if original else {},
-                             'unsupported_domains': unsupported,
-                             'geometry_rule': 'finite_voronoi_0.8_nn_minimum_3_noncollinear'}},
+                             **details}},
             labels, catalogue=original.catalogue if original else None)
         return self._pending
+
+    def _merge(self, selected: set[str], target: int) -> FrameAnalysis:
+        current = self.current.assignments
+        sources = {current[key].domain_local_id for key in selected}
+        if 0 in sources or len(sources) < 2:
+            raise ValueError('Wskaż molekuły z co najmniej dwóch domen, bez punktów nieprzypisanych.')
+        target = target or min(sources)
+        if target not in sources:
+            raise ValueError('Docelowe ID musi należeć do jednej z wybranych domen.')
+        labels = merge_labels(self.current.domain_labels, sources, target,
+                              self.data.annotations.detections, current)
+        records = [self._domain_record(d, current) for d in sorted(sources)]
+        classes = {r['class_id'] for r in records}
+        common = next(iter(classes)) if len(classes) == 1 else ''
+        assignments = dict(current)
+        for record in records:
+            for key in record['member_ids']:
+                assignments[key] = replace(current[key], domain_local_id=target, class_id=common,
+                    metadata={**current[key].metadata, 'manual_source': _source_metadata(self._history[0].assignments[key])})
+        return self._make_preview(assignments, labels, 'merge', selected, target,
+            {'source_domains': records, 'target_domains': [self._domain_record(target, assignments)],
+             'geometry_rule': 'union_existing_support_8_connected_v1'})
 
     def apply(self, preview: FrameAnalysis) -> None:
         if preview is not self._pending:

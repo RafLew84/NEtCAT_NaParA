@@ -3,7 +3,7 @@
 from PyQt6.QtCore import QSignalBlocker
 from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
-    QCheckBox, QComboBox, QFormLayout, QHBoxLayout, QLabel, QPushButton,
+    QCheckBox, QComboBox, QFormLayout, QHBoxLayout, QLabel, QPushButton, QPlainTextEdit,
     QScrollArea, QSizePolicy, QVBoxLayout, QWidget,
 )
 
@@ -60,17 +60,24 @@ class ManualPanel(QWidget):
         form.addRow(self.clear)
         self.operation = QComboBox()
         for label, key in [('Nowa domena', 'new'), ('Dodaj do domeny', 'add'),
-                           ('Usuń z domeny', 'remove'), ('Przenieś do domeny', 'move')]:
+                           ('Usuń z domeny', 'remove'), ('Przenieś do domeny', 'move'),
+                           ('Podziel domenę', 'split'), ('Połącz domeny', 'merge')]:
             self.operation.addItem(label, key)
         self.target = QComboBox()
         form.addRow('Operacja', self.operation)
         form.addRow('Domena', self.target)
+        self.operation_hint = QLabel()
+        self.operation_hint.setWordWrap(True)
+        form.addRow(self.operation_hint)
+        self.members = QPlainTextEdit()
+        self.members.setReadOnly(True)
+        self.members.setAccessibleName('Domeny i członkowie objęci operacją')
+        self.members.setMaximumHeight(100)
+        form.addRow(self.members)
         self.review = QPushButton('Pokaż podgląd')
         self.review.clicked.connect(lambda: manual.preview(self.operation.currentData(), self.target.currentData() or 0))
-        form.addRow(self.review)
         self.message = QLabel()
         self.message.setWordWrap(True)
-        form.addRow(self.message)
         self.support = QLabel()
         self.support.setWordWrap(True)
         form.addRow(self.support)
@@ -80,6 +87,8 @@ class ManualPanel(QWidget):
         form.addRow(help_text)
         scroll.setWidget(content)
         outer.addWidget(scroll, 1)
+        outer.addWidget(self.review)
+        outer.addWidget(self.message)
         self.apply = QPushButton('Zastosuj')
         self.apply.clicked.connect(manual.apply)
         self.cancel = QPushButton('Anuluj podgląd')
@@ -156,13 +165,33 @@ class ManualPanel(QWidget):
         self.selection.eligible_ids = active.eligible_ids if active else None
         result = active.current if active is not None else controller.result
         domains = sorted({a.domain_local_id for a in result.assignments.values() if a.domain_local_id > 0}) if result else []
+        operation = self.operation.currentData()
+        selected_domains = {result.assignments[key].domain_local_id for key in manual.selection
+                            if result is not None and key in result.assignments} - {0}
+        if operation == 'merge':
+            domains = [d for d in domains if d in selected_domains]
         target = self.target.currentData()
         with QSignalBlocker(self.target):
             self.target.clear()
             for number in domains:
                 self.target.addItem(f'D{number}', number)
             self.target.setCurrentIndex(max(0, self.target.findData(target)))
-        self.target.setEnabled(manual.can_edit and self.operation.currentData() in ('add', 'move'))
+        self.target.setEnabled(manual.can_edit and operation in ('add', 'move', 'merge'))
+        self.operation_hint.setVisible(operation in ('split', 'merge'))
+        self.operation_hint.setText('Wskaż choć jedną molekułę z każdej domeny do połączenia. '
+            'Operacja obejmie wszystkich członków tych domen. Wybierz docelowe ID.' if operation == 'merge' else
+            'Zaznacz niepustą część jednej domeny. Reszta zachowa ID; wydzielona część dostanie nowe.')
+        self.members.setVisible(operation in ('split', 'merge'))
+        member_lines = []
+        for domain in sorted(selected_domains):
+            identities = sorted(key for key, member in result.assignments.items() if member.domain_local_id == domain) if result else []
+            classes = {result.assignments[key].class_id for key in identities} if result else set()
+            class_id = next(iter(classes)) if len(classes) == 1 else ''
+            member_lines.append(f'D{domain}: {len(identities)} molekuł · klasa {class_id or "nieustalona"}\n'
+                                + ', '.join(identities))
+        member_text = '\n\n'.join(member_lines) or 'Nie wybrano domen.'
+        if self.members.toPlainText() != member_text:
+            self.members.setPlainText(member_text)
         self.count.setText(f'Wybrano: {len(manual.selection)} molekuł')
         self.message.setText(manual.message or 'Zaznacz molekuły i przygotuj podgląd zmiany.')
         shown = controller.displayed_result

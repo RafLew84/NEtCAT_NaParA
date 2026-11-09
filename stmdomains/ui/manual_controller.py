@@ -178,12 +178,20 @@ class ManualController(QObject):
             destination = edit['target']
             before = sum(a.domain_local_id == destination for a in active.current.assignments.values()) if destination else 0
             after = sum(a.domain_local_id == destination for a in result.assignments.values()) if destination else 0
-            self.message = (f'Podgląd: {len(self.selection)} molekuł. '
+            sources = edit.get('source_domains', ())
+            count = sum(len(source['member_ids']) for source in sources) if operation == 'merge' else len(self.selection)
+            self.message = (f'Podgląd: {count} molekuł. '
                             + (f'Domena D{destination}: {before} → {after}. ' if destination else 'Usunięcie przypisania. ')
                             + f'Domeny: {active.current.domain_count} → {result.domain_count}.')
             if destination:
                 member = next(a for a in result.assignments.values() if a.domain_local_id == destination)
                 self.message += f' Klasa: {member.class_id or "nieustalona"}.'
+            if sources:
+                source_text = ', '.join(f"D{s['domain_id']} ({len(s['member_ids'])})" for s in sources)
+                target_text = ', '.join(f"D{s['domain_id']} ({len(s['member_ids'])})" for s in edit['target_domains'])
+                self.message = f'{source_text} → {target_text}.\n' + self.message
+                if operation == 'merge' and len({s['class_id'] for s in sources}) > 1:
+                    self.message += '\nRóżne klasy źródłowe: wynik ma klasę nieustaloną.'
         except ValueError as error:
             self.message = str(error)
         self._notify()
