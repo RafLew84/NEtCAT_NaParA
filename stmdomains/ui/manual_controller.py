@@ -10,6 +10,8 @@ from stmdomains.core.manual_domains import ManualDomains
 from stmdomains.core.manual_classes import ManualClassList
 from stmdomains.core.manual_class_lists import ManualClassLists
 from stmdomains.core.result_names import class_name, domain_name, domain_names
+from stmdomains.core.class_operations import ClassTransaction
+from stmdomains.ui.manual_class_operations import ManualClassOperations
 from stmdomains.analysis.geometry_domain_settings import METHOD as GEOMETRY_METHOD
 from stmdomains.analysis.freud_settings import METHOD as FREUD_METHOD
 
@@ -25,6 +27,7 @@ class ManualStep:
     variant_id: str
     before: ManualClassList | None = None
     after: ManualClassList | None = None
+    variant_ids: tuple[str, ...] = ()
 
 
 class ManualController(QObject):
@@ -44,10 +47,12 @@ class ManualController(QObject):
         self._undo: list[ManualStep] = []
         self._redo: list[ManualStep] = []
         self._frame_index = -1
+        self.class_operations = ManualClassOperations(self)
         controller.series_changed.connect(self.reset)
         controller.frame_changed.connect(self._frame_changed)
 
     def reset(self, *_: object) -> None:
+        self.class_operations.invalidate()
         self.variants.clear()
         self.class_lists = ManualClassLists()
         self._undo.clear()
@@ -98,7 +103,7 @@ class ManualController(QObject):
 
     @property
     def blocks_persistence(self) -> bool:
-        return (self.has_changes or self.preview_result is not None
+        return (self.has_changes or self.preview_result is not None or self.class_operations.transaction is not None
                 or self.displayed_result(self.controller.result) is not self.controller.result)
 
     @property
@@ -111,6 +116,9 @@ class ManualController(QObject):
             return automatic
         if self.compare_original:
             return active.original
+        preview = self.class_operations.displayed(self.controller.current_index)
+        if preview is not None:
+            return preview
         return self.preview_result or self.class_lists.display(active)
 
     def _notify(self) -> None:
@@ -156,6 +164,7 @@ class ManualController(QObject):
                     self.variants[key].data.frame.working_index != self.controller.current_index):
             return
         self.controller.pause()
+        self.class_operations.invalidate('Wybrano inny wariant. Ustal zakres ponownie.')
         self.selected[self.controller.current_index] = key
         self.compare_original = False
         self.preview_result = None
@@ -164,6 +173,8 @@ class ManualController(QObject):
         self._notify()
 
     def set_editing(self, enabled: bool) -> None:
+        if not enabled:
+            self.class_operations.invalidate()
         if enabled:
             self.controller.pause()
         self.editing = enabled
@@ -189,18 +200,21 @@ class ManualController(QObject):
         active = self.active
         if active is not None:
             return active
+        active = self.variant_for(self.controller.current_index, self.controller.result)
+        self.selected[self.controller.current_index] = active.identifier
+        return active
+
+    def variant_for(self, index: int, original: FrameAnalysis | None) -> ManualDomains:
         presenter = self.controller.presenter
         if presenter is None:
             raise ValueError('Najpierw otwórz serię.')
-        original = self.controller.result
         # Re-entering the same source resumes its variant; a new analysis gets a new one.
         active = next((v for v in self.variants.values()
-                       if v.data.frame.working_index == self.controller.current_index and v.original is original), None)
+                       if v.data.frame.working_index == index and v.original is original), None)
         if active is None:
-            active = ManualDomains(presenter.analysis_input(self.controller.current_index), original)
+            active = ManualDomains(presenter.analysis_input(index), original)
             self.variants[active.identifier] = active
             self.class_lists.bind(active)
-        self.selected[self.controller.current_index] = active.identifier
         return active
 
     def select_molecules(self, identifiers: tuple[str, ...], mode: str = 'replace') -> None:
@@ -219,6 +233,7 @@ class ManualController(QObject):
     def preview(self, operation: str, target: int = 0) -> None:
         if not self.can_edit:
             return
+        self.class_operations.invalidate('Rozpoczęto inną edycję. Ustal zakres ponownie.')
         self.preview_result = None
         try:
             active = self.ensure_variant()
@@ -259,6 +274,7 @@ class ManualController(QObject):
                         whole_domains: bool = False) -> None:
         if not self.can_edit:
             return
+        self.class_operations.invalidate('Rozpoczęto inną edycję. Ustal zakres ponownie.')
         self.preview_result = None
         try:
             active = self.ensure_variant()
@@ -304,6 +320,17 @@ class ManualController(QObject):
     def undo(self) -> None:
         self._restore_history(self._undo, self._redo, redo=False)
 
+    def apply_class_transaction(self, transaction: ClassTransaction) -> None:
+        transaction.apply()
+        self.class_lists.publish(transaction.after)
+        keys = tuple(change.variant.identifier for change in transaction.changes)
+        for change in transaction.changes:
+            self.selected[change.after.working_index] = change.variant.identifier
+        self._undo.append(ManualStep(keys[0], transaction.before, transaction.after, keys))
+        self._redo.clear()
+        self.preview_result = None
+        self.selection = ()
+
     def redo(self) -> None:
         self._restore_history(self._redo, self._undo, redo=True)
 
@@ -318,15 +345,19 @@ class ManualController(QObject):
         step = history[-1]
         frame = self.variants[step.variant_id].data.frame.working_index + 1
         prefix = 'lista klas · ' if step.before is not step.after else ''
-        return f'{prefix}kl. {frame}'
+        return f'{prefix}kl. {frame}' + (f' i inne ({len(step.variant_ids)} kl.)' if len(step.variant_ids) > 1 else '')
 
     def _restore_history(self, source: list[ManualStep], destination: list[ManualStep], *, redo: bool) -> None:
         if not self.can_edit or not source:
             return
+        self.class_operations.invalidate('Historia zmieniła wyniki. Ustal zakres ponownie.')
         step = source.pop()
         key = step.variant_id
         variant = self.variants[key]
-        variant.redo() if redo else variant.undo()
+        for identity in step.variant_ids or (key,):
+            member = self.variants[identity]
+            member.redo() if redo else member.undo()
+            self.selected[member.data.frame.working_index] = identity
         labels = step.after if redo else step.before
         if labels is not None:
             self.class_lists.publish(labels)

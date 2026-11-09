@@ -121,9 +121,19 @@ class SessionController(QObject):
 
     @property
     def is_busy(self) -> bool:
-        return self.export_running or self.series_running or any(token is not None for token in (
+        return ((hasattr(self, 'manual') and self.manual.class_operations.running)
+                or self.export_running or self.series_running or any(token is not None for token in (
             self._open_token, self._frame_token, self._analysis_token, self._save_token, self._geometry_token,
-        ))
+        )))
+
+    def result_at(self, index: int, method: str, version: str = 'new') -> FrameAnalysis | None:
+        """Read a specified result family without navigating or changing the view."""
+        saved = self._results.get(index)
+        if method in ('geometry', 'freud'):
+            store = self._geometric_results if method == 'geometry' else self._freud_results
+            return store.get(index) or (saved if saved and self._method_name(saved) == method else None)
+        result = self._previous_results.get(index) if version == 'previous' else saved
+        return result if result is not None and self._method_name(result) == 'baseline' else None
 
     @property
     def result(self) -> FrameAnalysis | None:
@@ -321,7 +331,8 @@ class SessionController(QObject):
     @property
     def pending_task_count(self) -> int:
         """Includes abandoned, noninterruptible reads that are still finishing."""
-        return len(self._tasks) + self._series_runner.pending_task_count + self._export_runner.pending_task_count
+        return (len(self._tasks) + self._series_runner.pending_task_count + self._export_runner.pending_task_count
+                + self.manual.class_operations.pending_task_count)
 
     @property
     def series_running(self) -> bool:
@@ -353,6 +364,7 @@ class SessionController(QObject):
         result = outcome.result
         if result is None or self.series is None or result.series_id != self.series.identity:
             return
+        self.manual.class_operations.invalidate('Wynik analizy zmienił się. Ustal zakres ponownie.')
         index = result.working_index
         self._run_results[index] = result
         previous = self._results.get(index)
@@ -684,6 +696,8 @@ class SessionController(QObject):
     def _receive(self, token: int, result: object) -> None:
         if self._closed:
             return
+        if token == self._analysis_token and isinstance(result, (FrameAnalysis, PreparedMeasuredDomains)):
+            self.manual.class_operations.invalidate('Wynik analizy zmienił się. Ustal zakres ponownie.')
         if token == self._analysis_token and isinstance(result, PreparedMeasuredDomains):
             frame_result = result.result
             if (self.series is not None and frame_result.series_id == self.series.identity
@@ -861,6 +875,7 @@ class SessionController(QObject):
 
     def shutdown(self) -> None:
         self.pause()
+        self.manual.class_operations.shutdown()
         self._series_runner.shutdown()
         self._export_runner.shutdown()
         self._closed = True
@@ -873,3 +888,4 @@ class SessionController(QObject):
         self._pool.waitForDone()
         self._series_runner.wait_for_workers()
         self._export_runner.wait_for_workers()
+        self.manual.class_operations.wait_for_workers()

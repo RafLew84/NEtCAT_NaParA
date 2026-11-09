@@ -200,16 +200,20 @@ class ManualDomains:
             {'source_domains': records, 'target_domains': [domain_record(target, assignments)],
              'geometry_rule': 'union_existing_support_8_connected_v1'})
 
-    def apply(self, preview: FrameAnalysis) -> None:
+    def validate_preview(self, preview: FrameAnalysis) -> None:
         if preview is not self._pending:
             raise ValueError('Podgląd jest nieaktualny. Przygotuj go ponownie.')
+
+    def apply(self, preview: FrameAnalysis) -> None:
+        self.validate_preview(preview)
         self._history[self._cursor + 1:] = [preview]
         self._cursor += 1
         self._pending = None
 
     def preview_classes(self, labels: ManualClassList, operation: str, *, target: str = '',
                         name: str = '', color: str = '', selection: tuple[str, ...] = (),
-                        whole_domains: bool = False, occupied: Collection[str] = ()) -> FrameAnalysis:
+                        whole_domains: bool = False, occupied: Collection[str] = (),
+                        operation_details: Mapping[str, Any] | None = None) -> FrameAnalysis:
         self._pending = None
         self._preview_class_list = labels
         revised = labels if operation == 'assign' else labels.edit(
@@ -257,7 +261,7 @@ class ManualDomains:
         preview = self._make_preview(assignments, regions, 'class_' + operation, selected, 0,
             {'class_list_id': revised.identifier, 'class_list_before': labels.version,
              'class_list_after': revised.version, 'class_target': target, 'splits': splits,
-             'whole_domains': whole_domains})
+             'whole_domains': whole_domains, **(operation_details or {})})
         self._pending = replace(preview, class_list=revised)
         return self._pending
 

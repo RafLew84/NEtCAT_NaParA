@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 )
 
 from stmdomains.ui.manual_controller import ManualController
+from stmdomains.ui.class_operation_dialog import ClassOperationDialog
 
 
 class ManualClassDialog(QDialog):
@@ -16,12 +17,20 @@ class ManualClassDialog(QDialog):
         super().__init__(parent)
         self.manual = manual
         self._context: tuple[object, ...] = ()
+        self.operations_dialog: ClassOperationDialog | None = None
         self.setWindowTitle('Klasy ręczne — bieżąca klatka')
         self.resize(620, 680)
         layout = QVBoxLayout(self)
         self.scope = QLabel()
         self.scope.setWordWrap(True)
         layout.addWidget(self.scope)
+        grouping = QHBoxLayout()
+        self.merge_classes = QPushButton('Scal klasy…')
+        self.split_class = QPushButton('Podziel klasę…')
+        for button, operation in ((self.merge_classes, 'merge'), (self.split_class, 'split')):
+            button.clicked.connect(lambda checked=False, op=operation: self._show_operation(op))
+            grouping.addWidget(button)
+        layout.addLayout(grouping)
         self.table = QTableWidget(0, 4)
         self.table.setHorizontalHeaderLabels(['Nazwa', 'Pochodzenie', 'Na klatce', 'Bez domeny'])
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -97,6 +106,15 @@ class ManualClassDialog(QDialog):
     def _preview(self, operation: str) -> None:
         self.manual.preview_classes(operation, target=self.target.currentData() or '',
             name=self.name.text(), color=self.color.text(), whole_domains=self.assignment_scope.currentData())
+
+    def _show_operation(self, operation: str) -> None:
+        self.manual.cancel_preview()
+        if self.operations_dialog is None:
+            self.operations_dialog = ClassOperationDialog(self.manual, self)
+        self.operations_dialog.choose_operation(operation)
+        self.hide()
+        self.operations_dialog.show()
+        self.operations_dialog.raise_()
 
     def _select_row(self, row: int, column: int) -> None:
         item = self.table.item(row, 0)
@@ -186,6 +204,8 @@ class ManualClassDialog(QDialog):
         with QSignalBlocker(self.compare):
             self.compare.setChecked(manual.compare_original)
         self.compare.setEnabled(not manual.controller.is_busy)
+        self.merge_classes.setEnabled(manual.can_edit and len(labels.classes) >= 2)
+        self.split_class.setEnabled(manual.can_edit and bool(labels.classes))
         for widget in (self.target, self.name, self.color, self.pick_color, self.assignment_scope, self.create_button):
             widget.setEnabled(manual.can_edit)
         target_label = next((c for c in labels.classes if c.class_id == self.target.currentData()), None)
@@ -202,6 +222,8 @@ class ManualClassDialog(QDialog):
             button.setToolTip(manual.history_label(redo=redo))
 
     def closeEvent(self, event: QCloseEvent | None) -> None:
+        if self.operations_dialog is not None:
+            self.operations_dialog.close()
         result = self.manual.preview_result
         if result is not None and result.metadata.get('manual_edit', {}).get('operation', '').startswith('class_'):
             self.manual.cancel_preview()
