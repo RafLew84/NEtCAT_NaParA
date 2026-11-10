@@ -3,6 +3,11 @@
 Zakres tej sesji: `stmdomains/`, `tests/stmdomains/`, `docs/stmdomains/`.
 Instrukcja startu i status: [docs/stmdomains/README.md](../docs/stmdomains/README.md).
 
+Do uruchamiania aplikacji, testów i prób używaj istniejącego środowiska Conda
+`netcat`, wskazanego przez użytkownika. Przed uruchomieniem sprawdź, czy
+interpreter należy do tego środowiska; polecenia i lokalną ścieżkę opisuje
+[uruchomienie i środowisko](../docs/stmdomains/implementation/README.md#uruchomienie-i-środowisko).
+
 Przed implementacją odczytaj `docs/stmdomains/map.md` i wskazany w niej ticket,
 jeśli użytkownik już je dodał. Gdy mapy brakuje, oprzyj zakres na bieżącym zleceniu;
 sam szkielet nie wybiera algorytmu ani definicji domeny.
@@ -17,3 +22,12 @@ referencji i mierzalne kryteria jakości. Oddziel sprawdzenie działania program
 od oceny skuteczności detekcji. Duże dane i modele przechowuj poza Git.
 Po zadaniu zaktualizuj własną mapę oraz `docs/stmdomains/handoff.md`: wynik,
 commit, wykonane sprawdzenia, ograniczenia i potrzebne wspólne zmiany.
+
+Nowy i zmieniany kod aplikacji oraz jej testów dziel według odpowiedzialności:
+cel to najwyżej 1000 fizycznych linii na plik, twardy limit 1500 (łącznie
+z komentarzami i pustymi liniami). Przed zakończeniem zadania sprawdź długości
+zmienionych plików; dla 1001–1500 linii podaj uzasadnienie w przekazaniu.
+Zachowuj czytelny format kodu; dane i wygenerowane artefakty nie są kodem aplikacji.
+Zadania implementacji UI kończ działającą funkcją oraz instrukcją testu
+ręcznego z oczekiwanym wynikiem. Oddziel faktycznie wykonany odbiór GUI
+od przygotowanej instrukcji i testów automatycznych.

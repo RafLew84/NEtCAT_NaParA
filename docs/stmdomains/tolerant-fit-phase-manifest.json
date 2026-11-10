@@ -1,0 +1,221 @@
+{
+  "date": "2026-10-28",
+  "issue": 19,
+  "status": "claimed; discussion pending; issue20 deferred",
+  "prototype_branch": "prototype/stmdomains-tolerant-fit-phase",
+  "prototype_commit": "c7ed02134af436d2702bbe37e091aa0c5306b604",
+  "prototype_parent": "d6ae09a75a46dbd36c7ff1722ee747b6e7b2cbd9",
+  "docs_parent": "5e5557b4fecfbda725f615c2dc74949d5393508f",
+  "artifact_root": "/home/rlew/projekty/NEtCAT-domains/.scratch/tolerant-fit-phase",
+  "images": 210,
+  "real_frames": 24,
+  "partial_reference_frames": 18,
+  "new_synthetic_images": 45,
+  "calibration_negative_images": 45,
+  "configurations": 84,
+  "results": 17640,
+  "evaluated_results": 17136,
+  "protocol": {
+    "question": "Does cross-validated tolerant local lattice fitting improve positional jitter, and does a separate neighbor phase test avoid merging translated domains?",
+    "proposal": "Previous geometry displacement histogram only; canonical shortest equivalent integer basis; no domain templates, image labels or known domain count.",
+    "input": "All 165 previous images including 45 calibration negatives; all annotated centers, full image, grid and center sampling.",
+    "radii": [
+      24,
+      48
+    ],
+    "metrics": [
+      "fixed1",
+      "fixed2",
+      "refined1",
+      "refined2"
+    ],
+    "fit": "Two alternating lexicographic point folds, train >=6 each, held-out distances to nearest lattice point. Mean exp(-d²/(2*tau²)), tau=1 or 2 px. Full fit retained only for edges. Continuous basis refinement: 5 Huber-2 IRLS iterations, affine departure spectral norm <=0.15 from initial basis. Fractional circular mean initializes phase. Fixed basis refits translation only.",
+    "support": "Previous candidate/support masks. At least 12 local annotations. No extra material mask; gap failures must remain visible.",
+    "calibration": "Separate q.99 score on previous 45 negative images, grid only; strict > threshold. No TTMAPP or new controls. Freeze settings before new generation.",
+    "edges": [
+      "off",
+      "shape",
+      "full2",
+      "core2",
+      "core1"
+    ],
+    "edge_rules": "Adjacency unchanged. Shape: unimodular integer alignment and relative basis discrepancy <=0.15. Phase: at edge midpoint compare nearest predicted lattice nodes modulo mean aligned basis. full2 uses whole-window fits and 2px threshold; core1/core2 translation estimated from radius18 centers >=4, both circular concentrations >=0.65, threshold1/2px. Unknown phase blocks edge. Record shape and phase cuts separately. No cleanup or splitting by references.",
+    "baseline": "Previous geometry center_median at r24/r48, both modes, same adjacency/minimum component sizes (4 grid /8 centers).",
+    "fresh_cases": [
+      "clean",
+      "jitter06",
+      "jitter12",
+      "small_strain",
+      "global_shift",
+      "phase1",
+      "phase3",
+      "phase6",
+      "phase6_jitter06",
+      "phase6_jitter12",
+      "missing30",
+      "gap",
+      "independent_rows",
+      "random_points",
+      "contrast_flip"
+    ],
+    "fresh_seeds": [
+      7101,
+      7102,
+      7103
+    ],
+    "evaluation": "After prediction lock only. Partial TTMAPP masks mean unknown elsewhere. Report coverage, conditional pair split/merge, false gap and negative assignments, component counts, group recall, all variants without choosing on references. Separate technical verification from efficacy. Fresh controls are synthetic, not validation of general STM."
+  },
+  "settings": {
+    "thresholds": {
+      "r24-fixed1": {
+        "threshold": 0.84471705172608,
+        "samples": 3427
+      },
+      "r24-fixed2": {
+        "threshold": 0.9573622926763736,
+        "samples": 3427
+      },
+      "r24-refined1": {
+        "threshold": 0.8394275404949755,
+        "samples": 3423
+      },
+      "r24-refined2": {
+        "threshold": 0.955465097990959,
+        "samples": 3423
+      },
+      "r48-fixed1": {
+        "threshold": 0.648579870701861,
+        "samples": 6454
+      },
+      "r48-fixed2": {
+        "threshold": 0.846472030391913,
+        "samples": 6454
+      },
+      "r48-refined1": {
+        "threshold": 0.7139416695147245,
+        "samples": 6454
+      },
+      "r48-refined2": {
+        "threshold": 0.8876647434287506,
+        "samples": 6454
+      }
+    },
+    "baseline": {
+      "24": 1.0,
+      "48": 0.761150286201437
+    },
+    "negative_samples": [
+      "control-0001",
+      "control-0002",
+      "control-0003",
+      "control-0004",
+      "control-0005",
+      "control-0023",
+      "control-0024",
+      "control-0025",
+      "control-0026",
+      "control-0027",
+      "control-0045",
+      "control-0046",
+      "control-0047",
+      "control-0048",
+      "control-0049",
+      "additional-0007",
+      "additional-0015",
+      "additional-0023",
+      "probe-01-4101",
+      "probe-01-4102",
+      "probe-01-4103",
+      "probe-03-4101",
+      "probe-03-4102",
+      "probe-03-4103",
+      "probe-05-4101",
+      "probe-05-4102",
+      "probe-05-4103",
+      "probe-07-4101",
+      "probe-07-4102",
+      "probe-07-4103",
+      "probe-11-4101",
+      "probe-11-4102",
+      "probe-11-4103",
+      "probe-13-4101",
+      "probe-13-4102",
+      "probe-13-4103",
+      "probe-15-4101",
+      "probe-15-4102",
+      "probe-15-4103",
+      "probe-17-4101",
+      "probe-17-4102",
+      "probe-17-4103",
+      "probe-20-4101",
+      "probe-20-4102",
+      "probe-20-4103"
+    ],
+    "protocol_sha256": "e3569185b0aae784952f27e598acde3211e0f585b6c479a73bd76db31a130487",
+    "references_or_new_controls_used": false
+  },
+  "numerical_checks": {
+    "checks": 1225,
+    "maximum_nearest_distance_error": 0.0,
+    "equivalent_bases_and_permutation": true,
+    "global_translation": true,
+    "analytic_neighbor_phase_jumps": [
+      0,
+      1,
+      3,
+      6,
+      12
+    ],
+    "no_reference_reads": true
+  },
+  "baseline_replays": 660,
+  "blind_replay": {
+    "images": 210,
+    "results": 17640,
+    "seconds": 91.84759923999991,
+    "truth_access_blocked": true,
+    "all_arrays_equal": true
+  },
+  "browser_checks": 217,
+  "browser_errors": [],
+  "copy": {
+    "files": 537,
+    "bytes": 109045271,
+    "all_sha256_equal": true,
+    "previous_link": "../translation-family"
+  },
+  "key_result": {
+    "best_new_known_molecules": 125,
+    "reference_molecules": 1678,
+    "same_geometry_baseline": 279,
+    "new_red_yellow_assigned": 0,
+    "phase3_cross_edges_cut": 132,
+    "phase3_cross_edges": 138,
+    "phase3_remaining_center_bridges_per_frame": 2,
+    "method_selected": false
+  },
+  "hashes": {
+    "protocol.json": "e3569185b0aae784952f27e598acde3211e0f585b6c479a73bd76db31a130487",
+    "settings.json": "703c1ccb3d48dcc3e1badb4ac2856425b2c0b67eac26d3008b70ad6bc17ddc01",
+    "source.json": "8c49945c7388163de5a5f1c8a01f7df4d6dd414bf04880dc100281c3d1441e34",
+    "selection.json": "42d1ecf3f962fa3e1187c9e380bae30d15d80829024489d864e7f9b985352d99",
+    "prediction-lock.json": "c6ef06bfbe193d3547037782f1ef1ad924e22664a1324279ce8cea94612d5286",
+    "old-measurements.json": "89cea68ac423de3dfada4c27e4b59dda8cbccf93121a48b157e6ac882b0ea829",
+    "fresh-measurements.json": "2ced48c77dd9bc7d7402ffffa42dfd9649121b3ed8bab0b4dd1346f755102820",
+    "fresh/generation.json": "74c965cca58f4469d82a3896fbe6c536b7e62953c13f5668b3ff3fe398067281",
+    "evaluation/manifest.json": "74b0eccadd2b81c6c24072ff5a253c8948a460842d549a023ffdd5bb7d95bcce",
+    "evaluation/summary.json": "51ab6fbd0268e5a9d64cbe01ceb1dee4b7782d552230275abe4dee15ae74ce86",
+    "evaluation/groups.json": "e805eec0a45eb90cc76f997f89263f5adf3e37657c76896e645236d4dff9effc",
+    "evaluation/mechanism-audit.json": "93529c0610289e7169ee1187d86a1eeb554b8fdf80e1a77ed9d994051e410385",
+    "evaluation/availability.json": "926c67cccf1ae5c813120c4d3cb10bc5e15f4f6cc7d2e8344a16f571fc577f82",
+    "numerical-verification.json": "4bd0c2e756a1f45233c8d015dcdaac79d502fa3becfa1689fddad61ca5236c20",
+    "blind-replay-verification.json": "e729f27b6fe4188a5de8cac6e59f9dba4f3db353a21b69d59af1290ece853819",
+    "browser-verification.json": "dd757f88767b8258dd6a99e9a72c45a1a4524f1fdc9e63695f710bba9c1499dd",
+    "review-manifest.json": "80603ffbde9c3a011bea4b4352e780490ca0ba4b43deb82220bdc1e079abb7f6",
+    "controls.csv": "cfe0c4e8f46e22c9441daa44d2e745ea8f936aa63c1d16a949051fa4ddf5525e",
+    "index.html": "a578c61fdd9c54e8fa093eb88bb8c5cad53b4e2f1a17e5473df580798f985647",
+    "comparison.png": "447f792144cd269bc30e56805ef3a22e0fc6242ddd3a01334a782c78f585f520",
+    "comparison.pdf": "b8bd3330e634aa743cb801186c5c3a601b9880f8fd49067740951c2c4db521a4",
+    "copy-verification.json": "278b6da139a712c69f3eab5a43bb76ab3d214dca951854031ae4c41958dfa067"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "stmdomains-rvae21a-protocol-v1",
+  "purpose": "Bounded decoder and KL follow-up; no detector adoption or gate tuning",
+  "baseline_commit": "9d729b1c27f20459a3045fb50a137ea2033b7569",
+  "training_regime": "transfer",
+  "latent_dimensions": 32,
+  "main_scale_reference_px": 48,
+  "main_sampler": "grid",
+  "grid_stride_reference_px": 16,
+  "solvers": ["fh", "mws"],
+  "control_seeds": [920011, 920012, 920013],
+  "control_cases": "All 27 cases from unchanged training.controls.CASES",
+  "control_policy": "Fresh realizations, same generative case families; truth accessible only after prediction freeze",
+  "measurement_policy": "Previously viewed TTMAPP; developmental evaluation, not independent STM validation",
+  "gate_policy": "Copy issue21 transfer calibration exactly, no new thresholds or baseline feature-adapter fitting",
+  "rotation_diagnostic": {
+    "transforms": "numpy.rot90 on full 64x64 patch",
+    "quarter_turns": [-1, 0, 1],
+    "expected_latent_delta_degrees": "-90 * k for the decoder row-vector convention",
+    "patches_per_sample": 16,
+    "selection": "Evenly spaced indices of available patches in sorted window-ID order",
+    "support": "Identical complete patch; no padding, cropping or interpolation",
+    "raw_residual_period_degrees": 360,
+    "symmetry_policy": "Additional residual modulo lattice symmetry only when derived from known synthetic basis; no assumed M6 or real-image symmetry",
+    "limitation": "Quarter turns modulo square-lattice symmetry are uninformative alone; retain nontrivial 27degree and 8degree two-domain controls"
+  },
+  "fixed_step_diagnostic": 2000,
+  "figure_example": {"sample_id": "ttmapp-250", "center_raw_xy": [128, 128], "scale_raw_px": 48, "seed": 20261101},
+  "postprocess_cpu_seconds": 7200,
+  "postprocess_rss_bytes": 12884901888,
+  "selection_by_domain_results": false
+}

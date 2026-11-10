@@ -1,0 +1,578 @@
+{
+  "schema": "stmdomains.local-feature-graph-trial.v1",
+  "date": "2026-10-26",
+  "issue": 19,
+  "issue_status": "claimed",
+  "outcome": "No qualified graph configuration; orientation merges reduced in some variants, but single-lattice fragmentation and grid-origin sensitivity remain; unchanged gate limits TTMAPP support.",
+  "source": {
+    "prototype_branch": "prototype/stmdomains-local-feature-graph",
+    "prototype_commit": "1ae0706",
+    "prototype_base": "cf88e8a",
+    "documentation_branch": "domains/local-feature-graph-trial",
+    "documentation_base": "e7b6ae0",
+    "production_changes": false
+  },
+  "artifact_root": "/home/rlew/projekty/NEtCAT-domains/.scratch/local-feature-graph",
+  "artifact_dependencies": {
+    "classic": "../frozen-feature-domains/classic",
+    "neural": "../frozen-feature-domains/neural",
+    "input/analysis": "../../frozen-feature-domains/input/analysis",
+    "baseline": "../frozen-feature-domains/predictions",
+    "representations": "../feature-separation/representations",
+    "transforms": "../feature-separation/transforms"
+  },
+  "protocol_sha256": "8ec1a45a9f5fc1084a1e7bd5e9a45c931bbf95979c28460d3fb936fc0ff854be",
+  "scope": {
+    "full_ttmapp_frames": 24,
+    "synthetic_images": 204,
+    "total_images": 228,
+    "graph_configurations": 32,
+    "preserved_baselines": 8,
+    "gate_ceiling_controls": 8,
+    "scale_parameters": [
+      1,
+      4,
+      16,
+      64
+    ],
+    "fixed_domain_count": false,
+    "training": false,
+    "reference_based_parameter_tuning": false,
+    "independent_validation": false,
+    "references_used_only_after_frozen_predictions": true,
+    "feature_transform": "preserved L2/round8/PCA24",
+    "gate_changed": false,
+    "structural_types_established": false
+  },
+  "qualified_graphs": [],
+  "ttmapp_final_molecules_in_partial_references": {
+    "dinov2_vits14-centers--ceiling": {
+      "reference_elements": 1678,
+      "assigned_elements": 46
+    },
+    "dinov2_vits14-centers--fh1": {
+      "reference_elements": 1678,
+      "assigned_elements": 27
+    },
+    "dinov2_vits14-centers--fh16": {
+      "reference_elements": 1678,
+      "assigned_elements": 46
+    },
+    "dinov2_vits14-centers--fh4": {
+      "reference_elements": 1678,
+      "assigned_elements": 46
+    },
+    "dinov2_vits14-centers--fh64": {
+      "reference_elements": 1678,
+      "assigned_elements": 46
+    },
+    "dinov2_vits14-centers--hdbscan": {
+      "reference_elements": 1678,
+      "assigned_elements": 0
+    },
+    "dinov2_vits14-grid--ceiling": {
+      "reference_elements": 1678,
+      "assigned_elements": 86
+    },
+    "dinov2_vits14-grid--fh1": {
+      "reference_elements": 1678,
+      "assigned_elements": 67
+    },
+    "dinov2_vits14-grid--fh16": {
+      "reference_elements": 1678,
+      "assigned_elements": 86
+    },
+    "dinov2_vits14-grid--fh4": {
+      "reference_elements": 1678,
+      "assigned_elements": 86
+    },
+    "dinov2_vits14-grid--fh64": {
+      "reference_elements": 1678,
+      "assigned_elements": 86
+    },
+    "dinov2_vits14-grid--hdbscan": {
+      "reference_elements": 1678,
+      "assigned_elements": 86
+    },
+    "ewt-centers--ceiling": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "ewt-centers--fh1": {
+      "reference_elements": 1678,
+      "assigned_elements": 24
+    },
+    "ewt-centers--fh16": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "ewt-centers--fh4": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "ewt-centers--fh64": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "ewt-centers--hdbscan": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "ewt-grid--ceiling": {
+      "reference_elements": 1678,
+      "assigned_elements": 86
+    },
+    "ewt-grid--fh1": {
+      "reference_elements": 1678,
+      "assigned_elements": 60
+    },
+    "ewt-grid--fh16": {
+      "reference_elements": 1678,
+      "assigned_elements": 82
+    },
+    "ewt-grid--fh4": {
+      "reference_elements": 1678,
+      "assigned_elements": 76
+    },
+    "ewt-grid--fh64": {
+      "reference_elements": 1678,
+      "assigned_elements": 86
+    },
+    "ewt-grid--hdbscan": {
+      "reference_elements": 1678,
+      "assigned_elements": 86
+    },
+    "fcn_resnet101-centers--ceiling": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "fcn_resnet101-centers--fh1": {
+      "reference_elements": 1678,
+      "assigned_elements": 23
+    },
+    "fcn_resnet101-centers--fh16": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "fcn_resnet101-centers--fh4": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "fcn_resnet101-centers--fh64": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "fcn_resnet101-centers--hdbscan": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "fcn_resnet101-grid--ceiling": {
+      "reference_elements": 1678,
+      "assigned_elements": 86
+    },
+    "fcn_resnet101-grid--fh1": {
+      "reference_elements": 1678,
+      "assigned_elements": 77
+    },
+    "fcn_resnet101-grid--fh16": {
+      "reference_elements": 1678,
+      "assigned_elements": 86
+    },
+    "fcn_resnet101-grid--fh4": {
+      "reference_elements": 1678,
+      "assigned_elements": 86
+    },
+    "fcn_resnet101-grid--fh64": {
+      "reference_elements": 1678,
+      "assigned_elements": 86
+    },
+    "fcn_resnet101-grid--hdbscan": {
+      "reference_elements": 1678,
+      "assigned_elements": 86
+    },
+    "fft-centers--ceiling": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "fft-centers--fh1": {
+      "reference_elements": 1678,
+      "assigned_elements": 30
+    },
+    "fft-centers--fh16": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "fft-centers--fh4": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "fft-centers--fh64": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "fft-centers--hdbscan": {
+      "reference_elements": 1678,
+      "assigned_elements": 34
+    },
+    "fft-grid--ceiling": {
+      "reference_elements": 1678,
+      "assigned_elements": 98
+    },
+    "fft-grid--fh1": {
+      "reference_elements": 1678,
+      "assigned_elements": 81
+    },
+    "fft-grid--fh16": {
+      "reference_elements": 1678,
+      "assigned_elements": 98
+    },
+    "fft-grid--fh4": {
+      "reference_elements": 1678,
+      "assigned_elements": 98
+    },
+    "fft-grid--fh64": {
+      "reference_elements": 1678,
+      "assigned_elements": 98
+    },
+    "fft-grid--hdbscan": {
+      "reference_elements": 1678,
+      "assigned_elements": 98
+    }
+  },
+  "small_rotation_local_edge_auc": [
+    {
+      "base": "dinov2_vits14-centers",
+      "mean_auc": 0.947673314339981,
+      "seeds": 6,
+      "different_edges": 54
+    },
+    {
+      "base": "dinov2_vits14-grid",
+      "mean_auc": 0.7604166666666666,
+      "seeds": 6,
+      "different_edges": 276
+    },
+    {
+      "base": "ewt-centers",
+      "mean_auc": 0.9804563102560747,
+      "seeds": 6,
+      "different_edges": 54
+    },
+    {
+      "base": "ewt-grid",
+      "mean_auc": 0.8145608961574259,
+      "seeds": 6,
+      "different_edges": 276
+    },
+    {
+      "base": "fcn_resnet101-centers",
+      "mean_auc": 0.9466286799620133,
+      "seeds": 6,
+      "different_edges": 54
+    },
+    {
+      "base": "fcn_resnet101-grid",
+      "mean_auc": 0.5432746642733679,
+      "seeds": 6,
+      "different_edges": 276
+    },
+    {
+      "base": "fft-centers",
+      "mean_auc": 0.9632247088077476,
+      "seeds": 6,
+      "different_edges": 54
+    },
+    {
+      "base": "fft-grid",
+      "mean_auc": 0.9405581039755351,
+      "seeds": 6,
+      "different_edges": 276
+    }
+  ],
+  "origin_trial": {
+    "images": 53,
+    "feature_sets": 424,
+    "graph_results": 1696,
+    "offsets_reference_px": [
+      [
+        0,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        6,
+        6
+      ]
+    ],
+    "actual_feature_reextraction": true,
+    "primary_changes": [
+      {
+        "case": "phase_boundary",
+        "stage": "appearance_points",
+        "comparisons": 144,
+        "changed": 144
+      },
+      {
+        "case": "phase_boundary",
+        "stage": "points",
+        "comparisons": 144,
+        "changed": 144
+      },
+      {
+        "case": "phase_boundary",
+        "stage": "ungated_points",
+        "comparisons": 144,
+        "changed": 144
+      },
+      {
+        "case": "single",
+        "stage": "appearance_points",
+        "comparisons": 144,
+        "changed": 144
+      },
+      {
+        "case": "single",
+        "stage": "points",
+        "comparisons": 144,
+        "changed": 144
+      },
+      {
+        "case": "single",
+        "stage": "ungated_points",
+        "comparisons": 144,
+        "changed": 144
+      },
+      {
+        "case": "small_rotation",
+        "stage": "appearance_points",
+        "comparisons": 144,
+        "changed": 132
+      },
+      {
+        "case": "small_rotation",
+        "stage": "points",
+        "comparisons": 144,
+        "changed": 144
+      },
+      {
+        "case": "small_rotation",
+        "stage": "ungated_points",
+        "comparisons": 144,
+        "changed": 132
+      },
+      {
+        "case": "ttmapp",
+        "stage": "appearance_points",
+        "comparisons": 120,
+        "changed": 96
+      },
+      {
+        "case": "ttmapp",
+        "stage": "points",
+        "comparisons": 120,
+        "changed": 24
+      },
+      {
+        "case": "ttmapp",
+        "stage": "ungated_points",
+        "comparisons": 120,
+        "changed": 96
+      }
+    ],
+    "interior_audit": {
+      "scope": "post-prediction explanatory audit; margin30.5 reference px; no parameter or prediction change",
+      "changes": [
+        {
+          "case": "phase_boundary",
+          "stage": "points",
+          "comparisons": 144,
+          "changed": 108
+        },
+        {
+          "case": "phase_boundary",
+          "stage": "ungated_points",
+          "comparisons": 144,
+          "changed": 108
+        },
+        {
+          "case": "single",
+          "stage": "points",
+          "comparisons": 144,
+          "changed": 69
+        },
+        {
+          "case": "single",
+          "stage": "ungated_points",
+          "comparisons": 144,
+          "changed": 69
+        },
+        {
+          "case": "small_rotation",
+          "stage": "points",
+          "comparisons": 144,
+          "changed": 144
+        },
+        {
+          "case": "small_rotation",
+          "stage": "ungated_points",
+          "comparisons": 144,
+          "changed": 126
+        },
+        {
+          "case": "ttmapp",
+          "stage": "points",
+          "comparisons": 120,
+          "changed": 24
+        },
+        {
+          "case": "ttmapp",
+          "stage": "ungated_points",
+          "comparisons": 120,
+          "changed": 85
+        }
+      ]
+    }
+  },
+  "verification": {
+    "reused_baselines": 1824,
+    "permutation_partitions": 7296,
+    "gate_ceiling_checks": 7296,
+    "gate_copied_unchanged": true,
+    "slow_reference_graphs": 128,
+    "annotation_only_missing_pairs": 384,
+    "zero_offset_feature_sets": 106,
+    "zero_offset_features_bitwise_equal": true,
+    "max_feature_error": 0.0,
+    "max_pca_projection_error": 6.827871601444713e-15,
+    "zero_offset_graph_replays": 424,
+    "model_proofs": {
+      "fcn_resnet101": {
+        "state_before": "28bde25d436f8a0aecb56719e3faeb1dd4e5b30b12b14c47727dfd83ee9dfb5e",
+        "state_after": "28bde25d436f8a0aecb56719e3faeb1dd4e5b30b12b14c47727dfd83ee9dfb5e",
+        "equal": true,
+        "training_modules": 0,
+        "trainable_parameters": 0,
+        "parameters_with_grad": 0
+      },
+      "dinov2_vits14": {
+        "state_before": "1e443f20ea18f81e8ced6187e9bdafc096b9d5c165e61971992298505857ead3",
+        "state_after": "1e443f20ea18f81e8ced6187e9bdafc096b9d5c165e61971992298505857ead3",
+        "equal": true,
+        "training_modules": 0,
+        "trainable_parameters": 0,
+        "parameters_with_grad": 0
+      }
+    },
+    "prediction_hashes_unchanged": true,
+    "browser_checks": 107,
+    "browser_errors": []
+  },
+  "cost": {
+    "edges": {
+      "seconds": 3.9121773120004946,
+      "peak_rss_kib": 186816
+    },
+    "primary_graphs_with_permutation_checks": {
+      "seconds": 26.951640725999823,
+      "peak_rss_kib": 164668
+    },
+    "origin_feature_extraction": {
+      "seconds": 55.02046483000049,
+      "order_seconds": 33.32790902099987,
+      "peak_rss_kib": 1478120
+    },
+    "origin_graphs_seconds": 4.1705829669990635,
+    "max_cuda_tensor_bytes": 163117568,
+    "full_series_benchmark": false
+  },
+  "environment": {
+    "python": "3.12.12",
+    "versions": {
+      "numpy": "2.2.5",
+      "scipy": "1.15.2",
+      "scikit-learn": "1.6.1",
+      "torch": "2.9.1+cu128",
+      "torchvision": "0.24.1+cu128",
+      "Pillow": "11.2.1",
+      "matplotlib": "3.10.1"
+    },
+    "gpu": "RTX 5090",
+    "new_packages_or_weights": false
+  },
+  "artifact_copy": {
+    "files": 1555,
+    "bytes": 367553595,
+    "all_sha256_equal": true,
+    "relative_links": {
+      "classic": "../frozen-feature-domains/classic",
+      "neural": "../frozen-feature-domains/neural",
+      "input/analysis": "../../frozen-feature-domains/input/analysis",
+      "baseline": "../frozen-feature-domains/predictions",
+      "representations": "../feature-separation/representations",
+      "transforms": "../feature-separation/transforms"
+    }
+  },
+  "artifact_sha256": {
+    "protocol.json": "8ec1a45a9f5fc1084a1e7bd5e9a45c931bbf95979c28460d3fb936fc0ff854be",
+    "source.json": "2b0c822ee81951ed671fc23daf91f381ddf69c8bd8019afd288e310ffcba466f",
+    "bases.json": "c0e80513566f3045161a73fac2f21926cb37380b28705561d78c3992827b7032",
+    "gate-settings.json": "aff3e322d49849fb77c4b235ef9eea2b9da9768aa5c68a699ee6fd1a0b2482f1",
+    "scales.json": "1a1dd44f91c462c01f32021c599f8838f6eabe6e761bf1ec406334dc70663d42",
+    "edge-manifest.json": "a9190a55f6a37e9f60174d1252623a59fcc97041e879e38464c2ba13a1acc67f",
+    "predictions/manifest.json": "35bfcb964c75399cdf816bef18718a5ab91bd49e614db434d6de4c1f7a1d876a",
+    "prediction-lock.json": "47c2af3e92891af81f526a3ae123de493877ecad99ca28f6c96920c99bb057ca",
+    "verification.json": "ae34c0a8d65efd9cc593c8e7de4c3190d2b76a85fa19aa3c66d4beda3345942c",
+    "evaluation/manifest.json": "fc145859c21f22a3931ddefb8cebc948e33fb8ff0dd69f47bc80c914b3593913",
+    "evaluation/qualification.json": "41eb28c0cc685c5e0e1421211bcbab73f804ef38dcdc72b4a84f0181a7943c32",
+    "evaluation/per-sample.json": "84a86c45db612be29745ea25745e1f8a207915f87ad2e9a111d0beed6d61107a",
+    "evaluation/summary.json": "6e085fbaaaea0afb591f27ce30538cff52585162d0a9600a432760c3907a02e9",
+    "evaluation/groups.json": "ce131e1a516c836dfcb0a9970c29ad4599b79a13f51db321c86c9af77063e1ea",
+    "evaluation/edge-discrimination.json": "21985cf7207d334b79b4ce938a202f92202ff6c0452243a9698631af218e651a",
+    "origins/samples.json": "09ac07bce15827c0924209575535dc6a540d720f64f6f8c9ba013f2c8e211104",
+    "origins/feature-manifest.json": "5d05b0086104ccdab1e9b381f3be154ddb5ba39c9967d0cecb3e99abca8e49f4",
+    "origins/prediction-lock.json": "3f1e22996e9dd2568858eb92dd0e553625f8a214cd796727d6d281b2a1eb6712",
+    "origins/evaluation.json": "41b183f24144d247f2953f8c1a199506c6e1f59af67e608ab4a58f9ea60d08bc",
+    "origins/changes.json": "63e1a60d5868091313afac85846dde60446d3f80bfdac8f9bbcaa60087817c7e",
+    "origins/interior-audit.json": "c870e0e33d8261e2e651c41568de716f107b983d5f2d93dd10e2c84d5a9853a5",
+    "provenance.json": "1d6e536c296fed2e51ba288e24bff2eb10cbe1ada41ede279c732d75667eeaae",
+    "review-manifest.json": "11de2539faaa7c1fb93abc10852f93fa7135a7abe201352d1a7bc71bb7dc6b0a",
+    "browser-verification.json": "638489f228f523c768b7b828a79fb7b59728fdbb3b4729bc20afb75a710da032",
+    "copy-verification.json": "45a8d9c3a73edfba6d7dada72fe462eb6f2e56d28fbc5a05ec1aba9797614ba1",
+    "index.html": "65bf2ee851f4c98bd6be679a8cafd679a1d2931d0f101f355fa2d440e376256a",
+    "controls.csv": "7839d2d655eeb0edfa099eca541ff166f1bc9add496040b80ec06f6e177ddab6",
+    "edge-discrimination.csv": "455e25704d2b95aae9a583f9ce2478ac7fb28b4d300c67a97905fac064636c54",
+    "grid-origin-changes.csv": "0bb57ffa96df2ea6f07a46d38e7f9806001dbd4203265215a7cc91aea9eb793a",
+    "graph-comparison.png": "c32ccf578a34d4173a338e9e4195bd2c437e6af983e9bbdacec0f3606fe65ad7",
+    "graph-comparison.pdf": "7be1c43d95ac7a553183c9a6c9485b43727b6853b39aca0462a861e2e1ea577e",
+    "browser-preview.png": "c46b30bc38e338e765e2ae11d679de3c908b14ac886f12403f545b07b416cdaf"
+  },
+  "source_sha256": {
+    "local_feature_graph.py": "ef331fd39ae0e83b24e9f8d7b858151b4c52596a37dcfd8adc083418396a06e2",
+    "local_feature_graph_browser.py": "8ac74acdd7a377bf8dd9d087942328f25a15798fcce8229d9da4d79d24612515",
+    "local_feature_graph_design.json": "8ec1a45a9f5fc1084a1e7bd5e9a45c931bbf95979c28460d3fb936fc0ff854be",
+    "local_feature_graph_gate.py": "efeb0a70996a62a655470919ef124c05c8b97318352fd5de2f748eb55a89fc56",
+    "local_feature_graph_origins.py": "9332b5825d8ccbefb853239aa47d495295d4874010fe6baef4cddc69aefac17d",
+    "local_feature_graph_review.html": "8f4b0f718b35b8cfbcaedbfd7efd3d3cef6c6a07fe2974a19fdfe35469809d10",
+    "local_feature_graph_review.py": "862c916f11d42297ce8f15578b2832c2a7778d560c6722b61294c2257184f452",
+    "local_feature_graph_summary.py": "0cd027893bfa807617e6254bb819506532a779233de0a935f83e7fffc2a988fa"
+  },
+  "algorithm_primary_source": "https://cs.brown.edu/people/pfelzens/papers/seg-ijcv.pdf",
+  "limitations": [
+    "All seeds and references previously seen; developmental diagnosis only.",
+    "Reference boxes are partial; unlabeled areas are unknown.",
+    "Gate ceiling measures maximum assignment support, not domain quality.",
+    "Graph identifiers are local regions, not cross-frame structural types.",
+    "Interior-origin audit was added after predictions and changed no parameters.",
+    "Repeated origins, scales and models are correlated comparisons.",
+    "Wrapper syntax checked; stages executed separately.",
+    "No production application, native GUI or full 268-frame benchmark tested."
+  ],
+  "next_study_proposed": "Separate ACF scale/support experiment with frozen features/partitions and negative controls; not started."
+}

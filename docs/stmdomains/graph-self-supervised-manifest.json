@@ -1,0 +1,2012 @@
+{
+  "schema": "stmdomains-graph24-evidence-v1",
+  "output": "/home/rlew/projekty/NEtCAT-domains/.scratch/graph-ssl-24",
+  "date": "2026-11-01",
+  "source_commit": "f53611b",
+  "claim_commit": "05d32f2",
+  "prototype_branch": "prototype/stmdomains-graph-self-supervised",
+  "scope": "One acquisition, actual annotation centres, 72px bounded egos, separate transfer test graph; no image features or new measurements",
+  "protocol_sha256": "9921c37972694a844d7f56921162259032145f7af65bbcae257b5fe9da1b419f",
+  "plan_sha256": "f937b512983eed8a92cfbc8c4aea9ee5d20a9b714b761c0352841dd8a1a1ab5a",
+  "prediction_entries": 4212,
+  "heldout_archives": 504,
+  "frozen_local_files": 12131,
+  "frozen_external_files": 137,
+  "prepared_counts": {
+    "measurement/anchors": 6730,
+    "measurement/eligible": 3795,
+    "measurement/train": 76,
+    "measurement/excluded": 5796,
+    "measurement/incomplete_measured_support": 2935,
+    "measurement/validation": 27,
+    "measurement/test": 831,
+    "synthetic/anchors": 19629,
+    "synthetic/eligible": 8350,
+    "synthetic/excluded": 19629,
+    "synthetic/incomplete_measured_support": 11279
+  },
+  "training": {
+    "fit_count": 9,
+    "completed_count": 9,
+    "total_fit_seconds": 122.8569310449966,
+    "runs": [
+      {
+        "run_id": "training/transductive/sce_scale/seed-20261101",
+        "regime": "transductive",
+        "loss_name": "sce_scale",
+        "seed": 20261101,
+        "status": "completed",
+        "stop_reason": "fixed_step_budget",
+        "selected_step": 1800,
+        "best_validation_loss": null,
+        "completed_steps": 1800,
+        "seconds": 13.413315277997754,
+        "training_graphs": 3795,
+        "validation_graphs": 0,
+        "parameter_count": 27154,
+        "completed_optimizer_steps": 1800,
+        "skipped_uninformative_steps": 0,
+        "peak_rss_bytes": 2068942848,
+        "cuda_peak_allocated_bytes": 103478784,
+        "cuda_peak_reserved_bytes": 115343360,
+        "selected_checkpoint_sha256": "05e34c2c90e71edfe9c0f90e0a28ae448e42f4e6c946f1c65ac75f7fcb5d4cc6",
+        "initial_state_sha256": "a3c2d9270240e58d5216b749ffadb4ba6d88af7ef50be981791aa143b00f9208"
+      },
+      {
+        "run_id": "training/transductive/sce_scale/seed-20261102",
+        "regime": "transductive",
+        "loss_name": "sce_scale",
+        "seed": 20261102,
+        "status": "completed",
+        "stop_reason": "fixed_step_budget",
+        "selected_step": 1800,
+        "best_validation_loss": null,
+        "completed_steps": 1800,
+        "seconds": 12.42766827599553,
+        "training_graphs": 3795,
+        "validation_graphs": 0,
+        "parameter_count": 27154,
+        "completed_optimizer_steps": 1800,
+        "skipped_uninformative_steps": 0,
+        "peak_rss_bytes": 2075906048,
+        "cuda_peak_allocated_bytes": 103478784,
+        "cuda_peak_reserved_bytes": 115343360,
+        "selected_checkpoint_sha256": "7bb286f1d8dee52547c07bcebcd61bf958a296000fd2c2fde21c1b969e218639",
+        "initial_state_sha256": "d75892e0987172437fbc7352dd593bceeda62cb98bdcb4fb72e4516ddff26447"
+      },
+      {
+        "run_id": "training/transductive/sce_scale/seed-20261103",
+        "regime": "transductive",
+        "loss_name": "sce_scale",
+        "seed": 20261103,
+        "status": "completed",
+        "stop_reason": "fixed_step_budget",
+        "selected_step": 1800,
+        "best_validation_loss": null,
+        "completed_steps": 1800,
+        "seconds": 12.047588364002877,
+        "training_graphs": 3795,
+        "validation_graphs": 0,
+        "parameter_count": 27154,
+        "completed_optimizer_steps": 1800,
+        "skipped_uninformative_steps": 0,
+        "peak_rss_bytes": 2099519488,
+        "cuda_peak_allocated_bytes": 103478784,
+        "cuda_peak_reserved_bytes": 115343360,
+        "selected_checkpoint_sha256": "992f5cf081d82e4b058fe5f7f3368816198f4f33334d391161769196b650e52b",
+        "initial_state_sha256": "38aa7128d1fa32e6d8fe621382ecddb729c91773badcdf788038ed7cfebd2721"
+      },
+      {
+        "run_id": "training/transfer/sce/seed-20261101",
+        "regime": "transfer",
+        "loss_name": "sce",
+        "seed": 20261101,
+        "status": "completed",
+        "stop_reason": "fixed_step_budget",
+        "selected_step": 400,
+        "best_validation_loss": 0.04684180021286011,
+        "completed_steps": 2000,
+        "seconds": 13.989885483999387,
+        "training_graphs": 76,
+        "validation_graphs": 27,
+        "parameter_count": 27154,
+        "completed_optimizer_steps": 2000,
+        "skipped_uninformative_steps": 0,
+        "peak_rss_bytes": 1786019840,
+        "cuda_peak_allocated_bytes": 103478784,
+        "cuda_peak_reserved_bytes": 119537664,
+        "selected_checkpoint_sha256": "ed7c776e01fbd11edf45fa1adcad53b5532119caab42bb97d8ee30e939893c32",
+        "initial_state_sha256": "a3c2d9270240e58d5216b749ffadb4ba6d88af7ef50be981791aa143b00f9208"
+      },
+      {
+        "run_id": "training/transfer/sce/seed-20261102",
+        "regime": "transfer",
+        "loss_name": "sce",
+        "seed": 20261102,
+        "status": "completed",
+        "stop_reason": "fixed_step_budget",
+        "selected_step": 600,
+        "best_validation_loss": 0.04637905955314636,
+        "completed_steps": 2000,
+        "seconds": 13.868808965999051,
+        "training_graphs": 76,
+        "validation_graphs": 27,
+        "parameter_count": 27154,
+        "completed_optimizer_steps": 2000,
+        "skipped_uninformative_steps": 0,
+        "peak_rss_bytes": 1789263872,
+        "cuda_peak_allocated_bytes": 103478784,
+        "cuda_peak_reserved_bytes": 119537664,
+        "selected_checkpoint_sha256": "9ee0b305458c0c0af6a1b0a07526b561faaccf8fa21900246b2178b8b794cfcb",
+        "initial_state_sha256": "d75892e0987172437fbc7352dd593bceeda62cb98bdcb4fb72e4516ddff26447"
+      },
+      {
+        "run_id": "training/transfer/sce/seed-20261103",
+        "regime": "transfer",
+        "loss_name": "sce",
+        "seed": 20261103,
+        "status": "completed",
+        "stop_reason": "fixed_step_budget",
+        "selected_step": 1000,
+        "best_validation_loss": 0.047461774200201035,
+        "completed_steps": 2000,
+        "seconds": 14.452090093996958,
+        "training_graphs": 76,
+        "validation_graphs": 27,
+        "parameter_count": 27154,
+        "completed_optimizer_steps": 2000,
+        "skipped_uninformative_steps": 0,
+        "peak_rss_bytes": 1790881792,
+        "cuda_peak_allocated_bytes": 103478784,
+        "cuda_peak_reserved_bytes": 121634816,
+        "selected_checkpoint_sha256": "79e073141b6198f275ad07556e727e5c85d0531d6eb88f3ea35668afa070d10b",
+        "initial_state_sha256": "38aa7128d1fa32e6d8fe621382ecddb729c91773badcdf788038ed7cfebd2721"
+      },
+      {
+        "run_id": "training/transfer/sce_scale/seed-20261101",
+        "regime": "transfer",
+        "loss_name": "sce_scale",
+        "seed": 20261101,
+        "status": "completed",
+        "stop_reason": "fixed_step_budget",
+        "selected_step": 1700,
+        "best_validation_loss": 0.09921787306666374,
+        "completed_steps": 2000,
+        "seconds": 15.695359570003347,
+        "training_graphs": 76,
+        "validation_graphs": 27,
+        "parameter_count": 27154,
+        "completed_optimizer_steps": 2000,
+        "skipped_uninformative_steps": 0,
+        "peak_rss_bytes": 1779892224,
+        "cuda_peak_allocated_bytes": 103478784,
+        "cuda_peak_reserved_bytes": 119537664,
+        "selected_checkpoint_sha256": "b7d4b761306af791127354ff1cf8c9d1fff0f3e17de5b8ac908eefa9df4545c3",
+        "initial_state_sha256": "a3c2d9270240e58d5216b749ffadb4ba6d88af7ef50be981791aa143b00f9208"
+      },
+      {
+        "run_id": "training/transfer/sce_scale/seed-20261102",
+        "regime": "transfer",
+        "loss_name": "sce_scale",
+        "seed": 20261102,
+        "status": "completed",
+        "stop_reason": "fixed_step_budget",
+        "selected_step": 1800,
+        "best_validation_loss": 0.10290102660655975,
+        "completed_steps": 2000,
+        "seconds": 13.31418659100018,
+        "training_graphs": 76,
+        "validation_graphs": 27,
+        "parameter_count": 27154,
+        "completed_optimizer_steps": 2000,
+        "skipped_uninformative_steps": 0,
+        "peak_rss_bytes": 1786638336,
+        "cuda_peak_allocated_bytes": 103478784,
+        "cuda_peak_reserved_bytes": 119537664,
+        "selected_checkpoint_sha256": "7a41237a05f6e21d1e51fba0bc4023b0208865dfcd0135630de891febf561b29",
+        "initial_state_sha256": "d75892e0987172437fbc7352dd593bceeda62cb98bdcb4fb72e4516ddff26447"
+      },
+      {
+        "run_id": "training/transfer/sce_scale/seed-20261103",
+        "regime": "transfer",
+        "loss_name": "sce_scale",
+        "seed": 20261103,
+        "status": "completed",
+        "stop_reason": "fixed_step_budget",
+        "selected_step": 1900,
+        "best_validation_loss": 0.093795046210289,
+        "completed_steps": 2000,
+        "seconds": 13.648028422001516,
+        "training_graphs": 76,
+        "validation_graphs": 27,
+        "parameter_count": 27154,
+        "completed_optimizer_steps": 2000,
+        "skipped_uninformative_steps": 0,
+        "peak_rss_bytes": 1782992896,
+        "cuda_peak_allocated_bytes": 103478784,
+        "cuda_peak_reserved_bytes": 119537664,
+        "selected_checkpoint_sha256": "37ad412f6d9ca21670ab96238cec5a24d48df0d7fc8feb46dc3f69dbdadad250",
+        "initial_state_sha256": "38aa7128d1fa32e6d8fe621382ecddb729c91773badcdf788038ed7cfebd2721"
+      }
+    ]
+  },
+  "training_audit": {
+    "schema": "stmdomains-graph24-training-audit-v1",
+    "passed": true,
+    "runs": [
+      {
+        "run_id": "training/transfer/sce/seed-20261101",
+        "selected_step": 400,
+        "selected_checkpoint_sha256": "ed7c776e01fbd11edf45fa1adcad53b5532119caab42bb97d8ee30e939893c32",
+        "initial_state_sha256": "a3c2d9270240e58d5216b749ffadb4ba6d88af7ef50be981791aa143b00f9208",
+        "verified": true
+      },
+      {
+        "run_id": "training/transfer/sce/seed-20261102",
+        "selected_step": 600,
+        "selected_checkpoint_sha256": "9ee0b305458c0c0af6a1b0a07526b561faaccf8fa21900246b2178b8b794cfcb",
+        "initial_state_sha256": "d75892e0987172437fbc7352dd593bceeda62cb98bdcb4fb72e4516ddff26447",
+        "verified": true
+      },
+      {
+        "run_id": "training/transfer/sce/seed-20261103",
+        "selected_step": 1000,
+        "selected_checkpoint_sha256": "79e073141b6198f275ad07556e727e5c85d0531d6eb88f3ea35668afa070d10b",
+        "initial_state_sha256": "38aa7128d1fa32e6d8fe621382ecddb729c91773badcdf788038ed7cfebd2721",
+        "verified": true
+      },
+      {
+        "run_id": "training/transfer/sce_scale/seed-20261101",
+        "selected_step": 1700,
+        "selected_checkpoint_sha256": "b7d4b761306af791127354ff1cf8c9d1fff0f3e17de5b8ac908eefa9df4545c3",
+        "initial_state_sha256": "a3c2d9270240e58d5216b749ffadb4ba6d88af7ef50be981791aa143b00f9208",
+        "verified": true
+      },
+      {
+        "run_id": "training/transfer/sce_scale/seed-20261102",
+        "selected_step": 1800,
+        "selected_checkpoint_sha256": "7a41237a05f6e21d1e51fba0bc4023b0208865dfcd0135630de891febf561b29",
+        "initial_state_sha256": "d75892e0987172437fbc7352dd593bceeda62cb98bdcb4fb72e4516ddff26447",
+        "verified": true
+      },
+      {
+        "run_id": "training/transfer/sce_scale/seed-20261103",
+        "selected_step": 1900,
+        "selected_checkpoint_sha256": "37ad412f6d9ca21670ab96238cec5a24d48df0d7fc8feb46dc3f69dbdadad250",
+        "initial_state_sha256": "38aa7128d1fa32e6d8fe621382ecddb729c91773badcdf788038ed7cfebd2721",
+        "verified": true
+      },
+      {
+        "run_id": "training/transductive/sce_scale/seed-20261101",
+        "selected_step": 1800,
+        "selected_checkpoint_sha256": "05e34c2c90e71edfe9c0f90e0a28ae448e42f4e6c946f1c65ac75f7fcb5d4cc6",
+        "initial_state_sha256": "a3c2d9270240e58d5216b749ffadb4ba6d88af7ef50be981791aa143b00f9208",
+        "verified": true
+      },
+      {
+        "run_id": "training/transductive/sce_scale/seed-20261102",
+        "selected_step": 1800,
+        "selected_checkpoint_sha256": "7bb286f1d8dee52547c07bcebcd61bf958a296000fd2c2fde21c1b969e218639",
+        "initial_state_sha256": "d75892e0987172437fbc7352dd593bceeda62cb98bdcb4fb72e4516ddff26447",
+        "verified": true
+      },
+      {
+        "run_id": "training/transductive/sce_scale/seed-20261103",
+        "selected_step": 1800,
+        "selected_checkpoint_sha256": "992f5cf081d82e4b058fe5f7f3368816198f4f33334d391161769196b650e52b",
+        "initial_state_sha256": "38aa7128d1fa32e6d8fe621382ecddb729c91773badcdf788038ed7cfebd2721",
+        "verified": true
+      }
+    ],
+    "completed_runs": 9,
+    "attempted_runs": 9,
+    "paired_losses": [
+      {
+        "seed": 20261101,
+        "identical_initialization": true,
+        "identical_validation": true,
+        "matched_batches": 2000
+      },
+      {
+        "seed": 20261102,
+        "identical_initialization": true,
+        "identical_validation": true,
+        "matched_batches": 2000
+      },
+      {
+        "seed": 20261103,
+        "identical_initialization": true,
+        "identical_validation": true,
+        "matched_batches": 2000
+      }
+    ],
+    "periodic_checkpoints_checked": 174,
+    "total_optimizer_steps": 17400,
+    "fit_seconds": 122.8569310449966,
+    "checkpoint_files": 183,
+    "checkpoint_bytes": 131517871
+  },
+  "ttmapp_after": [
+    {
+      "regime": "transductive",
+      "family": "geometry",
+      "partition": "fh4",
+      "seed": null,
+      "assigned_evaluated_elements": 1105,
+      "evaluated_elements": 1175,
+      "coverage": 0.9404255319148936,
+      "merge_rate": 0.8722437300117826,
+      "split_rate": 0.0,
+      "different_reference_pairs": 5941,
+      "same_reference_pairs": 28413,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 1004,
+          "coverage": 0.9571020019065777
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 8,
+          "coverage": 1.0
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 93,
+          "coverage": 0.788135593220339
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "geometry",
+      "partition": "mws",
+      "seed": null,
+      "assigned_evaluated_elements": 815,
+      "evaluated_elements": 1175,
+      "coverage": 0.6936170212765957,
+      "merge_rate": 0.0,
+      "split_rate": 0.15731747244352287,
+      "different_reference_pairs": 240,
+      "same_reference_pairs": 18326,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 810,
+          "coverage": 0.7721639656816015
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 5,
+          "coverage": 0.0423728813559322
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "graph_sce_scale",
+      "partition": "fh4",
+      "seed": 20261101,
+      "assigned_evaluated_elements": 1093,
+      "evaluated_elements": 1175,
+      "coverage": 0.9302127659574468,
+      "merge_rate": 0.7880571909167368,
+      "split_rate": 0.01723388848660391,
+      "different_reference_pairs": 5945,
+      "same_reference_pairs": 27620,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 989,
+          "coverage": 0.9428026692087702
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 8,
+          "coverage": 1.0
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 96,
+          "coverage": 0.8135593220338984
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "graph_sce_scale",
+      "partition": "mws",
+      "seed": 20261101,
+      "assigned_evaluated_elements": 575,
+      "evaluated_elements": 1175,
+      "coverage": 0.48936170212765956,
+      "merge_rate": 0.016713091922005572,
+      "split_rate": 0.15976868125637828,
+      "different_reference_pairs": 718,
+      "same_reference_pairs": 8819,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 552,
+          "coverage": 0.5262154432793136
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 2,
+          "coverage": 0.25
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 21,
+          "coverage": 0.17796610169491525
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "graph_sce_scale",
+      "partition": "fh4",
+      "seed": 20261102,
+      "assigned_evaluated_elements": 1070,
+      "evaluated_elements": 1175,
+      "coverage": 0.9106382978723404,
+      "merge_rate": 0.8744769874476988,
+      "split_rate": 0.023511381901095203,
+      "different_reference_pairs": 5497,
+      "same_reference_pairs": 26753,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 973,
+          "coverage": 0.9275500476644424
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 8,
+          "coverage": 1.0
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 89,
+          "coverage": 0.7542372881355932
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "graph_sce_scale",
+      "partition": "mws",
+      "seed": 20261102,
+      "assigned_evaluated_elements": 517,
+      "evaluated_elements": 1175,
+      "coverage": 0.44,
+      "merge_rate": 0.04612850082372323,
+      "split_rate": 0.21799746514575413,
+      "different_reference_pairs": 607,
+      "same_reference_pairs": 7101,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 495,
+          "coverage": 0.4718779790276454
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 4,
+          "coverage": 0.5
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 18,
+          "coverage": 0.15254237288135594
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "graph_sce_scale",
+      "partition": "fh4",
+      "seed": 20261103,
+      "assigned_evaluated_elements": 1071,
+      "evaluated_elements": 1175,
+      "coverage": 0.9114893617021277,
+      "merge_rate": 0.7303077725612936,
+      "split_rate": 0.02511979634621144,
+      "different_reference_pairs": 5751,
+      "same_reference_pairs": 26712,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 970,
+          "coverage": 0.9246901811248809
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 7,
+          "coverage": 0.875
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 94,
+          "coverage": 0.7966101694915254
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "graph_sce_scale",
+      "partition": "mws",
+      "seed": 20261103,
+      "assigned_evaluated_elements": 632,
+      "evaluated_elements": 1175,
+      "coverage": 0.5378723404255319,
+      "merge_rate": 0.04052443384982122,
+      "split_rate": 0.308463773549536,
+      "different_reference_pairs": 839,
+      "same_reference_pairs": 10669,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 610,
+          "coverage": 0.5815061963775023
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 1,
+          "coverage": 0.125
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 21,
+          "coverage": 0.17796610169491525
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "graph_untrained",
+      "partition": "fh4",
+      "seed": 20261101,
+      "assigned_evaluated_elements": 1117,
+      "evaluated_elements": 1175,
+      "coverage": 0.9506382978723404,
+      "merge_rate": 0.6933395004625347,
+      "split_rate": 0.004845335486815772,
+      "different_reference_pairs": 6486,
+      "same_reference_pairs": 28481,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 1006,
+          "coverage": 0.9590085795996187
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 8,
+          "coverage": 1.0
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 103,
+          "coverage": 0.8728813559322034
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "graph_untrained",
+      "partition": "mws",
+      "seed": 20261101,
+      "assigned_evaluated_elements": 684,
+      "evaluated_elements": 1175,
+      "coverage": 0.5821276595744681,
+      "merge_rate": 0.08925318761384335,
+      "split_rate": 0.3038176456523472,
+      "different_reference_pairs": 1098,
+      "same_reference_pairs": 12547,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 660,
+          "coverage": 0.6291706387035272
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 24,
+          "coverage": 0.2033898305084746
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "graph_untrained",
+      "partition": "fh4",
+      "seed": 20261102,
+      "assigned_evaluated_elements": 1097,
+      "evaluated_elements": 1175,
+      "coverage": 0.9336170212765957,
+      "merge_rate": 0.8489926903191299,
+      "split_rate": 0.0007828902886018291,
+      "different_reference_pairs": 5609,
+      "same_reference_pairs": 28101,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 1000,
+          "coverage": 0.9532888465204957
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 7,
+          "coverage": 0.875
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 90,
+          "coverage": 0.7627118644067796
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "graph_untrained",
+      "partition": "mws",
+      "seed": 20261102,
+      "assigned_evaluated_elements": 758,
+      "evaluated_elements": 1175,
+      "coverage": 0.6451063829787234,
+      "merge_rate": null,
+      "split_rate": 0.1468400325060949,
+      "different_reference_pairs": 0,
+      "same_reference_pairs": 15997,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 758,
+          "coverage": 0.7225929456625357
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "graph_untrained",
+      "partition": "fh4",
+      "seed": 20261103,
+      "assigned_evaluated_elements": 1111,
+      "evaluated_elements": 1175,
+      "coverage": 0.945531914893617,
+      "merge_rate": 0.941299117882919,
+      "split_rate": 0.0,
+      "different_reference_pairs": 6235,
+      "same_reference_pairs": 28397,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 1004,
+          "coverage": 0.9571020019065777
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 8,
+          "coverage": 1.0
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 99,
+          "coverage": 0.8389830508474576
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "graph_untrained",
+      "partition": "mws",
+      "seed": 20261103,
+      "assigned_evaluated_elements": 661,
+      "evaluated_elements": 1175,
+      "coverage": 0.5625531914893617,
+      "merge_rate": 0.2084592145015106,
+      "split_rate": 0.34171925635340267,
+      "different_reference_pairs": 662,
+      "same_reference_pairs": 11726,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 644,
+          "coverage": 0.6139180171591992
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 3,
+          "coverage": 0.375
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 14,
+          "coverage": 0.11864406779661017
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "legacy15",
+      "partition": "legacy15",
+      "seed": null,
+      "assigned_evaluated_elements": 926,
+      "evaluated_elements": 1175,
+      "coverage": 0.7880851063829787,
+      "merge_rate": null,
+      "split_rate": 0.0,
+      "different_reference_pairs": 0,
+      "same_reference_pairs": 23910,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 1049,
+          "assigned_elements": 926,
+          "coverage": 0.882745471877979
+        },
+        "2": {
+          "reference_elements": 8,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 118,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "geometry",
+      "partition": "fh4",
+      "seed": null,
+      "assigned_evaluated_elements": 176,
+      "evaluated_elements": 204,
+      "coverage": 0.8627450980392157,
+      "merge_rate": 1.0,
+      "split_rate": 0.0,
+      "different_reference_pairs": 24,
+      "same_reference_pairs": 798,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 174,
+          "coverage": 0.8656716417910447
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 2,
+          "coverage": 0.6666666666666666
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "geometry",
+      "partition": "mws",
+      "seed": null,
+      "assigned_evaluated_elements": 0,
+      "evaluated_elements": 204,
+      "coverage": 0.0,
+      "merge_rate": null,
+      "split_rate": null,
+      "different_reference_pairs": 0,
+      "same_reference_pairs": 0,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_sce",
+      "partition": "fh4",
+      "seed": 20261101,
+      "assigned_evaluated_elements": 181,
+      "evaluated_elements": 204,
+      "coverage": 0.8872549019607843,
+      "merge_rate": 1.0,
+      "split_rate": 0.0,
+      "different_reference_pairs": 28,
+      "same_reference_pairs": 850,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 179,
+          "coverage": 0.8905472636815921
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 2,
+          "coverage": 0.6666666666666666
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_sce",
+      "partition": "mws",
+      "seed": 20261101,
+      "assigned_evaluated_elements": 0,
+      "evaluated_elements": 204,
+      "coverage": 0.0,
+      "merge_rate": null,
+      "split_rate": null,
+      "different_reference_pairs": 0,
+      "same_reference_pairs": 0,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_sce",
+      "partition": "fh4",
+      "seed": 20261102,
+      "assigned_evaluated_elements": 188,
+      "evaluated_elements": 204,
+      "coverage": 0.9215686274509803,
+      "merge_rate": 1.0,
+      "split_rate": 0.0,
+      "different_reference_pairs": 42,
+      "same_reference_pairs": 915,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 185,
+          "coverage": 0.9203980099502488
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 3,
+          "coverage": 1.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_sce",
+      "partition": "mws",
+      "seed": 20261102,
+      "assigned_evaluated_elements": 0,
+      "evaluated_elements": 204,
+      "coverage": 0.0,
+      "merge_rate": null,
+      "split_rate": null,
+      "different_reference_pairs": 0,
+      "same_reference_pairs": 0,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_sce",
+      "partition": "fh4",
+      "seed": 20261103,
+      "assigned_evaluated_elements": 187,
+      "evaluated_elements": 204,
+      "coverage": 0.9166666666666666,
+      "merge_rate": 1.0,
+      "split_rate": 0.0,
+      "different_reference_pairs": 42,
+      "same_reference_pairs": 907,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 184,
+          "coverage": 0.9154228855721394
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 3,
+          "coverage": 1.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_sce",
+      "partition": "mws",
+      "seed": 20261103,
+      "assigned_evaluated_elements": 0,
+      "evaluated_elements": 204,
+      "coverage": 0.0,
+      "merge_rate": null,
+      "split_rate": null,
+      "different_reference_pairs": 0,
+      "same_reference_pairs": 0,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_sce_scale",
+      "partition": "fh4",
+      "seed": 20261101,
+      "assigned_evaluated_elements": 178,
+      "evaluated_elements": 204,
+      "coverage": 0.8725490196078431,
+      "merge_rate": 1.0,
+      "split_rate": 0.0,
+      "different_reference_pairs": 36,
+      "same_reference_pairs": 810,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 175,
+          "coverage": 0.8706467661691543
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 3,
+          "coverage": 1.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_sce_scale",
+      "partition": "mws",
+      "seed": 20261101,
+      "assigned_evaluated_elements": 0,
+      "evaluated_elements": 204,
+      "coverage": 0.0,
+      "merge_rate": null,
+      "split_rate": null,
+      "different_reference_pairs": 0,
+      "same_reference_pairs": 0,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_sce_scale",
+      "partition": "fh4",
+      "seed": 20261102,
+      "assigned_evaluated_elements": 183,
+      "evaluated_elements": 204,
+      "coverage": 0.8970588235294118,
+      "merge_rate": 1.0,
+      "split_rate": 0.0,
+      "different_reference_pairs": 42,
+      "same_reference_pairs": 862,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 180,
+          "coverage": 0.8955223880597015
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 3,
+          "coverage": 1.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_sce_scale",
+      "partition": "mws",
+      "seed": 20261102,
+      "assigned_evaluated_elements": 0,
+      "evaluated_elements": 204,
+      "coverage": 0.0,
+      "merge_rate": null,
+      "split_rate": null,
+      "different_reference_pairs": 0,
+      "same_reference_pairs": 0,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_sce_scale",
+      "partition": "fh4",
+      "seed": 20261103,
+      "assigned_evaluated_elements": 181,
+      "evaluated_elements": 204,
+      "coverage": 0.8872549019607843,
+      "merge_rate": 1.0,
+      "split_rate": 0.0,
+      "different_reference_pairs": 36,
+      "same_reference_pairs": 841,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 178,
+          "coverage": 0.8855721393034826
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 3,
+          "coverage": 1.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_sce_scale",
+      "partition": "mws",
+      "seed": 20261103,
+      "assigned_evaluated_elements": 0,
+      "evaluated_elements": 204,
+      "coverage": 0.0,
+      "merge_rate": null,
+      "split_rate": null,
+      "different_reference_pairs": 0,
+      "same_reference_pairs": 0,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_untrained",
+      "partition": "fh4",
+      "seed": 20261101,
+      "assigned_evaluated_elements": 188,
+      "evaluated_elements": 204,
+      "coverage": 0.9215686274509803,
+      "merge_rate": 1.0,
+      "split_rate": 0.0,
+      "different_reference_pairs": 42,
+      "same_reference_pairs": 915,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 185,
+          "coverage": 0.9203980099502488
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 3,
+          "coverage": 1.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_untrained",
+      "partition": "mws",
+      "seed": 20261101,
+      "assigned_evaluated_elements": 0,
+      "evaluated_elements": 204,
+      "coverage": 0.0,
+      "merge_rate": null,
+      "split_rate": null,
+      "different_reference_pairs": 0,
+      "same_reference_pairs": 0,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_untrained",
+      "partition": "fh4",
+      "seed": 20261102,
+      "assigned_evaluated_elements": 183,
+      "evaluated_elements": 204,
+      "coverage": 0.8970588235294118,
+      "merge_rate": 1.0,
+      "split_rate": 0.0,
+      "different_reference_pairs": 39,
+      "same_reference_pairs": 862,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 180,
+          "coverage": 0.8955223880597015
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 3,
+          "coverage": 1.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_untrained",
+      "partition": "mws",
+      "seed": 20261102,
+      "assigned_evaluated_elements": 0,
+      "evaluated_elements": 204,
+      "coverage": 0.0,
+      "merge_rate": null,
+      "split_rate": null,
+      "different_reference_pairs": 0,
+      "same_reference_pairs": 0,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_untrained",
+      "partition": "fh4",
+      "seed": 20261103,
+      "assigned_evaluated_elements": 183,
+      "evaluated_elements": 204,
+      "coverage": 0.8970588235294118,
+      "merge_rate": 1.0,
+      "split_rate": 0.0,
+      "different_reference_pairs": 39,
+      "same_reference_pairs": 853,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 180,
+          "coverage": 0.8955223880597015
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 3,
+          "coverage": 1.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "graph_untrained",
+      "partition": "mws",
+      "seed": 20261103,
+      "assigned_evaluated_elements": 0,
+      "evaluated_elements": 204,
+      "coverage": 0.0,
+      "merge_rate": null,
+      "split_rate": null,
+      "different_reference_pairs": 0,
+      "same_reference_pairs": 0,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "legacy15",
+      "partition": "legacy15",
+      "seed": null,
+      "assigned_evaluated_elements": 165,
+      "evaluated_elements": 204,
+      "coverage": 0.8088235294117647,
+      "merge_rate": null,
+      "split_rate": 0.0,
+      "different_reference_pairs": 0,
+      "same_reference_pairs": 693,
+      "per_orientation_group": {
+        "1": {
+          "reference_elements": 201,
+          "assigned_elements": 165,
+          "coverage": 0.8208955223880597
+        },
+        "2": {
+          "reference_elements": 3,
+          "assigned_elements": 0,
+          "coverage": 0.0
+        },
+        "3": {
+          "reference_elements": 0,
+          "assigned_elements": 0,
+          "coverage": null
+        }
+      }
+    }
+  ],
+  "continuation": [
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "geometry",
+        "latent": null,
+        "partition": "fh4"
+      },
+      "primary": false,
+      "controls_passed": false,
+      "stability_passed": true,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "geometry",
+        "latent": null,
+        "partition": "mws"
+      },
+      "primary": false,
+      "controls_passed": false,
+      "stability_passed": true,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "graph_sce_scale",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "primary": true,
+      "controls_passed": false,
+      "stability_passed": false,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "graph_sce_scale",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "primary": true,
+      "controls_passed": false,
+      "stability_passed": false,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "graph_untrained",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "primary": false,
+      "controls_passed": false,
+      "stability_passed": false,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "graph_untrained",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "primary": false,
+      "controls_passed": false,
+      "stability_passed": false,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "graph_sce",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "primary": false,
+      "controls_passed": false,
+      "stability_passed": false,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "graph_sce",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "primary": false,
+      "controls_passed": false,
+      "stability_passed": false,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "geometry",
+        "latent": null,
+        "partition": "fh4"
+      },
+      "primary": false,
+      "controls_passed": false,
+      "stability_passed": true,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "geometry",
+        "latent": null,
+        "partition": "mws"
+      },
+      "primary": false,
+      "controls_passed": false,
+      "stability_passed": true,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "graph_sce_scale",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "primary": true,
+      "controls_passed": false,
+      "stability_passed": false,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "graph_sce_scale",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "primary": true,
+      "controls_passed": false,
+      "stability_passed": false,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "graph_untrained",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "primary": false,
+      "controls_passed": false,
+      "stability_passed": false,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "graph_untrained",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "primary": false,
+      "controls_passed": false,
+      "stability_passed": false,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "legacy15",
+        "latent": null,
+        "partition": "legacy15"
+      },
+      "primary": false,
+      "controls_passed": false,
+      "stability_passed": true,
+      "continuation_passed": false,
+      "qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "legacy15",
+        "latent": null,
+        "partition": "legacy15"
+      },
+      "primary": false,
+      "controls_passed": false,
+      "stability_passed": true,
+      "continuation_passed": false,
+      "qualified": false
+    }
+  ],
+  "partial_benefits": [
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "graph_sce_scale",
+        "latent": 32,
+        "scale_px": 72,
+        "sampler": "centers",
+        "partition": "fh4",
+        "kind": "synthetic",
+        "case": "phase_boundary",
+        "baseline_family": "graph_untrained",
+        "stage": "before"
+      },
+      "benefit": {
+        "seed_count": 3,
+        "error_gain_median": 0.14022140221402216,
+        "coverage_gain_median": 0.0,
+        "error_path": true,
+        "coverage_path": false,
+        "benefit_condition": true,
+        "requires_all_control_and_stability_gates": true,
+        "interpretation": "Benefit condition only; STM claim also requires benefit on evaluable TTMAPP and held-out controls"
+      }
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "graph_sce_scale",
+        "latent": 32,
+        "scale_px": 72,
+        "sampler": "centers",
+        "partition": "fh4",
+        "kind": "synthetic",
+        "case": "phase_boundary",
+        "baseline_family": "graph_untrained",
+        "stage": "after"
+      },
+      "benefit": {
+        "seed_count": 3,
+        "error_gain_median": 0.13999999999999999,
+        "coverage_gain_median": 0.0,
+        "error_path": true,
+        "coverage_path": false,
+        "benefit_condition": true,
+        "requires_all_control_and_stability_gates": true,
+        "interpretation": "Benefit condition only; STM claim also requires benefit on evaluable TTMAPP and held-out controls"
+      }
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "graph_sce",
+        "latent": 32,
+        "scale_px": 72,
+        "sampler": "centers",
+        "partition": "fh4",
+        "kind": "synthetic",
+        "case": "disordered_band",
+        "baseline_family": "geometry",
+        "stage": "before"
+      },
+      "benefit": {
+        "seed_count": 3,
+        "error_gain_median": 0.05858599205586523,
+        "coverage_gain_median": 0.0,
+        "error_path": true,
+        "coverage_path": false,
+        "benefit_condition": true,
+        "requires_all_control_and_stability_gates": true,
+        "interpretation": "Benefit condition only; STM claim also requires benefit on evaluable TTMAPP and held-out controls"
+      }
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "graph_sce",
+        "latent": 32,
+        "scale_px": 72,
+        "sampler": "centers",
+        "partition": "fh4",
+        "kind": "synthetic",
+        "case": "disordered_band",
+        "baseline_family": "geometry",
+        "stage": "after"
+      },
+      "benefit": {
+        "seed_count": 3,
+        "error_gain_median": 0.06312482147957726,
+        "coverage_gain_median": -0.002967359050445104,
+        "error_path": true,
+        "coverage_path": false,
+        "benefit_condition": true,
+        "requires_all_control_and_stability_gates": true,
+        "interpretation": "Benefit condition only; STM claim also requires benefit on evaluable TTMAPP and held-out controls"
+      }
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "graph_sce_scale",
+        "latent": 32,
+        "scale_px": 72,
+        "sampler": "centers",
+        "partition": "fh4",
+        "kind": "synthetic",
+        "case": "disordered_band",
+        "baseline_family": "geometry",
+        "stage": "after"
+      },
+      "benefit": {
+        "seed_count": 3,
+        "error_gain_median": 0.06910127613358676,
+        "coverage_gain_median": -0.05637982195845697,
+        "error_path": true,
+        "coverage_path": false,
+        "benefit_condition": true,
+        "requires_all_control_and_stability_gates": true,
+        "interpretation": "Benefit condition only; STM claim also requires benefit on evaluable TTMAPP and held-out controls"
+      }
+    }
+  ],
+  "any_primary_qualified": false,
+  "resource_reports": {
+    "browser-1.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 2.22862228,
+      "wall_seconds": 10.078842627000995,
+      "max_rss_bytes": 675852288,
+      "prior_cpu_seconds": 216.48128337
+    },
+    "data-preparation-resources.json": {
+      "schema": "stmdomains-graph24-preparation-resource-audit-v1",
+      "status": "completed",
+      "scope": "Separately measured deterministic preparation replay, including controls generation, feature construction and cache writing; original preparation CPU/RSS were not instrumented",
+      "cpu_seconds": 9.90241864,
+      "wall_seconds": 9.904520946001867,
+      "max_rss_bytes": 112914432,
+      "original_preparation_wall_seconds": 8.953292745994986,
+      "original_preparation_cpu_seconds": null,
+      "original_preparation_rss_bytes": null,
+      "verified_same_samples": 117,
+      "control_realizations": 93,
+      "cache_content_and_rows_identical": true,
+      "original_manifest_sha256": "8db403a3f85c81744c799806dd0934a45bffa64c59638c8aa2054a929bfe845c",
+      "replay_manifest_sha256": "a5e1056c9f0ef77b21a85077ba2b0e1f2c55ae2fcfbdb2139cbd7929b97eb6e9",
+      "replay_directory": "/home/rlew/projekty/NEtCAT-domains/.scratch/graph-ssl-24-preparation-replay",
+      "source_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/stmdomains/experiments/training/graph_ssl/data.py": "80594cf8276d758b5923724df21edca46adf7779434a45c7545fa2caa54ce41b",
+        "/home/rlew/projekty/NEtCAT-domains/stmdomains/experiments/training/graph_ssl/controls.py": "3bf64f6ada55d9a1658c8f0700807b98c55f95111e839ff28e3f60f635fe79eb"
+      },
+      "training_or_prediction_performed": false
+    },
+    "encode.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 40.181331705,
+      "wall_seconds": 40.105384494003374,
+      "max_rss_bytes": 1209360384
+    },
+    "evaluation.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 11.693898329,
+      "prior_cpu_seconds": 202.26897158100002,
+      "cumulative_postprocess_cpu_seconds": 213.96286991000002,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 11.69472248099919,
+      "max_rss_kib": 1295680,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/graph-ssl-24/data-preparation-resources.json": "ae566da00d01cb9dfb0b58a50fb9cf24ba79c932201e0186a82a054993638896",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/graph-ssl-24/encode.resources.json": "c3ecdabc24b66568b95546e9fb737a6866979bf6c8b707089368df880a2b37ac",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/graph-ssl-24/freeze.resources.json": "703c253be0920edf7d120e7bc7c858d76f7b1d56f5ea070f0355ad543bdf1df4",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/graph-ssl-24/geometry.resources.json": "19a2b916596e05f9250b8bc4b48dbb4dd83db94dd6675a322f08ab19c82a65fd",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/graph-ssl-24/input-audit.resources.json": "bcb6557abac8c7b6d43cf5b7564298492170d4f14ef6add6f21e96dd22a4d7e1",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/graph-ssl-24/partition.resources.json": "1252bbc72e426b9397160207c13eb652508c47759b93c18963fc34281d589f57",
+        "/home/rlew/projekty/NEtCAT-domains/.scratch/graph-ssl-24/training-audit.resources.json": "1adffd4f2203f00d19e2bc1c76c9eccd95f2b4acf2c9d8409aa54882d1518267"
+      }
+    },
+    "final-integrity.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 0.399344735,
+      "wall_seconds": 0.4038654509931803,
+      "max_rss_bytes": 39034880
+    },
+    "freeze.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 0.878325317,
+      "wall_seconds": 0.8839903670013882,
+      "max_rss_bytes": 674508800
+    },
+    "gallery.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 2.1160649129999998,
+      "wall_seconds": 2.116218019000371,
+      "max_rss_bytes": 198508544,
+      "prior_cpu_seconds": 214.365218457
+    },
+    "geometry.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 56.829027192,
+      "wall_seconds": 56.83261438399495,
+      "max_rss_bytes": 700784640
+    },
+    "input-audit.resources.json": {
+      "status": "completed",
+      "scope": "Final read-only graph24 input technical audit and copies of existing technical evidence",
+      "cpu_seconds": 2.727175187,
+      "wall_seconds": 2.7276083960023243,
+      "max_rss_bytes": 164470784,
+      "copied_resource_reports_are_not_new_executions": true
+    },
+    "metrics-audit.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 5.432346462,
+      "wall_seconds": 5.43278787098825,
+      "max_rss_bytes": 1109532672,
+      "audit_script_sha256": "63abd2847e265f7103805d276a3012160ac05119abde5c0def224d9adbe2e2cc",
+      "evaluation_modified": false,
+      "predictions_modified": false
+    },
+    "partition.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 90.913514375,
+      "wall_seconds": 90.92721472099947,
+      "max_rss_bytes": 711344128
+    },
+    "prediction-audit.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 16.540363791,
+      "wall_seconds": 16.54231422400335,
+      "max_rss_bytes": 140554240
+    },
+    "single-ego-diagnostic.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 0.17278500300000002,
+      "wall_seconds": 0.172822801003349,
+      "max_rss_bytes": 98836480
+    },
+    "summary.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 0.402348547,
+      "wall_seconds": 0.402436263000709,
+      "max_rss_bytes": 183054336
+    },
+    "training-audit.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 0.837179165,
+      "wall_seconds": 0.8372307079989696,
+      "max_rss_bytes": 612311040
+    }
+  },
+  "measured_postprocessing_cpu_seconds": 241.254745641,
+  "resource_limitation": "Original preparation CPU/RSS uninstrumented; replay separately measured. Resource reports measure listed stages, not entire interactive session. Copies excluded.",
+  "numerical_source_sha256": {
+    "stmdomains/experiments/training/graph_ssl/__init__.py": "b0afbb9271b1caa1b9f8ca797b7e3c273f6edd8cd9d5c8ebe791374299429279",
+    "stmdomains/experiments/training/graph_ssl/data.py": "80594cf8276d758b5923724df21edca46adf7779434a45c7545fa2caa54ce41b",
+    "stmdomains/experiments/training/graph_ssl/controls.py": "3bf64f6ada55d9a1658c8f0700807b98c55f95111e839ff28e3f60f635fe79eb",
+    "stmdomains/experiments/training/graph_ssl/models.py": "d24f83739eea1472d6047b6e78c29656f0febd7761334acf37c03c931a52929a",
+    "stmdomains/experiments/training/graph_ssl/fit.py": "fcd14ca689e5bfd605664400612df9e9845968618578c20a4d6f1f0f1696b74f",
+    "stmdomains/experiments/training/graph_ssl/legacy_geometry.py": "c574d299c38af9c43060fa6bb652af6ca1822e94f87719db37d64d9e5fc50350",
+    "stmdomains/experiments/training/graph_ssl/predict.py": "12e721d859f4d8e7101b8e30c2d4c2f11fd254e48471da6573ed6652bac93de1",
+    "stmdomains/experiments/training/graph_ssl/prepare.py": "67bc81084d999a047709b8540aa42f03488085479f9c1efe518ee8d81c180d51",
+    "stmdomains/experiments/training/graph_ssl/evaluation.py": "89694ec3dd949f37621927eb3212deeafb4f3ecf4e131a0b89282312aa73cd6f",
+    "stmdomains/experiments/training/graph_ssl/summary.py": "485fd8e1a55f7305d86112a83054e723d6c7c9af9a106de17644da63eced6296",
+    "stmdomains/experiments/training/partition.py": "6bd03509c7c318a28aa429723a466237d25224a38760822f21918a7a55cca8b2",
+    "stmdomains/experiments/training/evaluate.py": "70df041537b87996246a6bcd96cf5d06720a3049b6dec37e3eea73dc1c022261",
+    "stmdomains/experiments/training/data.py": "0958eceb8196a32e84c3e5d4f8ba6b589742396747029d28d97db3ff3161205e",
+    "stmdomains/experiments/training/controls.py": "6f9a45afa53162417f8b9fc43b1632093d45d06ca6b96c9b49abdb1745e7172a",
+    "stmdomains/experiments/training/checkpoint.py": "e19068623d963dac64215fdc8fb43f9988960d5cb4508a27c03429c1e097a58e",
+    "stmdomains/experiments/bundle.py": "67dcc4d30e6e6ddc0f6395b142524bd308a4a1d5ccf805bcc922e6133e694b41",
+    "stmdomains/experiments/controls.py": "b0c13c133136cd8d9a8e270d464cac3a242c987f1b6b7dc5c2d5d089aac51719",
+    "stmdomains/experiments/results.py": "321ca3fc527ad2ed3e9db299646133e5b6e53cbfe5157315be785d79f5dd9aea"
+  },
+  "current_supporting_source_sha256": {
+    "stmdomains/experiments/training/graph_ssl/README.md": "c2acaa2dfafa35512c0ab1801f03004472608f0093a42e7f8b4e863c356016d4",
+    "stmdomains/experiments/training/graph_ssl/__init__.py": "b0afbb9271b1caa1b9f8ca797b7e3c273f6edd8cd9d5c8ebe791374299429279",
+    "stmdomains/experiments/training/graph_ssl/audit_predictions.py": "7e792a7472e393cb93712027dc18b1fc18896b23b45d675318a81a4934248708",
+    "stmdomains/experiments/training/graph_ssl/check_browser.py": "d398d41218732815c4cd0dd9560ca159bafc8eca087bbe767a6c91a98040b6cf",
+    "stmdomains/experiments/training/graph_ssl/controls.py": "3bf64f6ada55d9a1658c8f0700807b98c55f95111e839ff28e3f60f635fe79eb",
+    "stmdomains/experiments/training/graph_ssl/data.py": "80594cf8276d758b5923724df21edca46adf7779434a45c7545fa2caa54ce41b",
+    "stmdomains/experiments/training/graph_ssl/evaluation.py": "89694ec3dd949f37621927eb3212deeafb4f3ecf4e131a0b89282312aa73cd6f",
+    "stmdomains/experiments/training/graph_ssl/fit.py": "fcd14ca689e5bfd605664400612df9e9845968618578c20a4d6f1f0f1696b74f",
+    "stmdomains/experiments/training/graph_ssl/gallery.py": "84f77ee44d1e0142b6e3f3e1d3d39a10525dbb3743cf97cd9e3c19e9e4dc2da2",
+    "stmdomains/experiments/training/graph_ssl/legacy_geometry.py": "c574d299c38af9c43060fa6bb652af6ca1822e94f87719db37d64d9e5fc50350",
+    "stmdomains/experiments/training/graph_ssl/models.py": "d24f83739eea1472d6047b6e78c29656f0febd7761334acf37c03c931a52929a",
+    "stmdomains/experiments/training/graph_ssl/predict.py": "12e721d859f4d8e7101b8e30c2d4c2f11fd254e48471da6573ed6652bac93de1",
+    "stmdomains/experiments/training/graph_ssl/prepare.py": "67bc81084d999a047709b8540aa42f03488085479f9c1efe518ee8d81c180d51",
+    "stmdomains/experiments/training/graph_ssl/summary.py": "485fd8e1a55f7305d86112a83054e723d6c7c9af9a106de17644da63eced6296"
+  },
+  "artifact_sha256": {
+    "audits/data-cache-replay-audit.json": "580bb4e4d595d89a38433cfb435486fe3da60fdda91eee014f1e90e1ea622503",
+    "audits/data-preparation-resources.json": "ae566da00d01cb9dfb0b58a50fb9cf24ba79c932201e0186a82a054993638896",
+    "audits/data-split-audit.json": "0234c89eab6e5885f148e756e0ace468c7b3521c84f6c049bc0842c5d1fc031e",
+    "audits/data-technical-audit.json": "64cce9a366453b3cb248b2c9da5e46c96f0b3adb80aae95ec7090404f250f902",
+    "audits/evaluation-technical.json": "87301943854896c978d51f4ff3fad4e6a45766ecc67d0c80e1277068f8d725cf",
+    "audits/input-final-technical.json": "717400040df87868fd27997213d59bf6e3971b06b33efc50fa624787c5b79824",
+    "audits/input-limitations.md": "33c49a280a125c54d66955af08aff4973d6a7ca9e198512eddea2eab73f1bb76",
+    "audits/metrics-review.json": "cfe5c0f26fed10d14804093ed8f4e3989b0d55aef3233df75118ada674d4cdbf",
+    "audits/metrics-review.md": "9a1abdca671184ae46bf13ab79730ef17d69f6db50d26c87c3e2787302fc15c2",
+    "audits/metrics-review.py": "63abd2847e265f7103805d276a3012160ac05119abde5c0def224d9adbe2e2cc",
+    "audits/prediction-technical.json": "ac11dc54b4d56c7cab41d2e5c6f6ba0d0a9849e78b6fa7e56b3a71c63d576c5b",
+    "audits/reproduction.json": "9f155ab8dd04da371cc5936d78990b061cdbae6a317da6cdf97c7643e9293a83",
+    "audits/single-ego-boundary-diagnostic.json": "67f859d213a2d5ab27d3c9aebbb1fce222c884c7d393c3ab8ccece9db54adc4c",
+    "browser-1.resources.json": "c729cf79178288d5d0b7a289ef4b645e548794e2a112bad764a18595ededb256",
+    "controls/analysis/manifest.json": "e6ba093de25ffd6122d3a47f6d8bf4ab4a32899a92fb6d67999b45344841b9e7",
+    "controls/evaluation/manifest.json": "294964f673f3f5da72891f1a4e1844ae525fbbbd11040669993833ff58532c9b",
+    "data-preparation-resources.json": "ae566da00d01cb9dfb0b58a50fb9cf24ba79c932201e0186a82a054993638896",
+    "encode.resources.json": "c3ecdabc24b66568b95546e9fb737a6866979bf6c8b707089368df880a2b37ac",
+    "evaluation/ablations.csv": "08633be5defda759fb39c51903e8caa439d39659a1d61d1f49efae627755a61d",
+    "evaluation/ablations.json": "72920b4c72f0ce983ff54482e0d203da33be64ad64f02158f8f18eccd639826f",
+    "evaluation/aggregates.csv": "e830ad17d237a888af4a9f050ba42c64b35ccc313a58bcfdf7fdb980f9a46be3",
+    "evaluation/aggregates.json": "547efa355228c3fa1b56351fa3179174fd696de235db4be38f1a3ebe61ce8f2d",
+    "evaluation/benefits.csv": "07f65c897a7ce0fb9ee51c6f8111aa1ad89f7d1e4bd4e278c879d797391ece4b",
+    "evaluation/benefits.json": "ca5d51145a0054d1e197c116c8c70fcbf2ffc9a312a7d162046334cd58c245c4",
+    "evaluation/comparisons.csv": "494e44b4b0e0d94ae909257f60be816bca53848edac66b46a3a6e50642e3089e",
+    "evaluation/comparisons.json": "4f68bdb90cfcb784ba67d3c585648cca053091f5f342430d50b4f9ad49e53964",
+    "evaluation/continuation.csv": "718a7ecef403af54676ac8e81daeb0e7610d0100526da884095a78f4866cc6ad",
+    "evaluation/continuation.json": "da88f8f36db1767aa6438656d4db242b52b68c2a1f877f560fb34aa27a7bc1cd",
+    "evaluation/evaluation-evidence.json": "bdad690f2de363fe685c69e99b8ed34b7a7c1cbef7b8ae828aadf284baf0c0e8",
+    "evaluation/metrics.csv": "d94bf8fbced7a3b38ed19e3de9667c4fa964ad1f451b98415abc219eba44a4a3",
+    "evaluation/pooled-comparisons.csv": "8d7be2f5158d5a144dd190c48e7b30c521297289ba253823973686a193df9be0",
+    "evaluation/pooled-comparisons.json": "b18789030632c9ca1646c9eeaa8ad0996cd46c0e0eebb42a45f65708509fbbed",
+    "evaluation/regions.csv": "b7b4b433ac0c62994211d46add7679a49364b51b806a3a5929e6dd6d6df43897",
+    "evaluation/stability.csv": "f4ee4d7efe754e67a71d71fe2419446613f543bbc5e8cf3dde50b179a3cab139",
+    "evaluation/stability.json": "4e2e57276f1d62a7c6000613101adf5cb33d1e0821c64195050ec41023c33705",
+    "evaluation/summary.json": "d45e7f5804d12b7bde0de27d454e0a18b65854f9d27b3389954f6e21dbabf9e7",
+    "evaluation.resources.json": "c487aa1f3076efa717f1a3be48d4acefd4a6967a9c8eb52606c3faae6da3dc12",
+    "freeze.resources.json": "703c253be0920edf7d120e7bc7c858d76f7b1d56f5ea070f0355ad543bdf1df4",
+    "frozen-predictions.json": "26e74faac4df6be00d454f792be1e34dab2a8cf86a844e6ee0180a5b46558ded",
+    "gallery/browser/browser-check.json": "7809d287da2636233e1078d8a35345c38a0456640c67587992edcf7a6d2fed7a",
+    "gallery/browser/jitter-trained.png": "28c18ea76871ce8fbdb21e0ceea5409d815355b7006f9dc3ffc464054b1735c3",
+    "gallery/browser/missing-trained.png": "b025f4196de759bff2e94cf475ed60d74d62ae47466e20942c4dabcd13e61ab9",
+    "gallery/browser/phase-trained.png": "ef7e780b47015c8e4852fed90dacd26c985c64dfe86587dd05999d9aded9d5cd",
+    "gallery/browser/ttmapp-geometry-test.png": "ab8a2bad4609999a1b331399887a392ecece31ad5ed26afbf161efef43e12bd9",
+    "gallery/browser/ttmapp-trained-context.png": "a5ef819abe2c801a27fcd02a65b72bfc8c5d18483fbc1c14484881ba3ecfe695",
+    "gallery/manifest.json": "c8ef3a2c343b925466b33b85c695fb04a56b1705621d399d120e16cb6c30428d",
+    "gallery/visual-inspection.json": "e792f8cc874bee0eeaba803ce2c2d01c286afd1ece6927fe2d360d540661d9ed",
+    "gallery.resources.json": "d0d0c3ba66409a950355b7457c2a67b5949e30668d86a48ccfb164a7c3ebb168",
+    "geometry.resources.json": "19a2b916596e05f9250b8bc4b48dbb4dd83db94dd6675a322f08ab19c82a65fd",
+    "index.html": "dabc5f2d6d548c82dbb0727f16d70c8c9bec696a5dc722ed2a380a839c5ad8b0",
+    "input-audit.resources.json": "bcb6557abac8c7b6d43cf5b7564298492170d4f14ef6add6f21e96dd22a4d7e1",
+    "metrics-audit.resources.json": "828f2f51773e7a73eb71e782a3856beb95080ddd584c4f978f4c0b63c3cf3b3e",
+    "partition.resources.json": "1252bbc72e426b9397160207c13eb652508c47759b93c18963fc34281d589f57",
+    "plan.json": "f937b512983eed8a92cfbc8c4aea9ee5d20a9b714b761c0352841dd8a1a1ab5a",
+    "prediction-audit.resources.json": "78be89e6863b4c06eb77b8c74609fbc4634310db03f62364b4ca4fe11cd198c2",
+    "preflight-model-cpu.json": "12ddf292b08abfe2f3e6bdf5ac7cd2898d62d8a55b267ea9ecc2adab6fd76a32",
+    "preflight-model-cuda.json": "39b93de3eb62f0dc9c72933ccf042991be9bc65f8e316b866193ad9fccabcd9e",
+    "prepared/manifest.json": "8db403a3f85c81744c799806dd0934a45bffa64c59638c8aa2054a929bfe845c",
+    "report/controls.csv": "090ba2f0a8c01bdd56299f85c87d72dc88a0f5133d88dc32fb5fb2b6cd4c262a",
+    "report/manifest.json": "bc74bc757f5baa2e836a49fd5e1eb642827fb06b00f6213450c8fce4f84f2af5",
+    "report/report.md": "ef5a9b3327d6d6a58443bfa72fc3215bcf6927e970a1e9d1c83405367e00b041",
+    "report/summary.json": "4745aa70ef870c4f9f9994de2c2015c03a63685a44dc947575429142c294a61e",
+    "report/training.csv": "d278b3bb9e79364f983c95bbb744292967c30a11c7ece3a4410855cd26ecfe8a",
+    "report/ttmapp.csv": "2e6ee7e7d463f0ed140daf5a99c4f2f810110f98293f16ec38449cc1a2dfbd36",
+    "single-ego-diagnostic.resources.json": "db6def076ac9dcdeec427c83f1af7708c43b4d9b16d773388c22860a22ade293",
+    "summary.resources.json": "4e0413d135fbaab0f79e7cfdf85f6b6f326f9fad700c9eb7ea015da4f48be530",
+    "technical-amendments/path-fix.json": "38772f7ae2ce4ffb284242518b0d44de5115a1ab4de2a2757565251b3647955c",
+    "technical-amendments/plan-before-path-fix.json": "2302c0ec9224b8af14f8bc9af56e491f79cc5bfbef327e8252a938f309550a32",
+    "technical-amendments/preflight-model-cuda-with-resume-before-path-fix.json": "81d80823a4362247ab4985c1a0d111fb02a9767023b826b2495572a5952eb1c3",
+    "training-audit.json": "9af50bf434a7a89e9f161b0c1a10221ced75824015d60b2bf856d430353a26d7",
+    "training-audit.resources.json": "1adffd4f2203f00d19e2bc1c76c9eccd95f2b4acf2c9d8409aa54882d1518267",
+    "audits/final-integrity.json": "4d6743e98b4de0ad1589be58ee36f67323d704c061ea3fb8b0423fa8f130610a",
+    "final-integrity.resources.json": "86550f2681d65d66d29fa97f55847d17f5ebd6edc25165775e5f5f7e058c6c81"
+  },
+  "limitations": [
+    "One correlated acquisition with partial positive references; no independent-acquisition generalization.",
+    "Annotation-node coverage is neither molecular detection recall nor measured material area.",
+    "Missing-band and empty material-gap cases may have identical annotation geometry.",
+    "Noise and stripes with no centres cannot certify image-negative discrimination.",
+    "Legacy15 has its full cell/refusal procedure on both displayed stages; it is not a pure feature comparison.",
+    "No physical type, orientation or material label is inferred from descriptor groups.",
+    "Transfer train has only76 dependent contexts from two frames; validation27.",
+    "Finite field changes boundary egos and produces false FH partitions even before training.",
+    "Fewer absolute distance reconstruction errors do not certify domains."
+  ],
+  "disposition": "Bounded experiment completed without detector selection. Issue13 remains open;25/26 and additionalMPP/STP deferred.",
+  "report_sha256": "581532886f1664fcc8a779fb96da7df271a3ec820529bd1b22b374e11cfcd6cf",
+  "final_integrity": {
+    "passed": true,
+    "frozen_files_verified": 12131,
+    "external_files_verified": 137,
+    "evidence_artifacts_verified": 71,
+    "source_files_verified": 14,
+    "local_links_checked": 395,
+    "issue_count": 27,
+    "acyclic_dependencies": true,
+    "scope_only_domains": true,
+    "issue24_resolved": true,
+    "issue13_open": true,
+    "issues25_26_not_selected": true
+  }
+}

@@ -1,0 +1,549 @@
+{
+  "schema": "stmdomains.acf-scale-support-trial.v1",
+  "date": "2026-10-26",
+  "issue": 19,
+  "status": "claimed",
+  "outcome": "Larger windows recover additional BLACK/RED/YELLOW assignments but bridge gaps; measured-only ACF is not sufficient. Second spectral direction rejects about half the known-region sites. No qualified detector.",
+  "source": {
+    "prototype_branch": "prototype/stmdomains-acf-scale-support",
+    "prototype_commit": "2ccf9ad",
+    "prototype_base": "1ae0706",
+    "documentation_branch": "domains/acf-scale-support-trial",
+    "documentation_base": "e095bc4",
+    "production_changes": false
+  },
+  "artifact_root": "/home/rlew/projekty/NEtCAT-domains/.scratch/acf-scale-support",
+  "protocol_sha256": "8ad8c5f59aa12ee3695206623aaa214b42456acaa332b26828c04d5973e3ae84",
+  "scope": {
+    "measurement_frames": 24,
+    "synthetic_images": 204,
+    "total_images": 228,
+    "gate_configurations": 32,
+    "new_detector_configurations": 512,
+    "ceiling_controls": 64,
+    "preserved_baselines": 16,
+    "total_configurations": 592,
+    "radii_reference_px": [
+      16,
+      24,
+      36,
+      48
+    ],
+    "acf_support_min": [
+      0.5,
+      0.8
+    ],
+    "scores": [
+      "windowed",
+      "overlap",
+      "measured35",
+      "measured65"
+    ],
+    "fixed_partitions": [
+      "HDBSCAN",
+      "FH4"
+    ],
+    "training": false,
+    "refit_features_or_partitions": false,
+    "fixed_domain_count": false,
+    "independent_validation": false,
+    "measurement_reference_tuning": false,
+    "threshold_rule": "empirical quantile0.999 of same18 known negative grid controls; thresholds shared by all features/modes"
+  },
+  "qualified_detectors": [],
+  "gate_eligibility": {
+    "eligible": 17,
+    "evaluated": 64,
+    "rule": "zero final false samples on six wholly-negative cases/all6 seeds; single-lattice center coverage>=90% in each three-seed aggregate; not domain acceptance",
+    "configurations": [
+      "ceiling-grid--r16-windowed-s50",
+      "ceiling-grid--r16-overlap-s50",
+      "ceiling-grid--r16-measured35-s50",
+      "ceiling-grid--r24-windowed-s50",
+      "ceiling-grid--r24-overlap-s50",
+      "ceiling-grid--r24-measured35-s50",
+      "ceiling-grid--r36-windowed-s50",
+      "ceiling-grid--r36-overlap-s50",
+      "ceiling-grid--r36-measured35-s50",
+      "ceiling-grid--r48-windowed-s50",
+      "ceiling-grid--r48-overlap-s50",
+      "ceiling-centers--r16-overlap-s50",
+      "ceiling-centers--r24-windowed-s50",
+      "ceiling-centers--r24-overlap-s50",
+      "ceiling-centers--r36-windowed-s50",
+      "ceiling-centers--r36-overlap-s50",
+      "ceiling-centers--r36-measured35-s50"
+    ]
+  },
+  "illustrative_ttmapp_results": [
+    {
+      "config": "fcn_resnet101-grid--hdbscan--original",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 86,
+        "same_reference_pairs": 629,
+        "different_reference_pairs": 0,
+        "split_pairs": 234,
+        "merged_pairs": 0,
+        "coverage": 0.05125148986889154,
+        "split": 0.37201907790143085,
+        "merge": null
+      },
+      "groups": {
+        "1": 86,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "fcn_resnet101-grid--hdbscan--r24-windowed-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 98,
+        "same_reference_pairs": 635,
+        "different_reference_pairs": 0,
+        "split_pairs": 275,
+        "merged_pairs": 0,
+        "coverage": 0.058402860548271755,
+        "split": 0.4330708661417323,
+        "merge": null
+      },
+      "groups": {
+        "1": 98,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "fcn_resnet101-grid--hdbscan--r36-windowed-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 210,
+        "same_reference_pairs": 1855,
+        "different_reference_pairs": 274,
+        "split_pairs": 893,
+        "merged_pairs": 0,
+        "coverage": 0.12514898688915377,
+        "split": 0.4814016172506739,
+        "merge": 0.0
+      },
+      "groups": {
+        "1": 190,
+        "2": 2,
+        "3": 18
+      }
+    },
+    {
+      "config": "fcn_resnet101-grid--hdbscan--r48-windowed-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 430,
+        "same_reference_pairs": 3511,
+        "different_reference_pairs": 2378,
+        "split_pairs": 1603,
+        "merged_pairs": 922,
+        "coverage": 0.2562574493444577,
+        "split": 0.45656508117345485,
+        "merge": 0.38772077375946173
+      },
+      "groups": {
+        "1": 301,
+        "2": 11,
+        "3": 118
+      }
+    },
+    {
+      "config": "fcn_resnet101-grid--hdbscan--r48-measured65-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 522,
+        "same_reference_pairs": 4962,
+        "different_reference_pairs": 3243,
+        "split_pairs": 822,
+        "merged_pairs": 2281,
+        "coverage": 0.3110846245530393,
+        "split": 0.1656590084643289,
+        "merge": 0.7033610854147394
+      },
+      "groups": {
+        "1": 386,
+        "2": 12,
+        "3": 124
+      }
+    },
+    {
+      "config": "fcn_resnet101-grid--fh4--original",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 86,
+        "same_reference_pairs": 629,
+        "different_reference_pairs": 0,
+        "split_pairs": 234,
+        "merged_pairs": 0,
+        "coverage": 0.05125148986889154,
+        "split": 0.37201907790143085,
+        "merge": null
+      },
+      "groups": {
+        "1": 86,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "fcn_resnet101-grid--fh4--r24-windowed-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 98,
+        "same_reference_pairs": 635,
+        "different_reference_pairs": 0,
+        "split_pairs": 275,
+        "merged_pairs": 0,
+        "coverage": 0.058402860548271755,
+        "split": 0.4330708661417323,
+        "merge": null
+      },
+      "groups": {
+        "1": 98,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "fcn_resnet101-grid--fh4--r36-windowed-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 207,
+        "same_reference_pairs": 1791,
+        "different_reference_pairs": 262,
+        "split_pairs": 851,
+        "merged_pairs": 0,
+        "coverage": 0.1233611442193087,
+        "split": 0.4751535455053043,
+        "merge": 0.0
+      },
+      "groups": {
+        "1": 187,
+        "2": 2,
+        "3": 18
+      }
+    },
+    {
+      "config": "fcn_resnet101-grid--fh4--r48-windowed-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 414,
+        "same_reference_pairs": 3193,
+        "different_reference_pairs": 2220,
+        "split_pairs": 1463,
+        "merged_pairs": 848,
+        "coverage": 0.2467222884386174,
+        "split": 0.4581897901659881,
+        "merge": 0.38198198198198197
+      },
+      "groups": {
+        "1": 285,
+        "2": 11,
+        "3": 118
+      }
+    },
+    {
+      "config": "fcn_resnet101-grid--fh4--r48-measured65-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 509,
+        "same_reference_pairs": 4602,
+        "different_reference_pairs": 3106,
+        "split_pairs": 1953,
+        "merged_pairs": 1639,
+        "coverage": 0.3033373063170441,
+        "split": 0.424380704041721,
+        "merge": 0.5276883451384418
+      },
+      "groups": {
+        "1": 373,
+        "2": 12,
+        "3": 124
+      }
+    },
+    {
+      "config": "ceiling-grid--r24-windowed-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 98,
+        "same_reference_pairs": 635,
+        "different_reference_pairs": 0,
+        "split_pairs": 275,
+        "merged_pairs": 0,
+        "coverage": 0.058402860548271755,
+        "split": 0.4330708661417323,
+        "merge": null
+      },
+      "groups": {
+        "1": 98,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "ceiling-grid--r36-windowed-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 210,
+        "same_reference_pairs": 1855,
+        "different_reference_pairs": 274,
+        "split_pairs": 893,
+        "merged_pairs": 0,
+        "coverage": 0.12514898688915377,
+        "split": 0.4814016172506739,
+        "merge": 0.0
+      },
+      "groups": {
+        "1": 190,
+        "2": 2,
+        "3": 18
+      }
+    },
+    {
+      "config": "ceiling-grid--r48-windowed-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 430,
+        "same_reference_pairs": 3511,
+        "different_reference_pairs": 2378,
+        "split_pairs": 1603,
+        "merged_pairs": 922,
+        "coverage": 0.2562574493444577,
+        "split": 0.45656508117345485,
+        "merge": 0.38772077375946173
+      },
+      "groups": {
+        "1": 301,
+        "2": 11,
+        "3": 118
+      }
+    },
+    {
+      "config": "ceiling-grid--r48-measured65-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 522,
+        "same_reference_pairs": 4962,
+        "different_reference_pairs": 3243,
+        "split_pairs": 822,
+        "merged_pairs": 2281,
+        "coverage": 0.3110846245530393,
+        "split": 0.1656590084643289,
+        "merge": 0.7033610854147394
+      },
+      "groups": {
+        "1": 386,
+        "2": 12,
+        "3": 124
+      }
+    },
+    {
+      "config": "ceiling-centers--r24-windowed-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 34,
+        "same_reference_pairs": 196,
+        "different_reference_pairs": 0,
+        "split_pairs": 0,
+        "merged_pairs": 0,
+        "coverage": 0.02026221692491061,
+        "split": 0.0,
+        "merge": null
+      },
+      "groups": {
+        "1": 34,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "ceiling-centers--r36-windowed-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 97,
+        "same_reference_pairs": 686,
+        "different_reference_pairs": 0,
+        "split_pairs": 240,
+        "merged_pairs": 0,
+        "coverage": 0.05780691299165673,
+        "split": 0.3498542274052478,
+        "merge": null
+      },
+      "groups": {
+        "1": 97,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "ceiling-centers--r48-windowed-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 320,
+        "same_reference_pairs": 2669,
+        "different_reference_pairs": 1397,
+        "split_pairs": 1124,
+        "merged_pairs": 826,
+        "coverage": 0.1907032181168057,
+        "split": 0.42113150992881226,
+        "merge": 0.5912670007158196
+      },
+      "groups": {
+        "1": 245,
+        "2": 7,
+        "3": 68
+      }
+    },
+    {
+      "config": "ceiling-centers--r48-measured65-s50",
+      "points": {
+        "reference_elements": 1678,
+        "assigned_elements": 479,
+        "same_reference_pairs": 4058,
+        "different_reference_pairs": 2778,
+        "split_pairs": 1300,
+        "merged_pairs": 1719,
+        "coverage": 0.28545887961859356,
+        "split": 0.32035485460818136,
+        "merge": 0.6187904967602592
+      },
+      "groups": {
+        "1": 343,
+        "2": 7,
+        "3": 129
+      }
+    }
+  ],
+  "verification": {
+    "math": {
+      "direct_lag_checks": 5836,
+      "max_pearson_error": 6.417089082333405e-13,
+      "max_count_error": 0.0
+    },
+    "old_acf_replays": 912,
+    "old_acf_max_error": 0.0,
+    "old_threshold_replays": [
+      "r24-windowed-s50",
+      "r24-overlap-s50",
+      "r36-windowed-s50",
+      "r36-overlap-s50"
+    ],
+    "preserved_baselines_all_images": 3648,
+    "old_prediction_files_verified": 228,
+    "new_prediction_files_verified": 228,
+    "missing_annotations": {
+      "grid_order_array_pairs": 864,
+      "grid_prediction_pairs": 7104
+    },
+    "predictions_unchanged": true,
+    "calibration_unchanged": true,
+    "main_code_matches_prediction_lock": true,
+    "browser_checks": 92,
+    "browser_errors": []
+  },
+  "cost": {
+    "acf_preparation_seconds": 429.290328264,
+    "empty_schema_replay_seconds": 12.109237251001105,
+    "empty_schema_replay_records": [
+      "control-0004",
+      "control-0005",
+      "control-0026",
+      "control-0027",
+      "control-0048",
+      "control-0049",
+      "control-0070",
+      "control-0071",
+      "control-0092",
+      "control-0093",
+      "control-0114",
+      "control-0115"
+    ],
+    "prediction_seconds": 18.37280463100069,
+    "evaluation_seconds": 30.565704099000868,
+    "max_individual_preparation_worker_rss_kib": 125004,
+    "total_process_memory_measured": false,
+    "workers": 4,
+    "gpu": false,
+    "full_series_benchmark": false
+  },
+  "environment": {
+    "python": "3.12.12",
+    "versions": {
+      "numpy": "2.2.5",
+      "scipy": "1.15.2",
+      "scikit-learn": "1.6.1",
+      "matplotlib": "3.10.1",
+      "Pillow": "11.2.1"
+    },
+    "new_packages_or_weights": false
+  },
+  "review": {
+    "frames": 58,
+    "measurement_frames": 24,
+    "synthetic_cases": 34,
+    "display_seed": 2701,
+    "calculation_images": 228,
+    "configurations": 592,
+    "source": "actual frozen predictions; all settings selectable; no simulated detection"
+  },
+  "copy": {
+    "files": 479,
+    "bytes": 425534929,
+    "all_sha256_equal": true,
+    "relative_links": {
+      "previous": "../local-feature-graph",
+      "classic": "../local-feature-graph/classic",
+      "input/analysis": "../../local-feature-graph/input/analysis"
+    }
+  },
+  "artifact_sha256": {
+    "protocol.json": "8ad8c5f59aa12ee3695206623aaa214b42456acaa332b26828c04d5973e3ae84",
+    "source.json": "f3ebd7db3a72679789980ec31c02bc8d6cc3b6f6699e2c5c8b39e0bd026c6d43",
+    "order/manifest.json": "60c19ff5aae4008a666785cbf50eae8b61d4782d9373a9955b5eecb9a267992a",
+    "calibration.json": "902873349db7c81e2132415876c1ba3cffc06c2c84b6976bba8675f395986c0a",
+    "predictions/manifest.json": "499fc10e9cb8e2f6e3e55670a1ce88eab184514dee1f37f8c3a8f6b44706247f",
+    "prediction-lock.json": "2997fd7a5893b03a1c8dd9dad5deb45957be01f6a59758f992f0b9166219101a",
+    "evaluation/manifest.json": "40d4c165c11e4aa1df5e5423f0634595c52c5fc0f54721c8a57ab8102604153a",
+    "evaluation/summary.json": "73b5fa03ffd14b584034eeb563a92a40784ca2f29cab17506c319d44770e8209",
+    "evaluation/qualification.json": "949fe90883a18b69d8b1ede38637f4aa473dba85f1d329aa8cea78ac237cda6e",
+    "evaluation/gate-eligibility.json": "6d9afdd329e7492a3e3010d5fb29d6ca5cbe9a2827d345f22120a25f7f73c7b3",
+    "evaluation/gate-reasons.json": "1017df30bc53dfb14335c7d07f3f44c73cd56c95a03af59baa4177432388b387",
+    "evaluation/groups.json": "da067a4f8beeb6aca166397a76ec7697d4cead99e80009a2f26e5042b9c475b1",
+    "math-verification.json": "0bd75bf8dca2d20cb96ea6e9e6a22a8d1e26d72068d1b8abb2857f46844488b5",
+    "missing-verification.json": "98f685160d294e5610376d47dbcd56c96783f2d3088d40f42b81a70ad44e53b9",
+    "provenance.json": "d2dc2d11655969acba1245de5f3c15fac14beaef0283c09c6f45360465ac5ecb",
+    "browser-verification.json": "0627c0bb5b01892950f7abae903c81be7e5a2de4155ff4391787f6aeaaa9f3af",
+    "copy-verification.json": "7c388e1873b6e4427c0dc0303323b9f0b2c2c7541a87e529fe7256c8c18123e6",
+    "review-manifest.json": "bb9e26ffe09abb2a06bd9552c216d1c7047fa738305b332837220ac5a6415fe5",
+    "index.html": "46256f0e5a6c428dc724bb91ca25249558300b304386669eb125ca62be3ef370",
+    "controls.csv": "1a29597fdb7ec01621455bce42c585c9f8541c105c53b98d9ded1fb6fdefc3ce",
+    "acf-comparison.png": "b0c039ac01a73bd8d3d0438151a65a686c9f6173413f49b54213fbffe619d3d3",
+    "acf-comparison.pdf": "6a2c616a8cb9c43af230fa796f68561fa097e8b46ed0cef6b3c6b6cc68c8cb73",
+    "browser-preview.png": "5fd26dafb9403d90d3aa52fb843ca23a899b8e5f62cd9fcdb37d61ead40b95ad"
+  },
+  "source_sha256": {
+    "acf_scale_support.py": "855d83d51a6bb8a88607653adca8751f8fe7b92e4102475129e4715e7202f8f9",
+    "acf_scale_support_browser.py": "54b88ba92bd2b2bdfb5a3349c59766e4272cfb04d39b8d11c3746783b07be155",
+    "acf_scale_support_design.json": "8ad8c5f59aa12ee3695206623aaa214b42456acaa332b26828c04d5973e3ae84",
+    "acf_scale_support_evaluate.py": "c72985a0ff109e31b4046bbaf03a73e3e82a9d2b53be917df8f8f5c8952de5b1",
+    "acf_scale_support_review.html": "aba77eb570f420190b96291f0170d1112ed2a7a735dced310348bf8eef5195ca",
+    "acf_scale_support_review.py": "3112644cc276f99f77992b5f2a0f9548691271365b02d554bb5e8656eb9a36d9"
+  },
+  "primary_source": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.correlate.html",
+  "limitations": [
+    "All seeds and partial references previously seen; not independent validation.",
+    "Larger windows include neighbors and may bridge empty/disordered gaps.",
+    "Threshold recalibrated by same fixed negative-only rule per scale/support; not a constant-threshold experiment.",
+    "Measured-only Pearson still uses unchanged reflected spectral/energy evidence.",
+    "Ceiling eligibility omits domain-boundary criteria and is not method acceptance.",
+    "Conditional pair metrics always reported with assignment coverage.",
+    "No grid-origin rerun, structural type catalogue, material area, full268 benchmark or production GUI test.",
+    "Wrapper syntax checked; stages run separately."
+  ],
+  "next_study_proposed": "Separate second-direction criterion ablation with controlled row contrast, stripes/independent rows and gap controls; not started."
+}

@@ -1,29 +1,520 @@
-"""Initial STM Domains window, ready for the application's first feature."""
+"""Compose the raw series browser; input parsing lives outside Qt."""
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QKeySequence
-from PyQt6.QtWidgets import QLabel, QMainWindow, QVBoxLayout, QWidget
+import json
+from collections.abc import Mapping
+
+from PyQt6.QtCore import QCoreApplication, QEvent, QObject, QSignalBlocker, Qt
+from PyQt6.QtGui import QCloseEvent, QKeySequence
+from PyQt6.QtWidgets import (
+    QDialog, QHBoxLayout, QLabel, QMainWindow, QPlainTextEdit,
+    QProgressBar, QPushButton, QSizePolicy, QSlider, QSpinBox,
+    QVBoxLayout, QWidget,
+)
+
+from stmdomains.core.series import Series
+from stmdomains.core.annotations import Detection, Segmentation
+from stmdomains.ui.annotation_controls import AnnotationControls
+from stmdomains.ui.analysis_dialog import AnalysisDialog
+from stmdomains.ui.analysis_status import STATUS_TEXT
+from stmdomains.ui.catalogue_style import catalogue_description
+from stmdomains.ui.levelset_fields import levelset_description
+from stmdomains.ui.image_view import ImageView
+from stmdomains.ui.manual_panel import ManualPanel
+from stmdomains.ui.geometry_card import GeometryCard
+from stmdomains.ui.filmstrip import Filmstrip
+from stmdomains.ui.import_prompts import ImportPrompts, QtImportPrompts
+from stmdomains.ui.playback_controls import PlaybackControls
+from stmdomains.ui.export_dialog import ExportDialog
+from stmdomains.ui.project_actions import ProjectActions
+from stmdomains.ui.project_prompts import ProjectPrompts, QtProjectPrompts
+from stmdomains.ui.result_controls import ResultControls
+from stmdomains.ui.domain_method_controls import DomainMethodControls
+from stmdomains.ui.result_style import assignment_description
+from stmdomains.ui.assignment_details import assignment_details
+from stmdomains.ui.session_controller import PresentedFrame, SessionController
 
 
 class STMDomainsMainWindow(QMainWindow):
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, parent: QWidget | None = None, *, prompts: ImportPrompts | None = None,
+        project_prompts: ProjectPrompts | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setWindowTitle("STM Domains")
         self.resize(1100, 760)
-
+        self.controller = SessionController(prompts or QtImportPrompts(self), self)
         central = QWidget(self)
         layout = QVBoxLayout(central)
-        layout.addStretch()
-        title = QLabel("Analiza domen molekularnych w obrazach STM")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title)
-        empty_state = QLabel("Brak otwartego obrazu.")
-        empty_state.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(empty_state)
-        layout.addStretch()
         self.setCentralWidget(central)
 
-        file_menu = self.menuBar().addMenu("&Plik")
-        close_action = file_menu.addAction("&Zakończ")
-        close_action.setShortcut(QKeySequence.StandardKey.Quit)
-        close_action.triggered.connect(self.close)
+        files = QHBoxLayout()
+        self.open_button = QPushButton("Otwórz projekt / MolTrack…")
+        self.open_button.setObjectName("openButton")
+        self.open_button.clicked.connect(lambda: self.project_actions.open())
+        files.addWidget(self.open_button)
+        self.analyze_button = QPushButton("Analizuj klatkę…")
+        self.analyze_button.setObjectName("analyzeButton")
+        self.analyze_button.setToolTip("Oblicz klasy i domeny z bieżącego obrazu i oznaczeń molekuł")
+        self.analyze_button.setEnabled(False)
+        self.analyze_button.clicked.connect(lambda: self._show_analysis(current_frame=True))
+        files.addWidget(self.analyze_button)
+        self.source_label = QLabel("Brak otwartej serii")
+        files.addWidget(self.source_label, 1)
+        layout.addLayout(files)
+
+        navigation = QHBoxLayout()
+        self.previous_button = QPushButton("← Poprzednia")
+        self.next_button = QPushButton("Następna →")
+        self.frame_number = QSpinBox()
+        self.frame_number.setPrefix("Klatka ")
+        self.frame_number.setKeyboardTracking(False)
+        self.previous_button.clicked.connect(lambda: self.controller.step_frame(-1))
+        self.next_button.clicked.connect(lambda: self.controller.step_frame(1))
+        self.frame_number.valueChanged.connect(self._select_frame)
+        for control in (self.previous_button, self.frame_number, self.next_button):
+            control.setEnabled(False)
+            navigation.addWidget(control)
+        navigation.addStretch()
+        self.fit_button = QPushButton("Dopasuj")
+        self.zoom_in_button = QPushButton("Powiększ +")
+        self.zoom_out_button = QPushButton("Pomniejsz −")
+        for button in (self.zoom_out_button, self.zoom_in_button, self.fit_button):
+            button.setEnabled(False)
+            navigation.addWidget(button)
+        layout.addLayout(navigation)
+
+        self.annotation_controls = AnnotationControls()
+        self.annotation_controls.view_mode.currentIndexChanged.connect(self._select_view)
+        self.annotation_controls.layers_changed.connect(self._set_layers)
+        layout.addWidget(self.annotation_controls)
+        self.registration_label = QLabel()
+        self.registration_label.setWordWrap(True)
+        layout.addWidget(self.registration_label)
+
+        self.frame_label = QLabel("Otwórz projekt .stmdomains lub zapis .moltrack.json z obrazami MPP.")
+        layout.addWidget(self.frame_label)
+        self.image_view = ImageView(self)
+        self.geometry_card = GeometryCard(self.controller, self.image_view)
+        self.image_view.annotation_selected.connect(self._select_annotation)
+        self.method_controls = DomainMethodControls(self.controller)
+        layout.addWidget(self.method_controls)
+        self.manual_panel = ManualPanel(self.controller.manual, self.image_view)
+        layout.addWidget(self.manual_panel.toolbar)
+        body = QHBoxLayout()
+        browser = QVBoxLayout()
+        browser.setContentsMargins(0, 0, 0, 0)
+        body.addLayout(browser, 1)
+        body.addWidget(self.manual_panel)
+        layout.addLayout(body, 1)
+        layout = browser
+        layout.addWidget(self.image_view, 1)
+        self.frame_slider = QSlider(Qt.Orientation.Horizontal)
+        self.frame_slider.setObjectName("frameSlider")
+        self.frame_slider.setAccessibleName("Klatka serii")
+        self.frame_slider.setToolTip("Przeciągnij, aby przeglądać klatki")
+        self.frame_slider.setRange(1, 1)
+        self.frame_slider.setEnabled(False)
+        self.frame_slider.setTracking(True)
+        self.frame_slider.sliderPressed.connect(self.controller.pause)
+        self.frame_slider.valueChanged.connect(
+            lambda number: self.controller.show_frame(number - 1)
+        )
+        layout.addWidget(self.frame_slider)
+        self.filmstrip = Filmstrip()
+        self.filmstrip.frame_selected.connect(self.controller.show_frame)
+        layout.addWidget(self.filmstrip)
+        self.playback_controls = PlaybackControls()
+        self.playback_controls.play.clicked.connect(self._toggle_playback)
+        self.playback_controls.restart.clicked.connect(self.controller.restart)
+        self.playback_controls.rate.currentIndexChanged.connect(
+            lambda: self.controller.set_playback_rate(self.playback_controls.rate.currentData())
+        )
+        self.playback_controls.gamma.valueChanged.connect(self.controller.set_gamma)
+        layout.addWidget(self.playback_controls)
+        self.result_controls = ResultControls()
+        self.result_controls.mode_changed.connect(self.image_view.set_assignment_mode)
+        self.result_controls.details_button.clicked.connect(self._show_analysis_details)
+        self.result_controls.regions.layers_changed.connect(self._set_domain_layers)
+        region_menu = self.result_controls.regions.menu()
+        if region_menu is not None:
+            region_menu.aboutToShow.connect(self.controller.pause)
+        layout.addWidget(self.result_controls)
+        for spin_control in (self.frame_number, self.playback_controls.gamma):
+            spin_control.installEventFilter(self)
+            editor = spin_control.lineEdit()
+            if editor is not None:
+                editor.installEventFilter(self)
+        self.annotation_status = QLabel()
+        self.annotation_status.setWordWrap(True)
+        layout.addWidget(self.annotation_status)
+        selection = QHBoxLayout()
+        self.selection_label = QLabel("Kliknij oznaczenie, aby zobaczyć jego dane.")
+        self.selection_label.setTextFormat(Qt.TextFormat.PlainText)
+        self.selection_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        selection.addWidget(self.selection_label, 1)
+        self.metadata_button = QPushButton("Dane oznaczenia…")
+        self.metadata_button.setEnabled(False)
+        self.metadata_button.clicked.connect(self._show_metadata)
+        selection.addWidget(self.metadata_button)
+        self.frame_info_button = QPushButton("Informacje o klatce…")
+        self.frame_info_button.setEnabled(False)
+        self.frame_info_button.clicked.connect(self._show_frame_info)
+        selection.addWidget(self.frame_info_button)
+        layout.addLayout(selection)
+        self._selected: Detection | Segmentation | None = None
+        self._presented: PresentedFrame | None = None
+        self.fit_button.clicked.connect(self.image_view.fit_to_window)
+        self.zoom_in_button.clicked.connect(lambda: self.image_view.zoom_by(1.25))
+        self.zoom_out_button.clicked.connect(lambda: self.image_view.zoom_by(0.8))
+
+        progress = QHBoxLayout()
+        self.progress_label = QLabel("Gotowe")
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 0)
+        self.progress_bar.hide()
+        self.cancel_button = QPushButton("Anuluj")
+        self.cancel_button.hide()
+        for indicator in (self.progress_bar, self.cancel_button):
+            policy = indicator.sizePolicy()
+            policy.setRetainSizeWhenHidden(True)
+            indicator.setSizePolicy(policy)
+        self.cancel_button.clicked.connect(self.controller.cancel)
+        progress.addWidget(self.progress_label, 1)
+        progress.addWidget(self.progress_bar)
+        progress.addWidget(self.cancel_button)
+        layout.addLayout(progress)
+        self.details_label = QLabel("Oryginał · auto kontrast osobno dla każdej klatki")
+        self.details_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        layout.addWidget(self.details_label)
+
+        menu_bar = self.menuBar()
+        menu = menu_bar.addMenu("&Plik") if menu_bar is not None else None
+        if menu is not None:
+            open_action = menu.addAction("&Otwórz projekt / MolTrack…")
+            if open_action is not None:
+                open_action.setShortcut(QKeySequence.StandardKey.Open)
+                open_action.triggered.connect(lambda: self.project_actions.open())
+            close_action = menu.addAction("&Zakończ")
+            if close_action is not None:
+                close_action.setShortcut(QKeySequence.StandardKey.Quit)
+                close_action.triggered.connect(self.close)
+        self.controller.manual.changed.connect(self._manual_changed)
+        self.controller.series_changed.connect(self._show_series)
+        self.controller.frame_changed.connect(self._show_frame)
+        self.controller.busy_changed.connect(self._show_progress)
+        self.controller.playback_changed.connect(self._show_playback)
+        self.analysis_dialog = AnalysisDialog(self.controller, self)
+        self.analysis_dialog.advanced_fields.show_barriers.toggled.connect(self.image_view.set_barriers_visible)
+        self.project_actions = ProjectActions(self, project_prompts or QtProjectPrompts(self), menu)
+        self.export_dialog = ExportDialog(self)
+        self.export_action = menu.addAction('Eksportuj PNG/CSV…') if menu is not None else None
+        if self.export_action is not None:
+            if menu is not None and close_action is not None:
+                menu.insertAction(close_action, self.export_action)
+            self.export_action.setObjectName('exportAction')
+            self.export_action.setEnabled(False)
+            self.export_action.triggered.connect(self._show_export)
+            self.controller.busy_changed.connect(self._refresh_export_action)
+        analysis_menu = menu_bar.addMenu("&Analiza") if menu_bar is not None else None
+        self.analysis_action = analysis_menu.addAction("Analiza…") if analysis_menu is not None else None
+        if self.analysis_action is not None:
+            self.analysis_action.setObjectName("analysisAction")
+            self.analysis_action.setEnabled(False)
+            self.analysis_action.triggered.connect(lambda: self._show_analysis())
+        self.geometry_action = analysis_menu.addAction('Geometria…') if analysis_menu is not None else None
+        if self.geometry_action is not None:
+            self.geometry_action.setEnabled(False)
+            self.geometry_action.triggered.connect(self.geometry_card.open)
+        app = QCoreApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self._finish_background_work)
+
+    def _manual_changed(self) -> None:
+        self._show_catalogue_status()
+        self._refresh_export_action(False, '')
+
+    def _refresh_export_action(self, busy: bool, message: str) -> None:
+        if self.export_action is not None:
+            self.export_action.setEnabled(self.controller.can_analyze and not self.controller.manual.blocks_export)
+            self.export_action.setToolTip("Zatwierdź lub anuluj podgląd korekt" if self.controller.manual.blocks_export else "Eksportuj wynik")
+
+    def _show_export(self) -> None:
+        self.export_dialog.prepare()
+        self.export_dialog.show()
+        self.export_dialog.raise_()
+        self.export_dialog.activateWindow()
+
+    def _select_frame(self, number: int) -> None:
+        # The displayed number changes together with the prepared image.
+        with QSignalBlocker(self.frame_number):
+            self.frame_number.setValue(self.controller.current_index + 1)
+        self.controller.show_frame(number - 1)
+
+    def _show_analysis(self, *, current_frame: bool = False) -> None:
+        self.controller.pause()
+        if current_frame:
+            self.analysis_dialog.select_current_frame()
+        self.analysis_dialog.refresh()
+        self.analysis_dialog.show()
+        self.analysis_dialog.raise_()
+        self.analysis_dialog.activateWindow()
+
+    def _show_series(self, series: Series) -> None:
+        self.filmstrip.set_series(series)
+        with QSignalBlocker(self.result_controls.mode):
+            self.result_controls.mode.setCurrentIndex(0)
+        self.image_view.set_assignment_mode("domains")
+        self.setWindowTitle(f"STM Domains — {series.session_path.name}")
+        self.source_label.setText(series.session_path.name)
+        self.source_label.setToolTip(f"{series.session_path}\nMPP: {series.source_path}")
+        with QSignalBlocker(self.frame_number):
+            self.frame_number.setRange(1, series.frame_count)
+        self.frame_number.setEnabled(series.frame_count > 1)
+        with QSignalBlocker(self.frame_slider):
+            self.frame_slider.setRange(1, series.frame_count)
+        self.frame_slider.setEnabled(series.frame_count > 1)
+        self.details_label.setText("Auto kontrast oryginału · jednostki obrazu: px")
+        self.playback_controls.gamma.setEnabled(True)
+        self.playback_controls.reset_gamma.setEnabled(True)
+        for button in (self.fit_button, self.zoom_in_button, self.zoom_out_button):
+            button.setEnabled(True)
+
+    def _show_frame(self, view: PresentedFrame) -> None:
+        series = self.controller.series
+        if series is None:
+            return
+        frame = view.frame
+        self.filmstrip.set_current_index(frame.working_index)
+        with QSignalBlocker(self.playback_controls.gamma):
+            self.playback_controls.gamma.setValue(view.gamma)
+        height, width = view.rendered.rgba.shape[:2]
+        self._presented = view
+        self.image_view.set_frame(view)
+        self.manual_panel.set_frame(view)
+        self.result_controls.set_frame(view)
+        self._show_catalogue_status()
+        self.geometry_card.set_frame(view)
+        selected_id = self.geometry_card.selected_id
+        self._select_annotation(next((d for d in view.annotations.detections if d.detection_id == selected_id), None))
+        self.frame_info_button.setEnabled(True)
+        presenter = self.controller.presenter
+        controls = self.annotation_controls
+        with QSignalBlocker(controls.view_mode):
+            controls.view_mode.setCurrentIndex(0 if view.mode == "raw" else 1)
+        controls.set_availability(
+            aligned=presenter is not None and presenter.registration.available,
+            detections=bool(view.annotations.detections),
+            boxes=bool(view.annotations.detections) or any(
+                s.bbox_xyxy is not None for s in view.annotations.segmentations
+            ),
+            segmentations=any(s.mask is not None or s.polygon_xy for s in view.annotations.segmentations),
+        )
+        self.registration_label.setText(view.registration_text)
+        self.annotation_status.setText(
+            f"{view.annotations.detection_message} · {view.annotations.segmentation_message}"
+            + (" · Uwagi w informacjach o klatce." if view.annotations.diagnostics else "")
+        )
+        self._set_layers()
+        self.frame_label.setText(
+            f"Klatka {frame.working_index + 1} / {series.frame_count} · "
+            f"źródłowa {frame.source_index + 1} · {width} × {height} px"
+            + (f" · czas {frame.time_s:g} s" if frame.time_s is not None else " · czas nieznany")
+        )
+        with QSignalBlocker(self.frame_number):
+            self.frame_number.setValue(frame.working_index + 1)
+        self._sync_frame_slider()
+        self.previous_button.setEnabled(frame.working_index > 0)
+        self.next_button.setEnabled(frame.working_index < series.frame_count - 1)
+        self._show_playback()
+
+    def _show_progress(self, busy: bool, text: str) -> None:
+        self.analyze_button.setEnabled(self.controller.can_analyze)
+        if self.geometry_action is not None:
+            self.geometry_action.setEnabled(self.controller.series is not None)
+        self._show_catalogue_status()
+        if self.analysis_action is not None:
+            self.analysis_action.setEnabled(self.controller.series is not None)
+        self.progress_label.setText(text)
+        self.progress_bar.setVisible(busy)
+        self.cancel_button.setVisible(busy)
+        self._show_playback()
+        if not busy:
+            self._sync_frame_slider()
+            with QSignalBlocker(self.playback_controls.gamma):
+                self.playback_controls.gamma.setValue(self.controller.gamma)
+            with QSignalBlocker(self.annotation_controls.view_mode):
+                self.annotation_controls.view_mode.setCurrentIndex(
+                    0 if self.controller.view_mode == "raw" else 1
+                )
+
+    def _show_catalogue_status(self) -> None:
+        active, result = self.controller.active_catalogue, self.controller.result
+        self.analyze_button.setToolTip("Otwórz wspólne ustawienia analizy bieżącej klatki")
+        if result is None:
+            text = "Nieprzeliczone · " + catalogue_description(active)
+        else:
+            prefix = "Poprzedni wynik" if self.controller.result_version == "previous" else "Nowy wynik"
+            if self.controller.catalogue_status == "earlier":
+                prefix += " · wcześniejszy katalog"
+            text = prefix + " · " + catalogue_description(result.catalogue)
+        if self.controller.domain_method == 'geometry' and result is not None:
+            text = 'Geometria · ' + result.message
+        if self.controller.domain_method == 'levelset' and result is not None:
+            text = 'Level set · ' + levelset_description(result)
+        if self.controller.domain_method == 'freud' and result is not None:
+            text = 'freud · klasy otoczeń i spójne domeny; etykiety lokalne dla tego wyniku'
+        run = self.controller.series_run
+        if run is not None and self.controller.domain_method == 'baseline' and self.controller.current_index in run.frames:
+            text += " · seria: " + STATUS_TEXT[run.frames[self.controller.current_index].status]
+            if result is not None and result.metadata.get("series_analysis", {}).get("run_id") != run.identifier:
+                text += " (wyświetlono wynik spoza tego przebiegu)"
+        if self.controller.manual.active is not None:
+            active_manual = self.controller.manual.active
+            text = ('Automatyczny przed korektą' if self.controller.manual.compare_original else
+                    'PODGLĄD korekty' if self.controller.manual.preview_result is not None else
+                    'Po korektach · zapis: Plik → Zapisz projekt…' if active_manual.changed else 'Edycja ręczna · brak zmian')
+            if active_manual.original is None:
+                text += ' · brak analizy automatycznej'
+        self.details_label.setText(text)
+        self.details_label.setToolTip(text + "\nDomeny lokalne dla klatki; metoda eksperymentalna. Jednostki obrazu: px.")
+
+    def _toggle_playback(self) -> None:
+        if self.controller.is_playing:
+            self.controller.pause()
+        else:
+            self.controller.play()
+
+    def _show_playback(self, playing: bool | None = None) -> None:
+        controls, controller = self.playback_controls, self.controller
+        at_end = controller.series is not None and controller.current_index == controller.series.frame_count - 1
+        controls.play.setText("⏸ Pauza" if controller.is_playing else (
+            "▶ Od początku" if at_end else "▶ Odtwórz"
+        ))
+        controls.play.setEnabled(controller.can_play)
+        controls.restart.setEnabled(controller.can_play)
+        controls.rate.setEnabled(controller.can_play)
+
+    def _select_view(self, index: int) -> None:
+        self.controller.set_view_mode("raw" if index == 0 else "expanded_aligned")
+
+    def _set_layers(self) -> None:
+        controls = self.annotation_controls
+        self.image_view.set_layers(
+            centers=controls.centers.isChecked(), boxes=controls.boxes.isChecked(),
+            masks=controls.masks.isChecked(), opacity=controls.opacity.value() / 100,
+        )
+
+    def _set_domain_layers(self) -> None:
+        controls = self.result_controls.regions
+        self.image_view.set_domain_layers(
+            fill=controls.fill.isChecked(), outlines=controls.outlines.isChecked(),
+            numbers=controls.numbers.isChecked(), opacity=controls.opacity.value() / 100,
+        )
+
+    def _select_annotation(self, selected: Detection | Segmentation | None) -> None:
+        self._selected = selected
+        self.geometry_card.select(selected)
+        self.image_view.freud_overlay.select(getattr(selected, 'detection_id', None))
+        self.metadata_button.setEnabled(selected is not None)
+        if selected is None:
+            self.selection_label.setText("Kliknij oznaczenie, aby zobaczyć jego dane.")
+            self.selection_label.setToolTip("")
+            return
+        metadata = selected.metadata
+        if isinstance(selected, Detection):
+            identity = selected.detection_id
+            confidence = metadata.get("confidence")
+        else:
+            identity = selected.segmentation_id
+            confidence = metadata.get("score")
+        self.selection_label.setText(
+            f"ID: {identity} · pochodzenie: {metadata.get('origin', 'nieznane')}"
+            + f" · pewność: {confidence if confidence is not None else 'nieznana'}"
+            + (" · " + assignment_description(
+                self._presented.result if self._presented is not None else None, identity,
+            ) if isinstance(selected, Detection) else "")
+        )
+        self.selection_label.setToolTip(self.selection_label.text())
+
+    def _show_text(self, title: str, text: str) -> None:
+        self.controller.pause()
+        dialog = QDialog(self)
+        dialog.setWindowTitle(title)
+        dialog.resize(680, 480)
+        layout = QVBoxLayout(dialog)
+        contents = QPlainTextEdit()
+        contents.setReadOnly(True)
+        contents.setPlainText(text)
+        layout.addWidget(contents)
+        close = QPushButton("Zamknij")
+        close.clicked.connect(dialog.accept)
+        layout.addWidget(close)
+        dialog.exec()
+
+    def _show_metadata(self) -> None:
+        if self._selected is not None:
+            metadata = dict(self._selected.metadata)
+            explanation = ""
+            if isinstance(self._selected, Detection) and self._presented is not None:
+                result = self._presented.result
+                explanation = assignment_details(result, self._selected.detection_id) + "\n\nDane oznaczenia:\n"
+                assignment = None if result is None else result.assignments.get(self._selected.detection_id)
+                if assignment is not None:
+                    metadata["analiza_stmdomains"] = {
+                        "opis": assignment_description(result, self._selected.detection_id),
+                        "domain_local_id": assignment.domain_local_id,
+                        "class_id": assignment.class_id,
+                        "provisional_class_id": assignment.provisional_class_id,
+                        "status": assignment.status,
+                        "przyczyna": assignment.rejection_reason,
+                        "pomiary": dict(assignment.metadata),
+                    }
+            self._show_text("Dane zapisanego oznaczenia", explanation + json.dumps(
+                metadata, ensure_ascii=False, indent=2,
+                default=lambda value: dict(value) if isinstance(value, Mapping) else str(value),
+            ))
+
+    def _show_analysis_details(self) -> None:
+        result = None if self._presented is None else self._presented.result
+        if result is not None:
+            self._show_text("Dane analizy bieżącej klatki", json.dumps({
+                "status": result.status, "opis": result.message,
+                "klatka_robocza": result.working_index + 1,
+                "klatka_źródłowa": result.source_index + 1,
+                "parametry": result.parameters, "pochodzenie_i_dopasowanie": result.metadata,
+            }, ensure_ascii=False, indent=2,
+                default=lambda value: dict(value) if isinstance(value, Mapping) else str(value)))
+
+    def _show_frame_info(self) -> None:
+        view, series = self._presented, self.controller.series
+        if view is not None and series is not None:
+            self._show_text("Informacje o klatce", "\n".join((
+                self.frame_label.text(), view.registration_text,
+                view.annotations.detection_message, view.annotations.segmentation_message,
+                *series.diagnostics, *view.annotations.diagnostics,
+            )))
+
+    def _sync_frame_slider(self) -> None:
+        with QSignalBlocker(self.frame_slider):
+            self.frame_slider.setValue(self.controller.current_index + 1)
+
+    def closeEvent(self, event: QCloseEvent | None) -> None:
+        if not self.project_actions.allow_close():
+            if event is not None:
+                event.ignore()
+            return
+        self.filmstrip.shutdown()
+        self.controller.shutdown()
+        super().closeEvent(event)
+
+    def _finish_background_work(self) -> None:
+        # Stop both producers before joining; workers must not outlive Qt signals.
+        self.filmstrip.shutdown()
+        self.controller.shutdown()
+        self.filmstrip.wait_for_workers()
+        self.controller.wait_for_workers()
+
+    def eventFilter(self, watched: QObject | None, event: QEvent | None) -> bool:
+        if event is not None and event.type() in (QEvent.Type.FocusIn, QEvent.Type.MouseButtonPress):
+            self.controller.pause()
+        return super().eventFilter(watched, event)

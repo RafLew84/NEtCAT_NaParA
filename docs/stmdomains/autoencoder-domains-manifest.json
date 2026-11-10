@@ -1,0 +1,3388 @@
+{
+  "schema": "stmdomains-autoencoder-domain-evidence-v1",
+  "issue": 21,
+  "experiment_root": ".scratch/autoencoder-21",
+  "plan_sha256": "7d0a3dd85039f74a88d6414e2ab5c48108ccd36261197f77951d8f8c3fb7a563",
+  "fits": [
+    {
+      "family": "ae",
+      "latent_dim": 16,
+      "seed": 20261101,
+      "regime": "transfer",
+      "status": "completed",
+      "selected_step": 800,
+      "selected_checkpoint_sha256": "365880122008676ac5d0eb988abf7746c796ebf10d6a840d77c9f23a196f6d3d",
+      "completed_steps": 2000,
+      "seconds": 29.752869488002034,
+      "best_validation_loss": 0.029541097829739252,
+      "parameter_count": 150145,
+      "cuda_peak_allocated_bytes": 103645696,
+      "peak_rss_bytes": 1658630144
+    },
+    {
+      "family": "ae",
+      "latent_dim": 16,
+      "seed": 20261102,
+      "regime": "transfer",
+      "status": "completed",
+      "selected_step": 1000,
+      "selected_checkpoint_sha256": "26883ed19167da9da1f74ba784db3ff9f23f2507757fa0a103b88bcd37c20463",
+      "completed_steps": 2000,
+      "seconds": 29.722474809997948,
+      "best_validation_loss": 0.02997945839608157,
+      "parameter_count": 150145,
+      "cuda_peak_allocated_bytes": 103645696,
+      "peak_rss_bytes": 1658994688
+    },
+    {
+      "family": "ae",
+      "latent_dim": 16,
+      "seed": 20261103,
+      "regime": "transfer",
+      "status": "completed",
+      "selected_step": 1200,
+      "selected_checkpoint_sha256": "0e1a1c423eb4528352cb4ef1399245d17c4ee786032217084cea00edd5d9e794",
+      "completed_steps": 2000,
+      "seconds": 29.546887961987522,
+      "best_validation_loss": 0.029526970604503596,
+      "parameter_count": 150145,
+      "cuda_peak_allocated_bytes": 103645696,
+      "peak_rss_bytes": 1658556416
+    },
+    {
+      "family": "ae",
+      "latent_dim": 32,
+      "seed": 20261101,
+      "regime": "transfer",
+      "status": "completed",
+      "selected_step": 700,
+      "selected_checkpoint_sha256": "a83542a674fe0e2a554ca2c313788ed39b0f77fd01f0809a8efcb032c95f888f",
+      "completed_steps": 2000,
+      "seconds": 29.85722861699469,
+      "best_validation_loss": 0.02493577359451188,
+      "parameter_count": 250513,
+      "cuda_peak_allocated_bytes": 104854016,
+      "peak_rss_bytes": 1659142144
+    },
+    {
+      "family": "ae",
+      "latent_dim": 32,
+      "seed": 20261102,
+      "regime": "transfer",
+      "status": "completed",
+      "selected_step": 600,
+      "selected_checkpoint_sha256": "05b68796fc728a56068d5652da0c2f8baa0f636eb4ecb2d359069b32e582d511",
+      "completed_steps": 2000,
+      "seconds": 33.03013542399276,
+      "best_validation_loss": 0.025234339469008975,
+      "parameter_count": 250513,
+      "cuda_peak_allocated_bytes": 104854016,
+      "peak_rss_bytes": 1658236928
+    },
+    {
+      "family": "ae",
+      "latent_dim": 32,
+      "seed": 20261103,
+      "regime": "transfer",
+      "status": "completed",
+      "selected_step": 600,
+      "selected_checkpoint_sha256": "9116d568cedbb367e3b289af90a01bd80e7ed6ff94a50959a681e8400271b42a",
+      "completed_steps": 2000,
+      "seconds": 31.07354939400102,
+      "best_validation_loss": 0.028520993433064884,
+      "parameter_count": 250513,
+      "cuda_peak_allocated_bytes": 104854016,
+      "peak_rss_bytes": 1658286080
+    },
+    {
+      "family": "rvae",
+      "latent_dim": 16,
+      "seed": 20261101,
+      "regime": "transfer",
+      "status": "completed",
+      "selected_step": 1300,
+      "selected_checkpoint_sha256": "88edc54f50e643d17eb4af924ca57a174824ef6673380fa15013123fcc887ab7",
+      "completed_steps": 2000,
+      "seconds": 32.845172025001375,
+      "best_validation_loss": 0.05684514280270647,
+      "parameter_count": 147943,
+      "cuda_peak_allocated_bytes": 372586496,
+      "peak_rss_bytes": 1696145408
+    },
+    {
+      "family": "rvae",
+      "latent_dim": 16,
+      "seed": 20261102,
+      "regime": "transfer",
+      "status": "completed",
+      "selected_step": 1300,
+      "selected_checkpoint_sha256": "353dee6ebe84b2c5f31d7799bc53cd83e9e1813d4e6cc8545b12fed65a630e66",
+      "completed_steps": 2000,
+      "seconds": 30.97645295500115,
+      "best_validation_loss": 0.05504670421834345,
+      "parameter_count": 147943,
+      "cuda_peak_allocated_bytes": 372586496,
+      "peak_rss_bytes": 1696608256
+    },
+    {
+      "family": "rvae",
+      "latent_dim": 16,
+      "seed": 20261103,
+      "regime": "transfer",
+      "status": "completed",
+      "selected_step": 1800,
+      "selected_checkpoint_sha256": "9dcbb9e41531fc510705da89b427fc96300a008a78360d23947089b88c35a1b6",
+      "completed_steps": 2000,
+      "seconds": 32.36019418500655,
+      "best_validation_loss": 0.05585330136948162,
+      "parameter_count": 147943,
+      "cuda_peak_allocated_bytes": 372586496,
+      "peak_rss_bytes": 1696063488
+    },
+    {
+      "family": "rvae",
+      "latent_dim": 32,
+      "seed": 20261101,
+      "regime": "transfer",
+      "status": "completed",
+      "selected_step": 1300,
+      "selected_checkpoint_sha256": "d8bdf606bd039028f4e6901424d790f287e92325cc14ad46b62926c45d8d2952",
+      "completed_steps": 2000,
+      "seconds": 32.605927013995824,
+      "best_validation_loss": 0.05530956751770443,
+      "parameter_count": 249351,
+      "cuda_peak_allocated_bytes": 390608896,
+      "peak_rss_bytes": 1694625792
+    },
+    {
+      "family": "rvae",
+      "latent_dim": 32,
+      "seed": 20261102,
+      "regime": "transfer",
+      "status": "completed",
+      "selected_step": 1300,
+      "selected_checkpoint_sha256": "ae33a6a43cb4edded0e2dc98920ba22767539a136033e25332b2c334cad72d83",
+      "completed_steps": 2000,
+      "seconds": 32.461189323003055,
+      "best_validation_loss": 0.058871680360149455,
+      "parameter_count": 249351,
+      "cuda_peak_allocated_bytes": 390608896,
+      "peak_rss_bytes": 1693470720
+    },
+    {
+      "family": "rvae",
+      "latent_dim": 32,
+      "seed": 20261103,
+      "regime": "transfer",
+      "status": "completed",
+      "selected_step": 1300,
+      "selected_checkpoint_sha256": "4e652dcada4a49cb7f98603590ec2bea3c1d8f246c8ed2c14e80caf192028a6e",
+      "completed_steps": 2000,
+      "seconds": 31.591363589002867,
+      "best_validation_loss": 0.05810617111899235,
+      "parameter_count": 249351,
+      "cuda_peak_allocated_bytes": 390608896,
+      "peak_rss_bytes": 1694670848
+    },
+    {
+      "family": "ae",
+      "latent_dim": 32,
+      "seed": 20261101,
+      "regime": "transductive",
+      "status": "completed",
+      "selected_step": 600,
+      "selected_checkpoint_sha256": "1a6429c7c0dcf17249a710dd3b6ec82c2a6620f9076f22b5b5bef9d33414779e",
+      "completed_steps": 600,
+      "seconds": 9.727785679002409,
+      "best_validation_loss": null,
+      "parameter_count": 250513,
+      "cuda_peak_allocated_bytes": 104854016,
+      "peak_rss_bytes": 1648164864
+    },
+    {
+      "family": "ae",
+      "latent_dim": 32,
+      "seed": 20261102,
+      "regime": "transductive",
+      "status": "completed",
+      "selected_step": 600,
+      "selected_checkpoint_sha256": "8c368e6c8d09d7505200133267ae24e4f1a041da092bb7c7ab97c6a559ab770e",
+      "completed_steps": 600,
+      "seconds": 9.584362984998734,
+      "best_validation_loss": null,
+      "parameter_count": 250513,
+      "cuda_peak_allocated_bytes": 104854016,
+      "peak_rss_bytes": 1640984576
+    },
+    {
+      "family": "ae",
+      "latent_dim": 32,
+      "seed": 20261103,
+      "regime": "transductive",
+      "status": "completed",
+      "selected_step": 600,
+      "selected_checkpoint_sha256": "378fff62e277d7ea637dedc5045e730aa0e366d31f33a0bd5e4140abb9e5d22b",
+      "completed_steps": 600,
+      "seconds": 9.747337715001777,
+      "best_validation_loss": null,
+      "parameter_count": 250513,
+      "cuda_peak_allocated_bytes": 104854016,
+      "peak_rss_bytes": 1644781568
+    },
+    {
+      "family": "rvae",
+      "latent_dim": 32,
+      "seed": 20261101,
+      "regime": "transductive",
+      "status": "completed",
+      "selected_step": 1300,
+      "selected_checkpoint_sha256": "9b5ef59273a6f590145ff75556ed1297581087dd57fb0f1dc9a1957399ec3c9e",
+      "completed_steps": 1300,
+      "seconds": 22.0517156769929,
+      "best_validation_loss": null,
+      "parameter_count": 249351,
+      "cuda_peak_allocated_bytes": 390608896,
+      "peak_rss_bytes": 1729380352
+    },
+    {
+      "family": "rvae",
+      "latent_dim": 32,
+      "seed": 20261102,
+      "regime": "transductive",
+      "status": "completed",
+      "selected_step": 1300,
+      "selected_checkpoint_sha256": "049b1c8d00d85c9a7e8e6ad529b412603a440df0a56ab3b88db52638f794639c",
+      "completed_steps": 1300,
+      "seconds": 20.94063684399589,
+      "best_validation_loss": null,
+      "parameter_count": 249351,
+      "cuda_peak_allocated_bytes": 390608896,
+      "peak_rss_bytes": 1732739072
+    },
+    {
+      "family": "rvae",
+      "latent_dim": 32,
+      "seed": 20261103,
+      "regime": "transductive",
+      "status": "completed",
+      "selected_step": 1300,
+      "selected_checkpoint_sha256": "f68e46830fc129ddf72ae80afe5d51141128b939041fe46c7d7266475bcb759a",
+      "completed_steps": 1300,
+      "seconds": 21.211103170004208,
+      "best_validation_loss": null,
+      "parameter_count": 249351,
+      "cuda_peak_allocated_bytes": 390608896,
+      "peak_rss_bytes": 1733066752
+    }
+  ],
+  "total_fit_seconds": 469.0863868559827,
+  "checkpoint_bytes": 890954997,
+  "ttmapp_grid48": [
+    {
+      "metadata": {
+        "run_id": "transductive/ae/z32/seed-20261101",
+        "regime": "transductive",
+        "family": "ae",
+        "latent": 32,
+        "seed": 20261101,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.948051948051948,
+        "split_rate": 0.09992973690373956,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.005115089514066497,
+        "merge_rate": null,
+        "split_rate": 0.0,
+        "assigned_elements": 4,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 4,
+            "coverage": 0.005961251862891207
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transductive/ae/z32/seed-20261101",
+        "regime": "transductive",
+        "family": "ae",
+        "latent": 32,
+        "seed": 20261101,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.5801652892561984,
+        "split_rate": 0.3877742212506831,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transductive/ae/z32/seed-20261102",
+        "regime": "transductive",
+        "family": "ae",
+        "latent": 32,
+        "seed": 20261102,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.9525383707201889,
+        "split_rate": 0.08697009914903583,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.005115089514066497,
+        "merge_rate": null,
+        "split_rate": 0.0,
+        "assigned_elements": 4,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 4,
+            "coverage": 0.005961251862891207
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transductive/ae/z32/seed-20261102",
+        "regime": "transductive",
+        "family": "ae",
+        "latent": 32,
+        "seed": 20261102,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.2025974025974026,
+        "split_rate": 0.8325396205792802,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transductive/ae/z32/seed-20261103",
+        "regime": "transductive",
+        "family": "ae",
+        "latent": 32,
+        "seed": 20261103,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.964344746162928,
+        "split_rate": 0.05745959871965024,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.005115089514066497,
+        "merge_rate": null,
+        "split_rate": 0.0,
+        "assigned_elements": 4,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 4,
+            "coverage": 0.005961251862891207
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transductive/ae/z32/seed-20261103",
+        "regime": "transductive",
+        "family": "ae",
+        "latent": 32,
+        "seed": 20261103,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.2115702479338843,
+        "split_rate": 0.8330861113279725,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transductive/rvae/z32/seed-20261101",
+        "regime": "transductive",
+        "family": "rvae",
+        "latent": 32,
+        "seed": 20261101,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.861629279811098,
+        "split_rate": 0.16667967835115935,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.005115089514066497,
+        "merge_rate": null,
+        "split_rate": 0.0,
+        "assigned_elements": 4,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 4,
+            "coverage": 0.005961251862891207
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transductive/rvae/z32/seed-20261101",
+        "regime": "transductive",
+        "family": "rvae",
+        "latent": 32,
+        "seed": 20261101,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.1667060212514758,
+        "split_rate": 0.7156686704660785,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transductive/rvae/z32/seed-20261102",
+        "regime": "transductive",
+        "family": "rvae",
+        "latent": 32,
+        "seed": 20261102,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.3799291617473436,
+        "split_rate": 0.4137715668670466,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transductive/rvae/z32/seed-20261102",
+        "regime": "transductive",
+        "family": "rvae",
+        "latent": 32,
+        "seed": 20261102,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.08311688311688312,
+        "split_rate": 0.7378405808415958,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transductive/rvae/z32/seed-20261103",
+        "regime": "transductive",
+        "family": "rvae",
+        "latent": 32,
+        "seed": 20261103,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.3142857142857143,
+        "split_rate": 0.34616285424311033,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.005115089514066497,
+        "merge_rate": null,
+        "split_rate": 0.0,
+        "assigned_elements": 4,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 4,
+            "coverage": 0.005961251862891207
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transductive/rvae/z32/seed-20261103",
+        "regime": "transductive",
+        "family": "rvae",
+        "latent": 32,
+        "seed": 20261103,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.026210153482880756,
+        "split_rate": 0.627449449605746,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/ae/z16/seed-20261101",
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 16,
+        "seed": 20261101,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.7142857142857143,
+        "split_rate": 0.06012269938650307,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/ae/z16/seed-20261101",
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 16,
+        "seed": 20261101,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.8319018404907975,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/ae/z16/seed-20261102",
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 16,
+        "seed": 20261102,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.7142857142857143,
+        "split_rate": 0.06257668711656442,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/ae/z16/seed-20261102",
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 16,
+        "seed": 20261102,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.8822085889570552,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/ae/z16/seed-20261103",
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 16,
+        "seed": 20261103,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.7142857142857143,
+        "split_rate": 0.08834355828220859,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/ae/z16/seed-20261103",
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 16,
+        "seed": 20261103,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.9226993865030675,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/ae/z32/seed-20261101",
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "seed": 20261101,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.7142857142857143,
+        "split_rate": 0.049079754601226995,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/ae/z32/seed-20261101",
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "seed": 20261101,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.7926380368098159,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/ae/z32/seed-20261102",
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "seed": 20261102,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 1.0,
+        "split_rate": 0.0,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/ae/z32/seed-20261102",
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "seed": 20261102,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.8220858895705522,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/ae/z32/seed-20261103",
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "seed": 20261103,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.8571428571428571,
+        "split_rate": 0.029447852760736196,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/ae/z32/seed-20261103",
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "seed": 20261103,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.841717791411043,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/rvae/z16/seed-20261101",
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 16,
+        "seed": 20261101,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.1754601226993865,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/rvae/z16/seed-20261101",
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 16,
+        "seed": 20261101,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.758282208588957,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/rvae/z16/seed-20261102",
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 16,
+        "seed": 20261102,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 1.0,
+        "split_rate": 0.1263803680981595,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/rvae/z16/seed-20261102",
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 16,
+        "seed": 20261102,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.8171779141104294,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/rvae/z16/seed-20261103",
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 16,
+        "seed": 20261103,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.5,
+        "split_rate": 0.25153374233128833,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/rvae/z16/seed-20261103",
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 16,
+        "seed": 20261103,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.8269938650306748,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/rvae/z32/seed-20261101",
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "seed": 20261101,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.8571428571428571,
+        "split_rate": 0.2196319018404908,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/rvae/z32/seed-20261101",
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "seed": 20261101,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.7030674846625767,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/rvae/z32/seed-20261102",
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "seed": 20261102,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.2196319018404908,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/rvae/z32/seed-20261102",
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "seed": 20261102,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.8429447852760736,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/rvae/z32/seed-20261103",
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "seed": 20261103,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.8571428571428571,
+        "split_rate": 0.1607361963190184,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/rvae/z32/seed-20261103",
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "seed": 20261103,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.6871165644171779,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/fft",
+        "regime": "transfer",
+        "family": "fft",
+        "latent": null,
+        "seed": null,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 1.0,
+        "split_rate": 0.03803680981595092,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transfer/fft",
+        "regime": "transfer",
+        "family": "fft",
+        "latent": null,
+        "seed": null,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 174,
+      "full_support_elements": 912,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.0,
+        "split_rate": 0.7754601226993865,
+        "assigned_elements": 174,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 172,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 2,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.0,
+        "merge_rate": null,
+        "split_rate": null,
+        "assigned_elements": 0,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 172,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "reference_elements": 2,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 0,
+            "assigned_elements": 0,
+            "coverage": null
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transductive/fft",
+        "regime": "transductive",
+        "family": "fft",
+        "latent": null,
+        "seed": null,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "fh4",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.880047225501771,
+        "split_rate": 0.05792801936138652,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.005115089514066497,
+        "merge_rate": null,
+        "split_rate": 0.0,
+        "assigned_elements": 4,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 4,
+            "coverage": 0.005961251862891207
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    },
+    {
+      "metadata": {
+        "run_id": "transductive/fft",
+        "regime": "transductive",
+        "family": "fft",
+        "latent": null,
+        "seed": null,
+        "scale_px": 48,
+        "sampler": "grid",
+        "partition": "mws",
+        "kind": "measurement",
+        "case": null,
+        "assessment": "primary_grid"
+      },
+      "reference_elements": 782,
+      "full_support_elements": 3456,
+      "before": {
+        "coverage": 1.0,
+        "merge_rate": 0.011097992916174734,
+        "split_rate": 0.5214302443594347,
+        "assigned_elements": 782,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 671,
+            "coverage": 1.0
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 9,
+            "coverage": 1.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 102,
+            "coverage": 1.0
+          }
+        }
+      },
+      "after": {
+        "coverage": 0.005115089514066497,
+        "merge_rate": null,
+        "split_rate": 0.0,
+        "assigned_elements": 4,
+        "per_orientation_group": {
+          "1": {
+            "reference_elements": 671,
+            "assigned_elements": 4,
+            "coverage": 0.005961251862891207
+          },
+          "2": {
+            "reference_elements": 9,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "reference_elements": 102,
+            "assigned_elements": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    }
+  ],
+  "continuation": [
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "ae",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "claim_scope": "all three partial-reference groups in transduction",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "ae",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "claim_scope": "all three partial-reference groups in transduction",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "rvae",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "claim_scope": "all three partial-reference groups in transduction",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "rvae",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "claim_scope": "all three partial-reference groups in transduction",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 16,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "claim_scope": "represented transfer-test regions only",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 16,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "claim_scope": "represented transfer-test regions only",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "claim_scope": "represented transfer-test regions only",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "claim_scope": "represented transfer-test regions only",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 16,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "claim_scope": "represented transfer-test regions only",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 16,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "claim_scope": "represented transfer-test regions only",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "claim_scope": "represented transfer-test regions only",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "claim_scope": "represented transfer-test regions only",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "fft",
+        "latent": null,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "claim_scope": "represented transfer-test regions only",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": true,
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "fft",
+        "latent": null,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "claim_scope": "represented transfer-test regions only",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": true,
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "fft",
+        "latent": null,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "claim_scope": "all three partial-reference groups in transduction",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": true,
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      },
+      "synthetic_control_conditions_qualified": false
+    },
+    {
+      "metadata": {
+        "regime": "transductive",
+        "family": "fft",
+        "latent": null,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "claim_scope": "all three partial-reference groups in transduction",
+      "full_three_group_ttmapp_benefit": false,
+      "stability": true,
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      },
+      "synthetic_control_conditions_qualified": false
+    }
+  ],
+  "resources": {
+    "cache-resources.json": {
+      "wall_seconds": 101.43921806200524,
+      "cpu_seconds": 101.370762938,
+      "max_rss_kib": 330212
+    },
+    "encode-resources.json": {
+      "wall_seconds": 70.79491170399706,
+      "cpu_seconds": 70.848756122,
+      "max_rss_kib": 1671840
+    },
+    "evaluation-resources.json": {
+      "status": "completed",
+      "cpu_seconds": 105.969267446,
+      "prior_cpu_seconds": 950.93346309,
+      "cumulative_postprocess_cpu_seconds": 1056.902730536,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 106.34662323001248,
+      "max_rss_kib": 3755516,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc"
+      }
+    },
+    "findings-resources.json": {
+      "status": "completed",
+      "cpu_seconds": 0.683975895,
+      "prior_cpu_seconds": 1056.902730536,
+      "cumulative_postprocess_cpu_seconds": 1057.586706431,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 0.6840734589932254,
+      "max_rss_kib": 585308,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc"
+      }
+    },
+    "findings-summary-resources.json": {
+      "status": "completed",
+      "cpu_seconds": 0.0006053719999999929,
+      "prior_cpu_seconds": 1057.586706431,
+      "cumulative_postprocess_cpu_seconds": 1057.5873118030001,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 0.0006042080058250576,
+      "max_rss_kib": 69088,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "cache-resources.json": "8ffc3e9a17118938405a1b3bf7e9fa95f1cbafe59dae4d75bcb4fd99733687ae",
+        "encode-resources.json": "272dc83fca07019bc226dcc2b6dec32234656b097c15aa03ae0cc6e48da52da0",
+        "evaluation-resources.json": "65abfe8835d18adcf7a7816ed183d89f0b26f950512b94ae0ca8a1d648ce8424",
+        "findings-resources.json": "10ba86c1ab2c6613afe3a288242403dc2a6fb516249ae696850f46475c11a2ee",
+        "freeze-resources.json": "808589192b9053f1a4f678eb8a6d2d4ba83bdc0bbf5875c7722b1eadea4440cd",
+        "partition-resources.json": "f198ca9e90976a61bf49228687c1d3f65f9b6ab605bcb2caf6e2ee374a152ecc"
+      }
+    },
+    "freeze-resources.json": {
+      "wall_seconds": 430.43453373000375,
+      "cpu_seconds": 360.6424255,
+      "max_rss_kib": 463940
+    },
+    "partition-resources.json": {
+      "wall_seconds": 419.07499065400043,
+      "cpu_seconds": 418.07151853,
+      "max_rss_kib": 248600
+    }
+  },
+  "code_sha256": {
+    "stmdomains/experiments/training/__init__.py": "97fd51375aa0e05eb1c46fb0723db5a15be8f9d6c24f8cccb34376b8d849f65a",
+    "stmdomains/experiments/training/checkpoint.py": "e19068623d963dac64215fdc8fb43f9988960d5cb4508a27c03429c1e097a58e",
+    "stmdomains/experiments/training/controls.py": "6f9a45afa53162417f8b9fc43b1632093d45d06ca6b96c9b49abdb1745e7172a",
+    "stmdomains/experiments/training/data.py": "0958eceb8196a32e84c3e5d4f8ba6b589742396747029d28d97db3ff3161205e",
+    "stmdomains/experiments/training/diagnostics.py": "9604b5f5841e48ca51373c08653761f843fc826d3502a1feaccb50d13dd6d1ae",
+    "stmdomains/experiments/training/evaluate.py": "70df041537b87996246a6bcd96cf5d06720a3049b6dec37e3eea73dc1c022261",
+    "stmdomains/experiments/training/export_contract.py": "8081bf43a2b2b12a1596d365b0cc705a1c1b759fd8855844795d29737f3750b0",
+    "stmdomains/experiments/training/figures.py": "a81f552d5043408ab6bb8073b2fd05ba6b24a960877d5ae8480a5bfd2a9059a4",
+    "stmdomains/experiments/training/fit.py": "3a9837ac417607dc7811310acad5bb85d58392193c75f54793fcd9d528e96292",
+    "stmdomains/experiments/training/gallery.py": "49039c0c9adc9ee21b4741774e347152d257d83f08c616abf9968e8f556b5332",
+    "stmdomains/experiments/training/gpu_probe.py": "ed963ce85aa8679ba468c3276d2e5a3a067c735773a2b7b0d7a8d08df0fe1ca3",
+    "stmdomains/experiments/training/models.py": "081c4db5ae0e30d3d0f5fa6f2056bbe2379c7d7025a7e5f3e0feb8618bed7cd7",
+    "stmdomains/experiments/training/partition.py": "6bd03509c7c318a28aa429723a466237d25224a38760822f21918a7a55cca8b2",
+    "stmdomains/experiments/training/predict.py": "0b0ebb52805a46bc6c01e8da9055ce5d134220fc71ea4c343724bffc54f6b81f",
+    "stmdomains/experiments/training/prepare.py": "1dd7546fc1fac177154c0d0d7482148a22c50aa4da275e662586770706c7fa21",
+    "stmdomains/experiments/training/resume_check.py": "4492fa4b7038ffdeedaf1cc8d6ca80fe20c4e7f29f59c426a228bfb4405ab340",
+    "stmdomains/experiments/training/summarize.py": "a8aad1ca76f2c8143f80e352259e3f6aa19683e08646b37ee6006eb66087d658",
+    "stmdomains/experiments/training/summarize_trial.py": "b6cac3c1b48c9784b456541bb1e9418be6018ebea695c56ff67b4a5f95612804",
+    "stmdomains/experiments/training/texture.py": "d543c235796c9f83dc2deafc0470c0d17775c9b7c3da35c5741a59b6fb76c075",
+    "stmdomains/experiments/training/verify.py": "122476bb98f0d8ae3711f0685a88c92e56c40829288026e308fd29966f0f863b",
+    "tests/stmdomains/test_training_checkpoint.py": "e637abc8ade0ff720c6d10ae17f7112d06ba548539b0099a040ae94009f8180a",
+    "tests/stmdomains/test_training_controls.py": "f6a837f1481cd90665eff629be33468b465b0272d417f93f1b13f4f4c2f081a4",
+    "tests/stmdomains/test_training_data.py": "3f0e35feac119fd61ce2f97983a7341bb7eb3ec56cde90d8b1a83e01f1864353",
+    "tests/stmdomains/test_training_evaluation.py": "affab487c78ccb7efc2bcba5d9d823f907be2831f9f76060d955d58e43dcd656",
+    "tests/stmdomains/test_training_export_contract.py": "567e8c0e216435dc3c1d1e84dbee9957c1e078fb5fea371b3caf0a53ad924c85",
+    "tests/stmdomains/test_training_fit.py": "44bf60c2b2443bd4e4d853d175622b3fd6305b21d81e1bb7c7d11075dcce531b",
+    "tests/stmdomains/test_training_models.py": "f2f72e24555b11e7f8024bcd626b68fa69d480837c8c95356f1f575cc4b08c35",
+    "tests/stmdomains/test_training_partition.py": "4e0fd4baee9d4e88730a2cc963a407ca87a5be22106e82f95cc8334b6adb0bcf",
+    "tests/stmdomains/test_training_prediction.py": "25410d3b8a2fda431a748e9d445e36d1e4b9f7b7053cd4cea3d4022265157afa",
+    "tests/stmdomains/test_training_texture.py": "03b122774432a6ae377d735190260b6da1af4493dc7fb37e7fc50982baa9955d"
+  },
+  "artifacts_sha256": {
+    "training/architecture.json": "cfcbd1a4df2f2dd63e1eb55c8f1adae6feb71c77c17cf6c311076388312c6092",
+    "training/registry.json": "504516dda930eb960838d00ed2b5f03f1db0b038323b4d289d6e4b52abe33f9a",
+    "training-resume/resume-report.json": "be9cac16c6725f1ff93fd3cd71836bbc07d33d12706970a4f9b34570bcfad1e2",
+    "frozen-predictions.json": "9d49dd17929a1b5940509c53f4cf8a82a5e18817139aa477591ca99c07c34707",
+    "export-contract-audit.json": "860538225dbcf44e6a6817cd6a45de82acc4f9d0c2e2d7a978efe6551d47b943",
+    "inference-configuration.json": "c33c2193f3c3ebde7c4a41940cf071422279261fa427a4e4df6ea361c6578480",
+    "cache/order-thresholds.json": "9163ca5f3c449b75e6c9a316f9ef59cd7ffb0a12748f997b6c533e5f7ffa5a1c",
+    "predictions/index.json": "1f312614eb915f2d956228393e5f582d71f7fe6c5e0581dbab5af2be3dce3f98",
+    "evaluation/evaluation-evidence.json": "6f4345e54ca439cdd61c93a24f312c756aeb35d82ff85d44b722f3cf0a56f6be",
+    "evaluation/aggregates.json": "4ac735bcaf9af694ea7dba7f4fa5e522bc93436a8edeafa78b38f37f584be540",
+    "evaluation/continuation.json": "5a6de161f2d8bae4bb7df31de7bf93eb7615fcc57912664101040d2705265919",
+    "evaluation/ablations.json": "7e3d8db1ee9b5dcd94bc4f25cc7a4222c105b9bcf7f903c05bd078e2760a61c5",
+    "evaluation/stability.json": "41567ea238f212920d226f5a46de39a03825ed7a50666129f18bffba08ee60b1",
+    "evaluation/benefits.json": "5c0a3a47c2eb6926726fad95b2b59d853bb3046bd95519c11224bd178840a9a9",
+    "feature-diagnostics.json": "ee7a129933e954ad20b6fda6646b02226fabf0f75c4f9b4290b1f4cd177c1000",
+    "index.html": "a550448067333d829e7c0af62dd604971a25823ff4f35b1f8201a23a899f4009",
+    "gallery/scenario-map.json": "bba0ffc3835f89a6bee6b7fa06907fa4d32d52d1bac3e2ddc298e7426c4cb197",
+    "gallery/scenario-source.json": "33b9d4637ee926f3dd34d5bdc470510550342e08e537d3946c5ea59241db1981",
+    "figures/validation-curves.png": "ea8447a28f5f6d80915b705227268d745f0e0d2c5229cab895faec2bd1eed044",
+    "figures/reconstruction-examples.png": "646bc60560fa1dd706ba41b0d767b0ab5577008aa897fc9358c41098d62a83b6",
+    "training/training-audit.json": "95f3b5ef6aef700dfae33882b808265111254e2635be9bcb6867d650f242a891",
+    "training-resume/reference-blind.json": "5144b98bcbd1424a35b6ed930771de5adb864b5ec85c179ac61943df0782b58d",
+    "gallery/browser-check.json": "c087f633edf2b0dc265a32b7605296f33d2ed10246ac7343cd8ffd5d840c857e"
+  },
+  "limitations": [
+    "single correlated acquisition",
+    "saved registration is often low-confidence",
+    "partial references only",
+    "no application or native GUI acceptance"
+  ]
+}

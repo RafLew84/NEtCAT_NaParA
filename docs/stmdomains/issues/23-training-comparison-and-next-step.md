@@ -1,0 +1,182 @@
+# Czy trening daje poprawę i które rozszerzenie warto wykonać?
+
+ID: 23
+Type: grilling
+Labels: wayfinder:grilling
+Mode: HITL
+Status: resolved
+Assignee: Codex — domains/start
+Parent: [STM Domains — etap 2: metody i zapis wyników](../map-methods-and-save.md)
+Blocked by: 19, 21, 21a, 22
+
+## Answer — 2026-11-01
+
+Użytkownik przyjął rekomendację: **kończymy obecny pilot bez wyboru
+detektora domen**. Tickety **24–26 pozostają niewybrane i warunkowe**;
+nie uruchamiamy nowych treningów, nie przyznajemy nowego budżetu ani
+nie rozpoczynamy przygotowania dodatkowych MPP/STP. Jakość 04 i odbiór
+metody w 13 pozostają otwarte. Nie dodajemy 24–26 do zależności 13.
+
+[Porównanie](../training-comparison-and-next-step.md) zachowuje częściowe
+korzyści reprezentacji, ale żadna uczona procedura nie spełniła pełnych
+kryteriów kontynuacji. Pozostają dwie odrębne luki: lokalne relacje/granice
+przed odmowami oraz kryterium porządku i spójności. Brak zwycięzcy uczenia
+nie oznacza przyjęcia metod klasycznych ani nieskuteczności całych rodzin ML.
+
+Zachowujemy prototypy, modele, oceny i kontrole jako materiał do przyszłych
+porównań. Osobne dalsze badanie wymaga nowego wyboru konkretnej hipotezy,
+porównania kontrolnego i budżetu; nie wynika automatycznie z zakończenia 23.
+Status `resolved` oznacza wykonane zestawienie i uzgodnioną decyzję o zakresie,
+nie odbiór produkcyjnego detektora. Raport i audyt zapisano w `f5d9b56`.
+
+## Zestawienie — 2026-11-01
+
+Przygotowano [raport porównawczy](../training-comparison-and-next-step.md)
+i [manifest dowodów](../training-comparison-manifest.json), z główną wspólną
+oceną 21/22, oddzielnym 21a i historycznym kontekstem 15–19. Brak nowego
+treningu lub predykcji. Nie wykazano poprawy końcowych domen; rozdzielono
+nieudane granice przed odmowami od niezależnego limitu bramki/spójności.
+
+Rekomendację zakończenia serii bez przyjęcia detektora, nowego budżetu
+lub zbioru następnie zaakceptował użytkownik; decyzja została zapisana
+powyżej. Zestawienie nie zalicza odbioru 13.
+
+## Podjęcie — 2026-11-01
+
+Na polecenie użytkownika zestawiamy zakończone próby 19, 21, 21a i 22.
+Powstaną wspólne tabele dla porównywalnych danych 21/22 oraz osobne
+zestawienia dodatku 21a i wcześniejszych prób o innych warunkach.
+Ocena rozdziela cechy, relacje/podział, porządek i spójność, materiał
+oraz zakres referencji. Przygotujemy konkretną rekomendację zakończenia
+serii lub uzasadnionego rozszerzenia do omówienia zgodnie z warunkiem
+zakończenia poniżej. Nie uruchamiamy kolejnych fitów przez samo podjęcie 23.
+
+## Question
+
+Czy po pierwszych próbach uczenie reprezentacji daje korzyść uzasadniającą
+koszt, czy wystarczają metody klasyczne lub gotowe cechy? Zestawić wynik
+tekstury, zamrożonych modeli, AE/rVAE i lokalnego SSL na wspólnych danych.
+To decyzja o dalszym badaniu, a nie odbiór produkcyjnej metody z kroku 13.
+
+**Aktualizacja przyjęta — 2026-10-31:** po
+[badaniu usprawnień](../research-domain-plan-improvements.md) rozstrzygamy
+także źródło błędu: cechy, relacje, podział lub odmowy. Obowiązuje
+[wspólny protokół 20](20-self-supervised-training-preparation.md#wspólny-protokół-relacji-i-podziału),
+realizowany w 21/22, bez nowego ticketu przygotowawczego. Zmiana planu nie
+uruchamia badań; status pozostaje `open`, a 24–26 nadal są warunkowe.
+
+**Uzupełnienie na polecenie użytkownika — 2026-10-31:** przed 22 dodano
+osobny [21a — dekoder i regularyzacja rVAE](21a-rvae-decoder-and-kl.md).
+21a i 22 następnie wykonano (`resolved`); materiał do zestawienia jest gotowy. Ująć osobno
+oryginalne 21 i dodatkową próbę, jej budżet oraz zakres oceny; poprawa
+rekonstrukcji lub cech przed bramką nie oznacza poprawy końcowego detektora.
+
+## Materiał do decyzji
+
+- [Wykonana próba 21](../autoencoder-domains-trial.md): 18/18 fitów AE/rVAE,
+  bez spełnienia kryteriów kontynuacji. Bramka porządku daje niemal pełne
+  odmowy na TTMAPP, lecz także fałszywe domeny niezależnych rzędów.
+  Surowy kąt rVAE nie rozpoznaje orientacji. Zapisane wyniki przed odmowami
+  pozwalają oddzielić tę lukę od cech i podziału. Ostateczne zestawienie
+  obejmuje także wykonane 22; samo ukończenie prób nie wybiera rozszerzenia danych lub 24–26.
+- [Osobna próba 21a](../rvae-decoder-kl-trial.md) wykonana: 2 diagnostyki
+  i 9 fitów, 22 000 kroków, 336,34 s. Słabsze KL obniża medianę MSE
+  o około 14%, ale nadal nie daje wiarygodnego kąta i końcowych domen.
+  TTMAPP: 0/174 przypisań dla wszystkich wariantów; pozostają błędy kontroli.
+  Zachowane modele 21 oceniono na tych samych nowych kontrolach bez
+  retreningu; 672 tablice TTMAPP są identyczne z 21. Oddzielić świeże
+  realizacje syntetyczne od znanego TTMAPP i nie porównywać transferu
+  z transdukcją jako równych warunków. Wynik nie otwiera dalszego strojenia
+  rVAE ani bramki; niezależną próbę SSL następnie wykonano w 22.
+- [Lokalny SSL — wykonana próba 22](../local-self-supervised-trial.md):
+  9/9 fitów, 18 000 kroków, 452,04 s; pełne porównanie FFT/SSL × FH/MWS
+  i własne inicjalizacje encodera. Cechy są bardziej zróżnicowane i mniej
+  skorelowane z jasnością, ale transfer nadal 0/174, transdukcja najwyżej
+  4/782 (0,51%), bez przewagi nad FFT. Geometryczne maksimum zachowanej
+  bramki/spójności wynosi dokładnie te wartości niezależnie od cech.
+  Jednocześnie SSL z32 ma F1=0 na czterech kontrolach granic także przed
+  odmowami i scala różne referencje transferu. Rozdzielić te dwie luki;
+  sam nowy encoder nie może usunąć ograniczenia bramki. Żadna uczona
+  konfiguracja nie spełnia kryteriów kontynuacji. Wszystkie 27 fitów
+  pierwotnego budżetu 21/22 wykonano; dodatek 21a pozostaje oddzielny.
+- Tabela wspólnych kontroli, błędów i odmów, stabilności względem ziaren
+  oraz zakresu. Oddzielić zero/jedną/wiele domen, typ/orientację, rozstaw,
+  granice przesunięcia, nieporządek i brak danych; zobaczyć pełne nakładki.
+- Rzeczywiste koszty treningu, zastosowania, pamięci i zapisu. Uwzględnić
+  budżet strojenia, zakres dostępnych modeli i różnice etapów interpretacji.
+  Brak uruchomienia nie jest porażką metody, a niższa strata nie jest poprawą
+  wykrywania. Nie wymagać dodatniego wyniku któregokolwiek kandydata.
+- Rozdzielić porządkowanie aktualnej serii od przenoszenia na niewidziane
+  dane. Sprawdzić przecieki między oknami/klatkami oraz rolę używanych już
+  referencji. Nowe oznaczenia lub akwizycje wskazać tylko dla konkretnej luki.
+- Zestawić cztery pola porównania: zachowane/nowe cechy i zachowane/nowe
+  wykorzystanie relacji oraz podział. Pokazać lokalne krawędzie, nie tylko
+  czyste wnętrza, i osobno wynik przed/po filtrze wiarygodności. Jeśli nowy
+  podział otrzymał dodatkowe informacje o granicy, nie przypisywać całej
+  korzyści solverowi. Wskazać, czy poprawiono także końcowe propozycje domen.
+- Dla każdego głównego kandydata podać spełnienie lub niespełnienie
+  kryteriów zamrożonych w 20: scaleń/podziałów, zerowej/jednej domeny,
+  użytecznego zakresu przypisań, stabilności i kosztu. Mało błędów przy
+  niemal pełnej odmowie nie stanowi sukcesu. TTMAPP oceniać w dostępnym
+  zakresie referencji, bez ogólnej dokładności lub dokładnych granic.
+
+## Wybór następnego kroku
+
+**Decyzja użytkownika — 2026-10-31:** pierwsze próby 21/22 korzystają
+z obecnego TTMAPP i kontroli przygotowanych w 20. Dodatkowe MPP/STP
+użytkownik przygotuje później, jeśli wyniki uzasadnią rozszerzenie danych.
+Przy porównaniu wskazać, czy warto podjąć taki krok i jakich akwizycji
+potrzeba do sprawdzenia konkretnej hipotezy. Obecny pilot nie ocenia
+przenoszenia na inne molekuły lub podłoża; jego niepowodzenie również
+nie rozstrzyga skuteczności uczenia na szerszym zbiorze.
+
+Najpierw podjąć decyzję o kontynuacji na podstawie powyższych kryteriów.
+Gdy brak poprawy w ustalonym budżecie, zakończyć dany kierunek i zapisać
+konkretną lukę. Rozszerzenie można wybrać tylko wtedy, gdy jego hipoteza
+odpowiada rozpoznanej przyczynie błędu. Samo ukończenie treningu nie
+uzasadnia kolejnego rozszerzenia. Gdy poprawa wystąpiła,
+opisać jej zakres i ograniczenia; kwalifikacja do aplikacji nadal wymaga 13.
+
+Każde rozszerzenie wymaga wskazania obserwowanego problemu, hipotezy,
+porównania kontrolnego i ograniczonego budżetu:
+
+- [Grafy molekuł](24-graph-self-supervised-domains.md): gdy centra są
+  wiarygodne, a obraz/kontrast ogranicza reprezentację. Wynik geometrii
+  z kroku 15 jest dodatkowym warunkiem tej próby.
+- [Maskowany autoenkoder](25-masked-autoencoder-domains.md): gdy dotychczasowe
+  cechy odtwarzają lokalny wygląd, lecz nie wykorzystują relacji w otoczeniu.
+- [Adaptacja gotowego modelu](26-pretrained-self-supervised-adaptation.md):
+  gdy zamrożone cechy są użyteczne, ale ujawniają konkretną lukę na STM.
+
+Jeśli próby wskażą problem oddzielenia kąta od typu, można zamiast szerokiej
+nowej rodziny zaproponować kontrolowany wariant encodera ekwiwariantnego
+w odpowiednim tickecie, zgodnie z [badaniem](../research-self-supervised-domain-learning.md).
+Nie uruchamiać wszystkich wariantów tylko dlatego, że są dostępne.
+
+RTX 5090 pozostaje punktem startowym. Przejście na deklarowaną kartę
+Blackwell Max-Q 96 GB lub Colab uzasadnić zmierzonym ograniczeniem pamięci
+istotnym dla hipotezy, np. potrzebą większego kontekstu. Porównać jakość
+z kosztem; sama dostępność VRAM nie jest przesłanką większego modelu.
+Przy przenoszeniu zachować manifest, checkpointy, wersje i pomiar na obu
+maszynach. Dostępność 96 GB/Colab nie warunkuje zakończenia tej decyzji.
+
+## Warunek zakończenia
+
+Po omówieniu zapisać datowaną decyzję: zakończyć tę serię porównań albo
+podjąć wskazane rozszerzenia, z konkretną hipotezą i budżetem. Dopuszczalny
+jest brak przydatnej metody i opis dalszej luki. Nie trzeba trenować kolejnego
+modelu, żeby zakończyć to zestawienie.
+
+Tickety 24–26 są warunkowe. Nie stają się automatycznie aktywne po zamknięciu
+tego pytania. Wybrane rozszerzenie dopisać do `Blocked by` i `Dependencies`
+odbioru 13 oraz diagramu, aby odbiór czekał na jego wynik. Pozostałe zachować
+jako niewybrane albo zamknąć zakresowo z uzasadnieniem użytkownika; nie
+oznaczać ich jako wykonane lub naukowo nieskuteczne. Odbiór 13 nie wymaga
+realizacji wszystkich możliwych rodzin modeli.
+
+## Dependencies
+
+- [Czy gotowe cechy sieci pomagają odkrywać domeny bez przykładów?](19-frozen-feature-domains.md)
+- [Czy AE i rVAE uczą się cech przydatnych do odkrywania domen?](21-autoencoder-domains.md)
+- [Czy zmiana dekodera i regularyzacji poprawia rVAE?](21a-rvae-decoder-and-kl.md)
+- [Czy lokalne uczenie podobieństwa poprawia wykrywanie domen?](22-local-self-supervised-domains.md)

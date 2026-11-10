@@ -1,0 +1,380 @@
+{
+  "schema": "stmdomains-training20-evidence-v1",
+  "preparation_complete": true,
+  "domain_models_trained": false,
+  "detector_selected": false,
+  "local_artifact_root": "/home/rlew/projekty/NEtCAT-domains/.scratch/training-20",
+  "artifacts_sha256": {
+    "data/manifest.json": "3fdd96835caed4f846e72939c34b76a2f0aa6bf7fb865b4b54ce293ad7fa0842",
+    "data/verification.json": "05118d45d19abfe61f0f374be59ccbe57bceccf4e0d55f89cd621df2de4f1d82",
+    "data/normalization.json": "bac64e60351c58643147d48b097a4e288c07e8a29b07c1e2d698a6ee16c0e8d2",
+    "data/split.json": "3ae4f1c174e923b81bfea3598833b345378bf4e64c718710ac6e1d8b4114caf1",
+    "controls/audit.json": "4c37fc76078374dfc23160b8516a9745bbab7780ff8a6ed0eb5349e6329b0262",
+    "gpu/gpu-probe.json": "c463a15c6d6cc14e9051766d5b6aaec72905b3b27a213fdabc88dbe9ce809d05",
+    "geometry.png": "490c11232d03cbda411260c17e7a4f731c49b5b11ba12dc2fce1dd6d5a6f99ca"
+  },
+  "source_mpp_sha256": "8fbbfa5d515a90552c13cee2dbd289ff5cc16f000315547185c2a57bfe9f7c66",
+  "source_session_sha256": "d0c4cb999bede28edb5dfd18ddbe146054711382f1c78363055be2330b3cdd2e",
+  "code_sha256": {
+    "__init__.py": "97fd51375aa0e05eb1c46fb0723db5a15be8f9d6c24f8cccb34376b8d849f65a",
+    "checkpoint.py": "e19068623d963dac64215fdc8fb43f9988960d5cb4508a27c03429c1e097a58e",
+    "controls.py": "6f9a45afa53162417f8b9fc43b1632093d45d06ca6b96c9b49abdb1745e7172a",
+    "data.py": "0958eceb8196a32e84c3e5d4f8ba6b589742396747029d28d97db3ff3161205e",
+    "experiment-plan.json": "7d0a3dd85039f74a88d6414e2ab5c48108ccd36261197f77951d8f8c3fb7a563",
+    "gpu_probe.py": "ed963ce85aa8679ba468c3276d2e5a3a067c735773a2b7b0d7a8d08df0fe1ca3",
+    "prepare.py": "1dd7546fc1fac177154c0d0d7482148a22c50aa4da275e662586770706c7fa21",
+    "run_preparation.sh": "6e321d8a45adbb790e9dd4e22c39af08efd1976c1e5bcad356fb7a0fad18fd58",
+    "summarize.py": "a8aad1ca76f2c8143f80e352259e3f6aa19683e08646b37ee6006eb66087d658",
+    "verify.py": "122476bb98f0d8ae3711f0685a88c92e56c40829288026e308fd29966f0f863b"
+  },
+  "data": {
+    "samples": 24,
+    "windows": 38622,
+    "available": 25530,
+    "counts": {
+      "grid/s32/unavailable": 1440,
+      "grid/s48/unavailable": 2688,
+      "grid/s64/unavailable": 2688,
+      "grid/s32/available": 4704,
+      "grid/s48/available": 3456,
+      "grid/s64/available": 3456,
+      "centers/s32/available": 5395,
+      "centers/s48/available": 4629,
+      "centers/s64/available": 3890,
+      "centers/s64/unavailable": 2840,
+      "centers/s48/unavailable": 2101,
+      "centers/s32/unavailable": 1335
+    },
+    "normalizers": {
+      "transfer": {
+        "low": -239.4861540703566,
+        "high": 219.36219098336556,
+        "pixel_count": 79872,
+        "percentiles": [
+          2,
+          98
+        ],
+        "formula": "clip((raw-low)/(high-low),0,1)",
+        "fit_region": "train frames, guarded train spatial band",
+        "fit_pixel_counts": {
+          "ttmapp-001": 38912,
+          "ttmapp-050": 25088,
+          "ttmapp-100": 15872
+        }
+      },
+      "transductive": {
+        "low": -278.43306943715356,
+        "high": 277.8611449589972,
+        "pixel_count": 1572864,
+        "percentiles": [
+          2,
+          98
+        ],
+        "formula": "clip((raw-low)/(high-low),0,1)",
+        "fit_region": "all measured pixels",
+        "fit_pixel_counts": null
+      }
+    },
+    "split_audit": {
+      "expanded_x_envelopes": {
+        "train": [
+          328.0160217285156,
+          479.827880859375
+        ],
+        "validation": [
+          168.21810909733176,
+          283.362701382488
+        ],
+        "test": [
+          22.746400468051434,
+          151.99948559692848
+        ]
+      },
+      "minimum_support_gaps_px": {
+        "test_to_validation": 16.218623500403282,
+        "validation_to_train": 44.65332034602761
+      },
+      "cross_frame_overlap": false,
+      "proof": "all augmented supports fit disjoint global x bands",
+      "counts": {
+        "grid/s32/excluded": 4380,
+        "grid/s48/excluded": 5052,
+        "grid/s64/excluded": 5208,
+        "grid/s32/train": 182,
+        "grid/s48/train": 96,
+        "grid/s64/train": 84,
+        "centers/s32/train": 158,
+        "centers/s48/train": 113,
+        "centers/s64/train": 81,
+        "centers/s64/excluded": 5748,
+        "centers/s32/excluded": 4891,
+        "centers/s48/excluded": 5325,
+        "grid/s32/validation": 126,
+        "grid/s48/validation": 84,
+        "grid/s64/validation": 60,
+        "centers/s32/validation": 72,
+        "centers/s48/validation": 47,
+        "centers/s64/validation": 31,
+        "grid/s32/test": 1456,
+        "grid/s48/test": 912,
+        "grid/s64/test": 792,
+        "centers/s32/test": 1609,
+        "centers/s48/test": 1245,
+        "centers/s64/test": 870
+      }
+    }
+  },
+  "verification": {
+    "real_source_arrays_identical": 24,
+    "patches_recomputed": 25530,
+    "grid_records_identical_without_centers": 18432,
+    "reference_open_denied": true,
+    "complete_replay_identical": [
+      "split_sha256",
+      "normalization_sha256",
+      "windows_sha256",
+      "grid_windows_content_sha256",
+      "gpu_batch_sha256"
+    ]
+  },
+  "controls": {
+    "sample_count": 81,
+    "case_count": 27,
+    "seeds": [
+      920001,
+      920002,
+      920003
+    ],
+    "analysis_manifest_sha256": "bb55c12cc273893c7e882f3244238aef748370fb9d114e86b53b0237b19cf7d3",
+    "evaluation_manifest_sha256": "967919561148d5210f9f952ddb7b274ad7df05f1f493d96facccede5db8a84c7"
+  },
+  "gpu": {
+    "device": "NVIDIA GeForce RTX 5090",
+    "torch": "2.9.1+cu128",
+    "cuda_runtime": "12.8",
+    "resume_all_passed": true,
+    "seeds": [
+      20261101,
+      20261102,
+      20261103
+    ],
+    "resume_comparisons": [
+      {
+        "seed": 20261101,
+        "comparison": {
+          "model": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "optimizer": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "scheduler": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "rng": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "progress": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "config": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "runtime": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          }
+        }
+      },
+      {
+        "seed": 20261102,
+        "comparison": {
+          "model": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "optimizer": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "scheduler": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "rng": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "progress": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "config": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "runtime": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          }
+        }
+      },
+      {
+        "seed": 20261103,
+        "comparison": {
+          "model": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "optimizer": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "scheduler": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "rng": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "progress": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "config": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          },
+          "runtime": {
+            "passed": true,
+            "exact": true,
+            "max_absolute_difference": 0.0,
+            "absolute_tolerance": 1e-06,
+            "failures": []
+          }
+        }
+      }
+    ],
+    "operations": {
+      "grid_sample_backward": {
+        "strict": {
+          "passed": false,
+          "error": "grid_sampler_2d_backward_cuda does not have a deterministic implementation, but you set 'torch.use_deterministic_algorithms(True)'. You can turn off determinism just for this operation, or you can use the 'warn_only=True' option, if that's acceptable for your application. You can also file an issue at https://github.com/pytorch/pytorch/issues to help us prioritize adding deterministic support for this operation."
+        },
+        "permissive": {
+          "passed": true,
+          "input_gradient_norm": 0.008619355969130993,
+          "transform_gradient_norm": 0.026735717430710793
+        }
+      },
+      "coordinate_decoder_backward": {
+        "passed": true,
+        "strict_determinism": true,
+        "loss": 0.31240639090538025,
+        "angle_gradient_norm": 0.001375342602841556
+      },
+      "local_variance_covariance_backward": {
+        "passed": true,
+        "loss": 0.9598296880722046
+      },
+      "reparameterization_backward": {
+        "passed": true
+      },
+      "seconds": 0.20605844601232093,
+      "rss_peak_bytes": 1633226752,
+      "cuda_peak_allocated_bytes": 75543040,
+      "cuda_peak_reserved_bytes": 92274688
+    },
+    "per_batch": {
+      "32": {
+        "seconds_per_step_min": 0.0022399089997634293,
+        "seconds_per_step_max": 0.0027553641994018108,
+        "max_cuda_allocated_bytes": 78641152,
+        "max_cuda_reserved_bytes": 100663296,
+        "max_rss_bytes": 1694769152
+      },
+      "64": {
+        "seconds_per_step_min": 0.0031275899993488563,
+        "seconds_per_step_max": 0.0031828156003030016,
+        "max_cuda_allocated_bytes": 95367168,
+        "max_cuda_reserved_bytes": 100663296,
+        "max_rss_bytes": 1701322752
+      },
+      "128": {
+        "seconds_per_step_min": 0.0046754431998124344,
+        "seconds_per_step_max": 0.004925167799228802,
+        "max_cuda_allocated_bytes": 120303616,
+        "max_cuda_reserved_bytes": 142606336,
+        "max_rss_bytes": 1705689088
+      }
+    },
+    "total_wall_seconds": 13.155231051001465
+  }
+}

@@ -1,0 +1,638 @@
+{
+  "schema": "stmdomains-training-plan-v1",
+  "date": "2026-10-31",
+  "issue": 20,
+  "implementation_scope": "Reusable preparation only. Training architectures, relation adapters and solvers are implemented in issues 21/22; decision in 23.",
+  "document": "docs/stmdomains/self-supervised-training-protocol.md",
+  "data": {
+    "input_schema": "stmdomains-input-v1",
+    "frames_1based": [
+      1,
+      50,
+      100,
+      150,
+      200,
+      250,
+      251,
+      252,
+      253,
+      254,
+      255,
+      256,
+      257,
+      258,
+      259,
+      260,
+      261,
+      262,
+      263,
+      264,
+      265,
+      266,
+      267,
+      268
+    ],
+    "units": "px",
+    "coordinates": "raw_edge_xy; expanded_xy = raw_edge_xy + origin_in_expanded_xy",
+    "training_source": "raw MPP finite measured pixels only",
+    "forbidden_training_inputs": [
+      "manual_domain_references",
+      "domain_labels",
+      "synthetic_truth",
+      "MolTrack_historical_domains",
+      "domain_count"
+    ],
+    "reference_use": "Evaluation after freezing all checkpoints, transforms, thresholds and predictions; never checkpoint or parameter selection."
+  },
+  "split": {
+    "transfer": {
+      "expanded_shape_hw": [
+        408,
+        480
+      ],
+      "train": {
+        "frame_block_1based": [
+          1,
+          100
+        ],
+        "pilot_frames_1based": [
+          1,
+          50,
+          100
+        ],
+        "expanded_x_band": [
+          320,
+          480
+        ]
+      },
+      "validation": {
+        "frame_block_1based": [
+          150,
+          200
+        ],
+        "pilot_frames_1based": [
+          150,
+          200
+        ],
+        "expanded_x_band": [
+          160,
+          320
+        ]
+      },
+      "test": {
+        "frame_block_1based": [
+          250,
+          268
+        ],
+        "pilot_frames_1based": [
+          250,
+          251,
+          252,
+          253,
+          254,
+          255,
+          256,
+          257,
+          258,
+          259,
+          260,
+          261,
+          262,
+          263,
+          264,
+          265,
+          266,
+          267,
+          268
+        ],
+        "expanded_x_band": [
+          0,
+          160
+        ]
+      },
+      "temporal_embargo_blocks_1based": [
+        [
+          101,
+          149
+        ],
+        [
+          201,
+          249
+        ]
+      ],
+      "spatial_guard_each_side_px": 8,
+      "containment": "Effective support including crop, shifts and interpolation must fit the measured field and guarded band.",
+      "fit_scope": "train only for pixel quantiles2/98, PCA, edge median, relation quantiles and any catalogue",
+      "checkpoint_scope": "unlabelled validation only",
+      "limitation": "One correlated acquisition with mostly low-confidence saved registration. Guard8 is not a calibrated error bound; geometrical disjointness is not independent-acquisition generalization."
+    },
+    "transductive": {
+      "scope": "All24 full measured fields; separate normalization/PCA/relations and run ID.",
+      "configurations": [
+        "z32"
+      ],
+      "fixed_steps": "Per family median of selected checkpoint steps of three transfer z32 runs, before revealing final evaluation.",
+      "checkpoint": "Last step at the fixed budget; no checkpoint selection on reference domains.",
+      "claim": "Description of the present series, not unseen-data generalization.",
+      "missing_transfer_run": "If fewer than3 successful transfer z32 runs of a family, skip its transductive refit with reason; no substitute seeds or extra fits."
+    }
+  },
+  "sampling": {
+    "primary": "grid",
+    "grid_stride_px": 16,
+    "scales_px": [
+      32,
+      48,
+      64
+    ],
+    "primary_comparison_scale_px": 48,
+    "tensor_shape_hw": [
+      64,
+      64
+    ],
+    "training_weights": "Uniform scales, uniform eligible frames, uniform available grid elements within frame.",
+    "centers": "All valid centers recorded; inference-only diagnostic, no additional training or selection.",
+    "unavailable": "Keep all rows with reason; do not pad or silently drop unsupported elements.",
+    "scale_diagnostics": "Apply the same frozen weights at32/64; no new hyperparameter search."
+  },
+  "normalization": {
+    "kind": "finite_pixel_quantile_2_98",
+    "fit": "Each eligible raw train pixel once, not once per overlapping crop; all fields in transductive runs.",
+    "validation_test": "Frozen train quantiles2/98",
+    "gamma": false,
+    "padding": false,
+    "formula": "clip((raw-low)/(high-low),0,1)",
+    "degenerate_fit": "high<=low in the fitting pool raises an error; a flat individual crop remains valid input for method-level order/refusal evaluation."
+  },
+  "augmentations": {
+    "gain_uniform": [
+      0.9,
+      1.1
+    ],
+    "offset_normalized_uniform": [
+      -0.1,
+      0.1
+    ],
+    "gaussian_noise_sigma_uniform": [
+      0.0,
+      0.03
+    ],
+    "random_rotation_positives": false,
+    "random_scale_positives": false,
+    "SSL_positives": "Two mapped views of the same measured patch; compare only common valid positions.",
+    "AE_target": "Clean corresponding spatial patch; preserve known translation mapping.",
+    "spatial_temporal_neighbors_are_positive_labels": false,
+    "translation_continuous_uniform_px_per_axis": [
+      -2,
+      2
+    ]
+  },
+  "training": {
+    "seeds": [
+      20261101,
+      20261102,
+      20261103
+    ],
+    "configurations": {
+      "z16": {
+        "latent_or_local_channel_width": 16,
+        "role": "fixed sensitivity"
+      },
+      "z32": {
+        "latent_or_local_channel_width": 32,
+        "role": "primary"
+      }
+    },
+    "encoder": {
+      "channels": [
+        16,
+        32,
+        64
+      ],
+      "kernel": 3,
+      "stride": 2,
+      "activation": "GELU",
+      "batch_normalization": false
+    },
+    "families": {
+      "ae": {
+        "issue": 21,
+        "role": "benchmark",
+        "loss": "MSE"
+      },
+      "rvae": {
+        "issue": 21,
+        "role": "main",
+        "loss": "MSE + beta KL",
+        "beta": 0.001,
+        "beta_warmup_steps": 200,
+        "latent": "continuous content, angle, translation; no categorical count",
+        "decoder": "Rotate coordinates and decode intensity through coordinate MLP; no CUDA grid_sample backward.",
+        "validation_beta": 0.001,
+        "validation_beta_warmup": false
+      },
+      "local_ssl": {
+        "issue": 22,
+        "role": "main",
+        "loss_weights": {
+          "invariance": 25,
+          "variance": 25,
+          "covariance": 1
+        },
+        "target_std": 1.0,
+        "epsilon": 0.0001,
+        "representation": "Spatial local map with known coordinate correspondence",
+        "untrained_control": "Preserve z32 initial weights for every training seed; no additional fits."
+      }
+    },
+    "optimizer": {
+      "name": "AdamW",
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "gradient_clip_norm": 1.0
+    },
+    "lr_schedule": "constant",
+    "effective_batch_size": 64,
+    "precision": "float32",
+    "amp": false,
+    "gradient_accumulation": 1,
+    "max_optimizer_steps": 2000,
+    "validation_interval_steps": 100,
+    "checkpoint_selection": "Minimum mean unlabelled validation loss; tie earlier step; fixed validation transforms/order.",
+    "technical_stop": [
+      "nonfinite_loss_or_gradients",
+      "collapsed_SSL_representation",
+      "time_cap",
+      "memory_cap"
+    ],
+    "transfer_fits": 18,
+    "transductive_fits": 9,
+    "max_total_fits": 27,
+    "excluded_variants": [
+      "ordinary_VAE",
+      "FFT_training_input",
+      "INPAINTAFF",
+      "new_pretrained_weights",
+      "new_hyperparameters_after_final_evaluation"
+    ],
+    "batch_sampling": "With replacement; all training batches contain64 entries."
+  },
+  "administrative_caps": {
+    "seconds_per_fit_including_validation_and_checkpoint": 900,
+    "max_total_fit_seconds": 24300,
+    "gpu_tensor_bytes": 8589934592,
+    "process_rss_bytes": 12884901888,
+    "all_checkpoint_bytes": 10737418240,
+    "postprocessing_cpu_seconds_total": 7200,
+    "architecture_measurement_steps_within_fit": 100,
+    "interpretation": "Cost ceilings, not predictions from the technical AE proxy; no automatic budget extension."
+  },
+  "measured_budget": {
+    "status": "measured_technical_AE_proxy",
+    "probe_report_path": ".scratch/training-gpu-20/gpu-probe.json",
+    "probe_report_sha256": "1004136d285e4b229042c4565bf03e805d96044ded91d6288163f0fed6991e7a",
+    "gpu": "NVIDIA GeForce RTX 5090",
+    "batch64_step_seconds_median": 0.003033222400699742,
+    "batch64_gpu_tensor_peak_bytes": 95367168,
+    "batch64_gpu_reserved_peak_bytes": 100663296,
+    "process_rss_peak_bytes": 1704796160,
+    "resume_seeds_passed": [
+      20261101,
+      20261102,
+      20261103
+    ],
+    "resume_absolute_tolerance": 1e-06,
+    "limitation": "Technical AE proxy does not measure full rVAE or SSL runtime. RSS is process high-water mark; CUDA allocator excludes driver/context."
+  },
+  "baseline": {
+    "historical_result_id": "fft-grid--fh4",
+    "historical_feature_id": "fft-grid-r24-s0-classic-e1.5-windowed_acf",
+    "graph_source": {
+      "branch": "prototype/stmdomains-local-feature-graph",
+      "commit": "1ae0706",
+      "manifest": "docs/stmdomains/local-feature-graph-manifest.json"
+    },
+    "feature_source": {
+      "branch": "prototype/stmdomains-texture",
+      "commit": "3bb4d36",
+      "report": "docs/stmdomains/image-texture-domains-trial.md"
+    },
+    "adapted_result_id": "fft48-grid16--fh4-training20-v1",
+    "adaptations": [
+      "49px_to48px",
+      "stride12_to16",
+      "full_measured_support",
+      "train_frozen_normalization",
+      "crop_mean_detrending_replaces_global_Gaussian_sigma3_and_frame_RMS"
+    ],
+    "historical_numbers_are_new_baseline_metrics": false,
+    "fft": {
+      "frequency_count": 12,
+      "frequency_range_cycles_px": [
+        0.03571428571428571,
+        0.16666666666666666
+      ],
+      "orientation_count": 18,
+      "orientation_modulo": "pi",
+      "window": "Hann",
+      "feature": "sqrt normalized power,216 dimensions"
+    }
+  },
+  "comparison": {
+    "matrix": {
+      "A": [
+        "fft",
+        "fh4"
+      ],
+      "B": [
+        "fft",
+        "mws"
+      ],
+      "C": [
+        "one_learned_family",
+        "fh4"
+      ],
+      "D": [
+        "one_learned_family",
+        "mws"
+      ]
+    },
+    "primary_support": "Same48px grid sites and effective measured support in all four cells.",
+    "separate_family_comparisons": [
+      "ae",
+      "rvae",
+      "local_ssl"
+    ],
+    "feature_adapter": {
+      "normalization": "L2; zero vector unavailable",
+      "pca_components": "min(24,feature_dimension,n_train-1)",
+      "whitening": false,
+      "fit_scope": "train only; independently per representation",
+      "edge_distance_normalization": "Divide PCA Euclidean distance by median strictly-positive train-edge distance, floor1e-10; no positive edges => degenerate, not one-domain proof"
+    },
+    "rvae_descriptor": "Concatenate L2(content)/sqrt2 and (cos(theta),sin(theta))/sqrt2, then common adapter; content-only diagnostics separate.",
+    "ssl_descriptor": "Flatten local map in fixed spatial order; no global pooling before graph comparison.",
+    "type_policy": "No structural type inferred from full orientation-sensitive descriptor. type_id may remain null; ordered_untyped is allowed."
+  },
+  "relations": {
+    "grid_neighbor_distance_max_px": 22.627416997969522,
+    "centers_neighbor_rule": "min(24,1.65 * median nearest-neighbor distance); separate diagnostic graph",
+    "between_frame_edges": false,
+    "quantiles_from_unlabelled_train_edges": [
+      0.25,
+      0.75
+    ],
+    "attractive": "d<q25: clip((q25-d)/max(q25,1e-10),0,1)",
+    "repulsive": "d>q75: clip((d-q75)/max(q75,1e-10),0,1)",
+    "neutral": "q25<=d<=q75: no relation; same strict inequalities when quantiles tie",
+    "extra_truth_or_long_range_edges": false,
+    "fh": {
+      "k": 4,
+      "rule": "d<=min(Int(C1)+4/size(C1),Int(C2)+4/size(C2))",
+      "forced_small_component_merging": false
+    },
+    "mws": {
+      "order": "Strength descending, repulsive before attractive, canonical endpoint IDs",
+      "merge": "Only if components have no mutex relation; carry all mutex sets after union",
+      "already_merged_repulsive_edge": "Count conflict; no retroactive split",
+      "component_id": "Minimum element ID"
+    },
+    "interpretation": "Appearance dissimilarity, not calibrated probability or measured translation jump. New sign/weight mapping changes information interpretation together with solver.",
+    "technical_solver_checks_in_21_22": [
+      "known_small_graphs",
+      "canonical_ties",
+      "node_edge_permutation",
+      "ideal_relations_excluded_from_real_predictions"
+    ]
+  },
+  "refusal_gate": {
+    "method": "windowed_acf mechanism from17/19 adapted to actual new patches",
+    "shift_range_px": [
+      6,
+      24
+    ],
+    "min_angle_sine": 0.35,
+    "second_direction_relative_energy_min": 0.25,
+    "threshold": "Quantile0.999 of all available old-development negative grid scores, once per scale; no new heldout/control truth for calibration.",
+    "copy_old_49px_threshold": false,
+    "failure_state": "ambiguous",
+    "failure_reason": "order_evidence_below_threshold",
+    "minimum_component_elements": {
+      "grid": 4,
+      "centers": 8
+    },
+    "recompute_connectivity_after_gate": true,
+    "before_and_after_gate_saved": true,
+    "material": "unknown unless a separately identified material model provides evidence"
+  },
+  "result_extension": {
+    "base_schema": "stmdomains-result-v1",
+    "path": "extensions.training_v1",
+    "base_assignments": "Complete final after-refusal assignments including unavailable/refused elements.",
+    "required": [
+      "protocol_id",
+      "plan_sha256",
+      "split_sha256",
+      "regime",
+      "feature_id",
+      "partition_id",
+      "checkpoint_sha256",
+      "elements",
+      "proposals",
+      "evidence"
+    ],
+    "relations": "Inline relations or relations_artifact with path and sha256.",
+    "element_required": [
+      "element_id",
+      "raw_edge_xy",
+      "support_xyxy",
+      "effective_support_xyxy",
+      "scale_px",
+      "units",
+      "sampler",
+      "availability"
+    ],
+    "relation_required": [
+      "edge_id",
+      "u",
+      "v",
+      "neighbor_rule",
+      "distance_px",
+      "support_intersection_area_px2",
+      "support_iou",
+      "appearance_distance",
+      "structure_spacing",
+      "orientation",
+      "translation_jump",
+      "availability",
+      "missing_reasons",
+      "solver_relation"
+    ],
+    "evidence_required": [
+      "element_id",
+      "order",
+      "orientation",
+      "reliability",
+      "material",
+      "refusal_reasons"
+    ],
+    "missing": "null plus reason; never convert unavailable evidence to agreement or boundary",
+    "component_vs_domain": "Proposal component IDs stay separate from final frame-local domain IDs; no automatic structural types, contours or areas."
+  },
+  "evaluation": {
+    "old_controls": "All previously viewed realizations including1701..1703 and2701..2703 are development.",
+    "heldout": {
+      "generator": "stmdomains.experiments.training.controls",
+      "case_count": 27,
+      "seeds": [
+        920001,
+        920002,
+        920003
+      ],
+      "realization_count": 81,
+      "reveal": "After all predictions and plan are frozen; preparation integrity checks are not candidate scoring."
+    },
+    "coverage_primary_denominator": "All evaluable elements with full measured support; also report fraction of all planned grid elements.",
+    "pair_metrics": "pair_scores, separately all valid pairs and actual neighbor edges; zero denominator is null.",
+    "required_metrics": [
+      "coverage",
+      "merge_rate",
+      "split_rate",
+      "false_domains",
+      "refusal_reasons",
+      "domain_count",
+      "boundary_precision_recall_f1",
+      "seed_stability",
+      "runtime",
+      "gpu_peak",
+      "rss_peak"
+    ],
+    "report_stages": [
+      "proposals_before_refusal",
+      "final_after_refusal"
+    ],
+    "boundary": {
+      "scope": "Synthetic contacting positive domains only: two_orientations, different_spacing, phase_boundary, orientation_8deg; exclude disjoint/empty_gap.",
+      "prediction": "Midpoints of axial grid edges whose assigned endpoints have different component IDs; no diagonals",
+      "truth": "Interface between two distinct positive truth IDs sampled at1reference_px; no outer field boundary and no positive-to-zero interface.",
+      "tolerance_reference_px": 8,
+      "precision": "Fraction of predicted midpoints within tolerance of truth",
+      "recall": "Fraction of truth points within tolerance of predicted midpoints",
+      "empty_prediction_with_truth": {
+        "recall": 0,
+        "f1": 0,
+        "precision": null
+      },
+      "no_truth_boundary": "Report false predicted edges; F1 null",
+      "convention": "Half grid stride, not physical contour accuracy; distinct from3px unscored interior band."
+    },
+    "matched_coverage": {
+      "levels": [
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "ranking": "Shared ACF score descending, then element ID",
+      "restriction": "Only levels already attained by both final outputs; no adding refused vertices",
+      "same_ID_intersection_also_required": true,
+      "minimum_common_coverage": 0.2
+    },
+    "TTMAPP": {
+      "scope": "18 annotated frames, partial interiors only; all24 full overlays",
+      "optional_center_mapping_max_distance_px": 11.313708498984761,
+      "unmapped_centers": "unassigned",
+      "colors": "Orientation-reference groups, not structural classes or numerical angles",
+      "forbidden_metrics": [
+        "global_IoU",
+        "precise_real_boundary_F1",
+        "global_domain_count_error",
+        "false_positive_rate_outside_references"
+      ],
+      "transfer_mask": "Only eligible transfer_split=test elements with full support within guarded expandedX[0,160]; full-frame overlays are not heldout metrics.",
+      "transductive_mask": "All eligible partial-reference interiors, reported separately from transfer.",
+      "absent_reference_group": "Metric null/unavailable, no automatic pass or zero; restrict transfer conclusion to represented regions."
+    },
+    "gap_metric": "disjoint/empty_gap: merge/split and per-component coverage plus false assigned fraction in known empty gap with explicit denominator; boundaryF1 unavailable, no contour claim.",
+    "synthetic_units_adapter": {
+      "formula": "synthetic_raw=low+(high-low)*(0.5+0.4*renderer_image), then ordinary frozen normalization and clip.",
+      "model_input_equivalent": "clip(0.5+0.4*renderer_image,0,1)",
+      "fitting": "None on synthetic data; constants fixed by this plan. low/high are the already frozen real-data regime normalizer.",
+      "meaning": "Contrast convention, not physical STM calibration. Nominal+1 ->0.9; inverted-1 ->0.1; noise_sigma0.025 ->0.01.",
+      "source_arrays": "Keep original generated controls immutable; transform only as model input."
+    }
+  },
+  "continuation": {
+    "scope": "Research continuation, not production acceptance13; evaluate main z32, do not select after heldout results.",
+    "all_training_and_control_seeds_required": true,
+    "zero_domain_controls": {
+      "final_domain_count": 0,
+      "assigned_elements": 0
+    },
+    "single_network": {
+      "domain_count": 1,
+      "coverage_min": 0.9,
+      "split_rate_max": 0.02
+    },
+    "separation_cases": {
+      "coverage_min": 0.5,
+      "each_true_component_coverage_min": 0.3,
+      "merge_rate_max": 0.02,
+      "split_rate_max": 0.1
+    },
+    "annotation_only_missing": "Grid prediction identical before and after gate to full-image counterpart.",
+    "insufficient_field": "Unsupported entries insufficient_data, no recognized domain; not a negative zero-domain control.",
+    "seed_stability": {
+      "max_coverage_spread": 0.1,
+      "max_common_pair_relation_change": 0.1,
+      "intersection_denominator_reported": true
+    },
+    "TTMAPP_useful_coverage": {
+      "overall_min": 0.2,
+      "each_reference_color_group_min": 0.1,
+      "scope": "Three-group condition applies to full transductive partial-reference evaluation; transfer reports represented test regions only, absent groups are unavailable and do not support generalization."
+    },
+    "benefit_vs_A_any_of": [
+      {
+        "metric": "(merge_rate+split_rate)/2 at common coverage>=0.2",
+        "absolute_reduction_min": 0.05,
+        "each_error_increase_max": 0.02
+      },
+      {
+        "metric": "coverage",
+        "absolute_gain_min": 0.1,
+        "each_error_increase_max": 0.02,
+        "separation_error_caps_still_required": true
+      }
+    ],
+    "aggregation": "Median over3 training seeds, no opposite sign in other seeds; all basic safety/coverage gates for every seed.",
+    "claim_STM_improvement": "Benefit on heldout synthetics AND evaluable TTMAPP. Synthetic-only or pre-gate-only benefit is a component finding, not detector improvement.",
+    "no_pass": "Report concrete limitation and decide in23; no extra configurations or reopening19.",
+    "contacting_positive_domain_boundary_f1_min": 0.7
+  },
+  "checkpoint_required": [
+    "model",
+    "optimizer",
+    "schedule",
+    "python_rng",
+    "numpy_rng",
+    "torch_cpu_rng",
+    "torch_cuda_rng",
+    "sampler_state",
+    "step",
+    "best_validation_loss"
+  ],
+  "freeze_required": [
+    "input_and_split_hashes",
+    "plan_and_code_hashes",
+    "checkpoint_hashes",
+    "normalizer_and_PCA",
+    "relation_and_gate_thresholds",
+    "complete_predictions"
+  ],
+  "artifacts": {
+    "large_data_weights_checkpoints": "Local outside Git",
+    "versioned": "Code, protocol and small manifests"
+  }
+}

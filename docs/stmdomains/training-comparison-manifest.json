@@ -1,0 +1,8512 @@
+{
+  "schema": "stmdomains-training-comparison23-manifest-v1",
+  "scope": "Read-only aggregation; no training, new predictions, selection, threshold changes or application acceptance.",
+  "source_manifests": {
+    "21": {
+      "path": "docs/stmdomains/autoencoder-domains-manifest.json",
+      "sha256": "f95c83449f83ab98b5ad2f7a5def96befad36e1c7aa6ea4ef50bf1c62abb91a4"
+    },
+    "21a": {
+      "path": "docs/stmdomains/rvae-decoder-kl-manifest.json",
+      "sha256": "ecf4193b697f32d4bb79b977761a1ae0669f95f15ab06a09ce70bdb589c9c944"
+    },
+    "22": {
+      "path": "docs/stmdomains/local-self-supervised-manifest.json",
+      "sha256": "47b66764a96794cbec8381e9fd8778ec53fca582665b6d0c80e09dab0385669a"
+    }
+  },
+  "source_sha256": {
+    "stmdomains/experiments/training/comparison.py": "65ce71e3b90e8c36e33d36b80cfa2d476fd8031b5ed49333ef0b764c750a3e27"
+  },
+  "output": ".scratch/training-comparison-23",
+  "command": "python -m stmdomains.experiments.training.comparison --output .scratch/training-comparison-23 --manifest docs/stmdomains/training-comparison-manifest.json",
+  "definitions": {
+    "primary": "grid48; z32 primary; all three model seeds, FFT has no training seed",
+    "coverage": "Assigned evaluated grid windows / evaluated windows with full support; not molecule detection accuracy or material area.",
+    "before": "Feature/relation components before order and connected-size refusals.",
+    "after": "Candidate domains after frozen order gate and connected-size filtering.",
+    "boundaries": "Only four contacting positive-domain synthetic cases; tolerance 8 reference pixels; never exact TTMAPP contours.",
+    "uncertainty": "Ranges across the three seeds, not confidence intervals; one correlated acquisition.",
+    "control_counts": "For learned models: 3 model seeds x 3 control realizations = 9 assessments per case. FFT: 3 realizations. No pooling into independent acquisitions.",
+    "transfer": "Same-acquisition spatially held-out test graph only. Partial BLACK/RED; absent YELLOW remains null.",
+    "transductive": "Whole available partial-reference interiors; distinct denominator and inference scope.",
+    "matched": "Frozen ACF ranking and achieved assignment intersection only; common coverage below 0.20 or a missing pair kind makes error gain unavailable.",
+    "control_reuse": "21/22 original81 are development evidence after viewing in21. Fresh21a controls use separate realizations of known families."
+  },
+  "consistency": {
+    "passed": true,
+    "identical_primary_fft_aggregate_rows_21_22": 112,
+    "identical_real_baseline_rows_21_21a": 14,
+    "input_and_pair_denominator_groups_checked": 83,
+    "transfer_evaluated_windows": 174,
+    "transductive_evaluated_windows": 782,
+    "missing_transfer_yellow_preserved_as_null": true,
+    "controls_21_22": "same 81 realizations",
+    "controls_21a": "separate 81 fresh realizations",
+    "interpretation": "Model seeds are not independent control realizations or acquisitions."
+  },
+  "budget_totals": {
+    "original21_22_fits": 27,
+    "original21_22_seconds": 921.1309571899619,
+    "original21_22_checkpoint_bytes": 1058561615,
+    "original21_22_postprocessing_cpu_seconds": 2088.665076284,
+    "separate21a_full_fits": 9,
+    "separate21a_diagnostic_fits": 2,
+    "separate21a_seconds": 336.34230928299075
+  },
+  "ttmapp": [
+    {
+      "regime": "transductive",
+      "family": "ae",
+      "latent": 32,
+      "partition": "fh4",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "21",
+      "evaluated_windows": 782,
+      "full_support_windows": 3456,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 12809,
+          "different_reference_pairs": 4235
+        },
+        "local_pairs": {
+          "same_reference_pairs": 2136,
+          "different_reference_pairs": 17
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 782,
+          "range": [
+            782,
+            782
+          ],
+          "values": [
+            782,
+            782,
+            782
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.9525383707201889,
+            "range": [
+              0.948051948051948,
+              0.964344746162928
+            ],
+            "values": [
+              0.948051948051948,
+              0.9525383707201889,
+              0.964344746162928
+            ]
+          },
+          "split_rate": {
+            "median": 0.08697009914903583,
+            "range": [
+              0.05745959871965024,
+              0.09992973690373956
+            ],
+            "values": [
+              0.09992973690373956,
+              0.08697009914903583,
+              0.05745959871965024
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.02949438202247191,
+            "range": [
+              0.024344569288389514,
+              0.04728464419475655
+            ],
+            "values": [
+              0.04728464419475655,
+              0.02949438202247191,
+              0.024344569288389514
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.005115089514066497,
+          "range": [
+            0.005115089514066497,
+            0.005115089514066497
+          ],
+          "values": [
+            0.005115089514066497,
+            0.005115089514066497,
+            0.005115089514066497
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 4,
+          "range": [
+            4,
+            4
+          ],
+          "values": [
+            4,
+            4,
+            4
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            671,
+            671,
+            671
+          ],
+          "assigned_elements": [
+            4,
+            4,
+            4
+          ],
+          "coverage": [
+            0.005961251862891207,
+            0.005961251862891207,
+            0.005961251862891207
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            9,
+            9,
+            9
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            102,
+            102,
+            102
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "ae",
+      "latent": 32,
+      "partition": "mws",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "21",
+      "evaluated_windows": 782,
+      "full_support_windows": 3456,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 12809,
+          "different_reference_pairs": 4235
+        },
+        "local_pairs": {
+          "same_reference_pairs": 2136,
+          "different_reference_pairs": 17
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 782,
+          "range": [
+            782,
+            782
+          ],
+          "values": [
+            782,
+            782,
+            782
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.2115702479338843,
+            "range": [
+              0.2025974025974026,
+              0.5801652892561984
+            ],
+            "values": [
+              0.5801652892561984,
+              0.2025974025974026,
+              0.2115702479338843
+            ]
+          },
+          "split_rate": {
+            "median": 0.8325396205792802,
+            "range": [
+              0.3877742212506831,
+              0.8330861113279725
+            ],
+            "values": [
+              0.3877742212506831,
+              0.8325396205792802,
+              0.8330861113279725
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.8235294117647058,
+            "range": [
+              0.7647058823529411,
+              0.8823529411764706
+            ],
+            "values": [
+              0.8823529411764706,
+              0.7647058823529411,
+              0.8235294117647058
+            ]
+          },
+          "split_rate": {
+            "median": 0.6563670411985019,
+            "range": [
+              0.23595505617977527,
+              0.6596441947565543
+            ],
+            "values": [
+              0.23595505617977527,
+              0.6563670411985019,
+              0.6596441947565543
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            671,
+            671,
+            671
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            9,
+            9,
+            9
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            102,
+            102,
+            102
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "fft",
+      "latent": null,
+      "partition": "fh4",
+      "seeds": [
+        null
+      ],
+      "source_issue": "21",
+      "evaluated_windows": 782,
+      "full_support_windows": 3456,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 12809,
+          "different_reference_pairs": 4235
+        },
+        "local_pairs": {
+          "same_reference_pairs": 2136,
+          "different_reference_pairs": 17
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 782,
+          "range": [
+            782,
+            782
+          ],
+          "values": [
+            782
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.880047225501771,
+            "range": [
+              0.880047225501771,
+              0.880047225501771
+            ],
+            "values": [
+              0.880047225501771
+            ]
+          },
+          "split_rate": {
+            "median": 0.05792801936138652,
+            "range": [
+              0.05792801936138652,
+              0.05792801936138652
+            ],
+            "values": [
+              0.05792801936138652
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.8823529411764706,
+            "range": [
+              0.8823529411764706,
+              0.8823529411764706
+            ],
+            "values": [
+              0.8823529411764706
+            ]
+          },
+          "split_rate": {
+            "median": 0.03323970037453183,
+            "range": [
+              0.03323970037453183,
+              0.03323970037453183
+            ],
+            "values": [
+              0.03323970037453183
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.005115089514066497,
+          "range": [
+            0.005115089514066497,
+            0.005115089514066497
+          ],
+          "values": [
+            0.005115089514066497
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 4,
+          "range": [
+            4,
+            4
+          ],
+          "values": [
+            4
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            671
+          ],
+          "assigned_elements": [
+            4
+          ],
+          "coverage": [
+            0.005961251862891207
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            9
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            102
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "fft",
+      "latent": null,
+      "partition": "mws",
+      "seeds": [
+        null
+      ],
+      "source_issue": "21",
+      "evaluated_windows": 782,
+      "full_support_windows": 3456,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 12809,
+          "different_reference_pairs": 4235
+        },
+        "local_pairs": {
+          "same_reference_pairs": 2136,
+          "different_reference_pairs": 17
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 782,
+          "range": [
+            782,
+            782
+          ],
+          "values": [
+            782
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.011097992916174734,
+            "range": [
+              0.011097992916174734,
+              0.011097992916174734
+            ],
+            "values": [
+              0.011097992916174734
+            ]
+          },
+          "split_rate": {
+            "median": 0.5214302443594347,
+            "range": [
+              0.5214302443594347,
+              0.5214302443594347
+            ],
+            "values": [
+              0.5214302443594347
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.058823529411764705,
+            "range": [
+              0.058823529411764705,
+              0.058823529411764705
+            ],
+            "values": [
+              0.058823529411764705
+            ]
+          },
+          "split_rate": {
+            "median": 0.37734082397003743,
+            "range": [
+              0.37734082397003743,
+              0.37734082397003743
+            ],
+            "values": [
+              0.37734082397003743
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.005115089514066497,
+          "range": [
+            0.005115089514066497,
+            0.005115089514066497
+          ],
+          "values": [
+            0.005115089514066497
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 4,
+          "range": [
+            4,
+            4
+          ],
+          "values": [
+            4
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            671
+          ],
+          "assigned_elements": [
+            4
+          ],
+          "coverage": [
+            0.005961251862891207
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            9
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            102
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "rvae",
+      "latent": 32,
+      "partition": "fh4",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "21",
+      "evaluated_windows": 782,
+      "full_support_windows": 3456,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 12809,
+          "different_reference_pairs": 4235
+        },
+        "local_pairs": {
+          "same_reference_pairs": 2136,
+          "different_reference_pairs": 17
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 782,
+          "range": [
+            782,
+            782
+          ],
+          "values": [
+            782,
+            782,
+            782
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.3799291617473436,
+            "range": [
+              0.3142857142857143,
+              0.861629279811098
+            ],
+            "values": [
+              0.861629279811098,
+              0.3799291617473436,
+              0.3142857142857143
+            ]
+          },
+          "split_rate": {
+            "median": 0.34616285424311033,
+            "range": [
+              0.16667967835115935,
+              0.4137715668670466
+            ],
+            "values": [
+              0.16667967835115935,
+              0.4137715668670466,
+              0.34616285424311033
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.5882352941176471,
+            "range": [
+              0.47058823529411764,
+              1.0
+            ],
+            "values": [
+              1.0,
+              0.5882352941176471,
+              0.47058823529411764
+            ]
+          },
+          "split_rate": {
+            "median": 0.16245318352059926,
+            "range": [
+              0.08661048689138577,
+              0.2153558052434457
+            ],
+            "values": [
+              0.08661048689138577,
+              0.2153558052434457,
+              0.16245318352059926
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.005115089514066497,
+          "range": [
+            0.0,
+            0.005115089514066497
+          ],
+          "values": [
+            0.005115089514066497,
+            0.0,
+            0.005115089514066497
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 4,
+          "range": [
+            0,
+            4
+          ],
+          "values": [
+            4,
+            0,
+            4
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              null,
+              0.0
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              null,
+              0.0
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            671,
+            671,
+            671
+          ],
+          "assigned_elements": [
+            4,
+            0,
+            4
+          ],
+          "coverage": [
+            0.005961251862891207,
+            0.0,
+            0.005961251862891207
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            9,
+            9,
+            9
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            102,
+            102,
+            102
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "rvae",
+      "latent": 32,
+      "partition": "mws",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "21",
+      "evaluated_windows": 782,
+      "full_support_windows": 3456,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 12809,
+          "different_reference_pairs": 4235
+        },
+        "local_pairs": {
+          "same_reference_pairs": 2136,
+          "different_reference_pairs": 17
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 782,
+          "range": [
+            782,
+            782
+          ],
+          "values": [
+            782,
+            782,
+            782
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.08311688311688312,
+            "range": [
+              0.026210153482880756,
+              0.1667060212514758
+            ],
+            "values": [
+              0.1667060212514758,
+              0.08311688311688312,
+              0.026210153482880756
+            ]
+          },
+          "split_rate": {
+            "median": 0.7156686704660785,
+            "range": [
+              0.627449449605746,
+              0.7378405808415958
+            ],
+            "values": [
+              0.7156686704660785,
+              0.7378405808415958,
+              0.627449449605746
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.29411764705882354,
+            "range": [
+              0.17647058823529413,
+              0.35294117647058826
+            ],
+            "values": [
+              0.29411764705882354,
+              0.35294117647058826,
+              0.17647058823529413
+            ]
+          },
+          "split_rate": {
+            "median": 0.477059925093633,
+            "range": [
+              0.4349250936329588,
+              0.5112359550561798
+            ],
+            "values": [
+              0.477059925093633,
+              0.5112359550561798,
+              0.4349250936329588
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            671,
+            671,
+            671
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            9,
+            9,
+            9
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            102,
+            102,
+            102
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "ae",
+      "latent": 32,
+      "partition": "fh4",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "21",
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.8571428571428571,
+            "range": [
+              0.7142857142857143,
+              1.0
+            ],
+            "values": [
+              0.7142857142857143,
+              1.0,
+              0.8571428571428571
+            ]
+          },
+          "split_rate": {
+            "median": 0.029447852760736196,
+            "range": [
+              0.0,
+              0.049079754601226995
+            ],
+            "values": [
+              0.049079754601226995,
+              0.0,
+              0.029447852760736196
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.013550135501355014,
+            "range": [
+              0.0,
+              0.02710027100271003
+            ],
+            "values": [
+              0.02710027100271003,
+              0.0,
+              0.013550135501355014
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "ae",
+      "latent": 32,
+      "partition": "mws",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "21",
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.8220858895705522,
+            "range": [
+              0.7926380368098159,
+              0.841717791411043
+            ],
+            "values": [
+              0.7926380368098159,
+              0.8220858895705522,
+              0.841717791411043
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.7831978319783198,
+            "range": [
+              0.7588075880758808,
+              0.8075880758807588
+            ],
+            "values": [
+              0.7588075880758808,
+              0.7831978319783198,
+              0.8075880758807588
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "fft",
+      "latent": null,
+      "partition": "fh4",
+      "seeds": [
+        null
+      ],
+      "source_issue": "21",
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.03803680981595092,
+            "range": [
+              0.03803680981595092,
+              0.03803680981595092
+            ],
+            "values": [
+              0.03803680981595092
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.02710027100271003,
+            "range": [
+              0.02710027100271003,
+              0.02710027100271003
+            ],
+            "values": [
+              0.02710027100271003
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "fft",
+      "latent": null,
+      "partition": "mws",
+      "seeds": [
+        null
+      ],
+      "source_issue": "21",
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.7754601226993865,
+            "range": [
+              0.7754601226993865,
+              0.7754601226993865
+            ],
+            "values": [
+              0.7754601226993865
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.6585365853658537,
+            "range": [
+              0.6585365853658537,
+              0.6585365853658537
+            ],
+            "values": [
+              0.6585365853658537
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "rvae",
+      "latent": 32,
+      "partition": "fh4",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "21",
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.8571428571428571,
+            "range": [
+              0.0,
+              0.8571428571428571
+            ],
+            "values": [
+              0.8571428571428571,
+              0.0,
+              0.8571428571428571
+            ]
+          },
+          "split_rate": {
+            "median": 0.2196319018404908,
+            "range": [
+              0.1607361963190184,
+              0.2196319018404908
+            ],
+            "values": [
+              0.2196319018404908,
+              0.2196319018404908,
+              0.1607361963190184
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              0.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              0.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.15989159891598917,
+            "range": [
+              0.13008130081300814,
+              0.17886178861788618
+            ],
+            "values": [
+              0.17886178861788618,
+              0.15989159891598917,
+              0.13008130081300814
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "rvae",
+      "latent": 32,
+      "partition": "mws",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "21",
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.7030674846625767,
+            "range": [
+              0.6871165644171779,
+              0.8429447852760736
+            ],
+            "values": [
+              0.7030674846625767,
+              0.8429447852760736,
+              0.6871165644171779
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.6287262872628726,
+            "range": [
+              0.6070460704607046,
+              0.7615176151761518
+            ],
+            "values": [
+              0.6287262872628726,
+              0.7615176151761518,
+              0.6070460704607046
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "local_ssl",
+      "latent": 32,
+      "partition": "fh4",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "22",
+      "evaluated_windows": 782,
+      "full_support_windows": 3456,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 12809,
+          "different_reference_pairs": 4235
+        },
+        "local_pairs": {
+          "same_reference_pairs": 2136,
+          "different_reference_pairs": 17
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 782,
+          "range": [
+            782,
+            782
+          ],
+          "values": [
+            782,
+            782,
+            782
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.9544273907910271,
+            "range": [
+              0.9003541912632822,
+              0.9948051948051948
+            ],
+            "values": [
+              0.9544273907910271,
+              0.9003541912632822,
+              0.9948051948051948
+            ]
+          },
+          "split_rate": {
+            "median": 0.07190256850651885,
+            "range": [
+              0.02630962604418768,
+              0.09719728316027793
+            ],
+            "values": [
+              0.07190256850651885,
+              0.09719728316027793,
+              0.02630962604418768
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.02247191011235955,
+            "range": [
+              0.006086142322097378,
+              0.028089887640449437
+            ],
+            "values": [
+              0.028089887640449437,
+              0.02247191011235955,
+              0.006086142322097378
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.005115089514066497,
+          "range": [
+            0.005115089514066497,
+            0.005115089514066497
+          ],
+          "values": [
+            0.005115089514066497,
+            0.005115089514066497,
+            0.005115089514066497
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 4,
+          "range": [
+            4,
+            4
+          ],
+          "values": [
+            4,
+            4,
+            4
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            671,
+            671,
+            671
+          ],
+          "assigned_elements": [
+            4,
+            4,
+            4
+          ],
+          "coverage": [
+            0.005961251862891207,
+            0.005961251862891207,
+            0.005961251862891207
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            9,
+            9,
+            9
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            102,
+            102,
+            102
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "local_ssl",
+      "latent": 32,
+      "partition": "mws",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "22",
+      "evaluated_windows": 782,
+      "full_support_windows": 3456,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 12809,
+          "different_reference_pairs": 4235
+        },
+        "local_pairs": {
+          "same_reference_pairs": 2136,
+          "different_reference_pairs": 17
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 782,
+          "range": [
+            782,
+            782
+          ],
+          "values": [
+            782,
+            782,
+            782
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.16505312868949232,
+            "range": [
+              0.1322314049586777,
+              0.18748524203069658
+            ],
+            "values": [
+              0.1322314049586777,
+              0.18748524203069658,
+              0.16505312868949232
+            ]
+          },
+          "split_rate": {
+            "median": 0.7996721055507846,
+            "range": [
+              0.7888984307908502,
+              0.8399562807401046
+            ],
+            "values": [
+              0.8399562807401046,
+              0.7888984307908502,
+              0.7996721055507846
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.29411764705882354,
+            "range": [
+              0.11764705882352941,
+              0.35294117647058826
+            ],
+            "values": [
+              0.11764705882352941,
+              0.29411764705882354,
+              0.35294117647058826
+            ]
+          },
+          "split_rate": {
+            "median": 0.6451310861423221,
+            "range": [
+              0.6189138576779026,
+              0.6886704119850188
+            ],
+            "values": [
+              0.6886704119850188,
+              0.6189138576779026,
+              0.6451310861423221
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            671,
+            671,
+            671
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            9,
+            9,
+            9
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            102,
+            102,
+            102
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "local_ssl_untrained",
+      "latent": 32,
+      "partition": "fh4",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "22",
+      "evaluated_windows": 782,
+      "full_support_windows": 3456,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 12809,
+          "different_reference_pairs": 4235
+        },
+        "local_pairs": {
+          "same_reference_pairs": 2136,
+          "different_reference_pairs": 17
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 782,
+          "range": [
+            782,
+            782
+          ],
+          "values": [
+            782,
+            782,
+            782
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.9619834710743802,
+            "range": [
+              0.9456906729634003,
+              0.9858323494687131
+            ],
+            "values": [
+              0.9858323494687131,
+              0.9619834710743802,
+              0.9456906729634003
+            ]
+          },
+          "split_rate": {
+            "median": 0.056522757436177684,
+            "range": [
+              0.009992973690373956,
+              0.0674525724100242
+            ],
+            "values": [
+              0.009992973690373956,
+              0.056522757436177684,
+              0.0674525724100242
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.021067415730337078,
+            "range": [
+              0.006086142322097378,
+              0.024344569288389514
+            ],
+            "values": [
+              0.006086142322097378,
+              0.024344569288389514,
+              0.021067415730337078
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.005115089514066497,
+          "range": [
+            0.005115089514066497,
+            0.005115089514066497
+          ],
+          "values": [
+            0.005115089514066497,
+            0.005115089514066497,
+            0.005115089514066497
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 4,
+          "range": [
+            4,
+            4
+          ],
+          "values": [
+            4,
+            4,
+            4
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            671,
+            671,
+            671
+          ],
+          "assigned_elements": [
+            4,
+            4,
+            4
+          ],
+          "coverage": [
+            0.005961251862891207,
+            0.005961251862891207,
+            0.005961251862891207
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            9,
+            9,
+            9
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            102,
+            102,
+            102
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transductive",
+      "family": "local_ssl_untrained",
+      "latent": 32,
+      "partition": "mws",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "22",
+      "evaluated_windows": 782,
+      "full_support_windows": 3456,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 12809,
+          "different_reference_pairs": 4235
+        },
+        "local_pairs": {
+          "same_reference_pairs": 2136,
+          "different_reference_pairs": 17
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 782,
+          "range": [
+            782,
+            782
+          ],
+          "values": [
+            782,
+            782,
+            782
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.3837072018890201,
+            "range": [
+              0.34451003541912634,
+              0.4231404958677686
+            ],
+            "values": [
+              0.4231404958677686,
+              0.3837072018890201,
+              0.34451003541912634
+            ]
+          },
+          "split_rate": {
+            "median": 0.5955968459676789,
+            "range": [
+              0.5063627137169178,
+              0.6738230931376376
+            ],
+            "values": [
+              0.5063627137169178,
+              0.5955968459676789,
+              0.6738230931376376
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.7058823529411765,
+            "range": [
+              0.7058823529411765,
+              0.8235294117647058
+            ],
+            "values": [
+              0.8235294117647058,
+              0.7058823529411765,
+              0.7058823529411765
+            ]
+          },
+          "split_rate": {
+            "median": 0.3946629213483146,
+            "range": [
+              0.31647940074906367,
+              0.45739700374531833
+            ],
+            "values": [
+              0.31647940074906367,
+              0.3946629213483146,
+              0.45739700374531833
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            671,
+            671,
+            671
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            9,
+            9,
+            9
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            102,
+            102,
+            102
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "local_ssl",
+      "latent": 32,
+      "partition": "fh4",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "22",
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "local_ssl",
+      "latent": 32,
+      "partition": "mws",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "22",
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "local_ssl_untrained",
+      "latent": 32,
+      "partition": "fh4",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "22",
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "local_ssl_untrained",
+      "latent": 32,
+      "partition": "mws",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "source_issue": "22",
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.8571428571428571,
+            "range": [
+              0.6428571428571429,
+              0.8571428571428571
+            ],
+            "values": [
+              0.8571428571428571,
+              0.6428571428571429,
+              0.8571428571428571
+            ]
+          },
+          "split_rate": {
+            "median": 0.08466257668711656,
+            "range": [
+              0.08466257668711656,
+              0.3177914110429448
+            ],
+            "values": [
+              0.08466257668711656,
+              0.3177914110429448,
+              0.08466257668711656
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.05962059620596206,
+            "range": [
+              0.056910569105691054,
+              0.25203252032520324
+            ],
+            "values": [
+              0.05962059620596206,
+              0.25203252032520324,
+              0.056910569105691054
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    }
+  ],
+  "separate21a_ttmapp": [
+    {
+      "regime": "transfer",
+      "family": "ae",
+      "latent": 32,
+      "partition": "fh4",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.8571428571428571,
+            "range": [
+              0.7142857142857143,
+              1.0
+            ],
+            "values": [
+              0.7142857142857143,
+              1.0,
+              0.8571428571428571
+            ]
+          },
+          "split_rate": {
+            "median": 0.029447852760736196,
+            "range": [
+              0.0,
+              0.049079754601226995
+            ],
+            "values": [
+              0.049079754601226995,
+              0.0,
+              0.029447852760736196
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.013550135501355014,
+            "range": [
+              0.0,
+              0.02710027100271003
+            ],
+            "values": [
+              0.02710027100271003,
+              0.0,
+              0.013550135501355014
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "ae",
+      "latent": 32,
+      "partition": "mws",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.8220858895705522,
+            "range": [
+              0.7926380368098159,
+              0.841717791411043
+            ],
+            "values": [
+              0.7926380368098159,
+              0.8220858895705522,
+              0.841717791411043
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.7831978319783198,
+            "range": [
+              0.7588075880758808,
+              0.8075880758807588
+            ],
+            "values": [
+              0.7588075880758808,
+              0.7831978319783198,
+              0.8075880758807588
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "fft",
+      "latent": null,
+      "partition": "fh4",
+      "seeds": [
+        null
+      ],
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.03803680981595092,
+            "range": [
+              0.03803680981595092,
+              0.03803680981595092
+            ],
+            "values": [
+              0.03803680981595092
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.02710027100271003,
+            "range": [
+              0.02710027100271003,
+              0.02710027100271003
+            ],
+            "values": [
+              0.02710027100271003
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "fft",
+      "latent": null,
+      "partition": "mws",
+      "seeds": [
+        null
+      ],
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.7754601226993865,
+            "range": [
+              0.7754601226993865,
+              0.7754601226993865
+            ],
+            "values": [
+              0.7754601226993865
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.6585365853658537,
+            "range": [
+              0.6585365853658537,
+              0.6585365853658537
+            ],
+            "values": [
+              0.6585365853658537
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0
+          ],
+          "assigned_elements": [
+            0
+          ],
+          "coverage": [
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "rvae",
+      "latent": 32,
+      "partition": "fh4",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.8571428571428571,
+            "range": [
+              0.0,
+              0.8571428571428571
+            ],
+            "values": [
+              0.8571428571428571,
+              0.0,
+              0.8571428571428571
+            ]
+          },
+          "split_rate": {
+            "median": 0.2196319018404908,
+            "range": [
+              0.1607361963190184,
+              0.2196319018404908
+            ],
+            "values": [
+              0.2196319018404908,
+              0.2196319018404908,
+              0.1607361963190184
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              0.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              0.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.15989159891598917,
+            "range": [
+              0.13008130081300814,
+              0.17886178861788618
+            ],
+            "values": [
+              0.17886178861788618,
+              0.15989159891598917,
+              0.13008130081300814
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "rvae",
+      "latent": 32,
+      "partition": "mws",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.7030674846625767,
+            "range": [
+              0.6871165644171779,
+              0.8429447852760736
+            ],
+            "values": [
+              0.7030674846625767,
+              0.8429447852760736,
+              0.6871165644171779
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.6287262872628726,
+            "range": [
+              0.6070460704607046,
+              0.7615176151761518
+            ],
+            "values": [
+              0.6287262872628726,
+              0.7615176151761518,
+              0.6070460704607046
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "rvae_fourier",
+      "latent": 32,
+      "partition": "fh4",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.5,
+            "range": [
+              0.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              0.0,
+              0.5
+            ]
+          },
+          "split_rate": {
+            "median": 0.16441717791411042,
+            "range": [
+              0.13006134969325153,
+              0.28588957055214725
+            ],
+            "values": [
+              0.13006134969325153,
+              0.28588957055214725,
+              0.16441717791411042
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.13550135501355012,
+            "range": [
+              0.08130081300813008,
+              0.18699186991869918
+            ],
+            "values": [
+              0.08130081300813008,
+              0.18699186991869918,
+              0.13550135501355012
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "rvae_fourier",
+      "latent": 32,
+      "partition": "mws",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.8920245398773006,
+            "range": [
+              0.8368098159509203,
+              0.9177914110429448
+            ],
+            "values": [
+              0.8920245398773006,
+              0.9177914110429448,
+              0.8368098159509203
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.8292682926829268,
+            "range": [
+              0.7560975609756098,
+              0.8644986449864499
+            ],
+            "values": [
+              0.8292682926829268,
+              0.8644986449864499,
+              0.7560975609756098
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "rvae_fourier_lowkl",
+      "latent": 32,
+      "partition": "fh4",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              0.8571428571428571,
+              1.0
+            ],
+            "values": [
+              1.0,
+              0.8571428571428571,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.04539877300613497,
+            "range": [
+              0.014723926380368098,
+              0.049079754601226995
+            ],
+            "values": [
+              0.049079754601226995,
+              0.04539877300613497,
+              0.014723926380368098
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.032520325203252036,
+            "range": [
+              0.01084010840108401,
+              0.037940379403794036
+            ],
+            "values": [
+              0.037940379403794036,
+              0.032520325203252036,
+              0.01084010840108401
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "rvae_fourier_lowkl",
+      "latent": 32,
+      "partition": "mws",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.8466257668711656,
+            "range": [
+              0.8404907975460123,
+              0.8858895705521472
+            ],
+            "values": [
+              0.8466257668711656,
+              0.8858895705521472,
+              0.8404907975460123
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.7967479674796748,
+            "range": [
+              0.7750677506775068,
+              0.8617886178861789
+            ],
+            "values": [
+              0.7967479674796748,
+              0.8617886178861789,
+              0.7750677506775068
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "rvae_lowkl",
+      "latent": 32,
+      "partition": "fh4",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.05030674846625767,
+            "range": [
+              0.029447852760736196,
+              0.06993865030674846
+            ],
+            "values": [
+              0.06993865030674846,
+              0.029447852760736196,
+              0.05030674846625767
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 1.0,
+            "range": [
+              1.0,
+              1.0
+            ],
+            "values": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.02981029810298103,
+            "range": [
+              0.018970189701897018,
+              0.037940379403794036
+            ],
+            "values": [
+              0.037940379403794036,
+              0.018970189701897018,
+              0.02981029810298103
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    },
+    {
+      "regime": "transfer",
+      "family": "rvae_lowkl",
+      "latent": 32,
+      "partition": "mws",
+      "seeds": [
+        20261101,
+        20261102,
+        20261103
+      ],
+      "evaluated_windows": 174,
+      "full_support_windows": 912,
+      "before_pair_denominators": {
+        "pairs": {
+          "same_reference_pairs": 815,
+          "different_reference_pairs": 28
+        },
+        "local_pairs": {
+          "same_reference_pairs": 369,
+          "different_reference_pairs": 1
+        }
+      },
+      "before": {
+        "coverage": {
+          "median": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 174,
+          "range": [
+            174,
+            174
+          ],
+          "values": [
+            174,
+            174,
+            174
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.9680981595092024,
+            "range": [
+              0.8625766871165644,
+              0.9803680981595092
+            ],
+            "values": [
+              0.8625766871165644,
+              0.9803680981595092,
+              0.9680981595092024
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": 0.0,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "values": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "split_rate": {
+            "median": 0.940379403794038,
+            "range": [
+              0.7831978319783198,
+              0.962059620596206
+            ],
+            "values": [
+              0.7831978319783198,
+              0.962059620596206,
+              0.940379403794038
+            ]
+          }
+        }
+      },
+      "after": {
+        "coverage": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ],
+          "values": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "assigned_evaluated_elements": {
+          "median": 0,
+          "range": [
+            0,
+            0
+          ],
+          "values": [
+            0,
+            0,
+            0
+          ]
+        },
+        "pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "local_pairs": {
+          "merge_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          },
+          "split_rate": {
+            "median": null,
+            "range": [
+              null,
+              null
+            ],
+            "values": [
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "after_orientation_groups": {
+        "1": {
+          "reference_elements": [
+            172,
+            172,
+            172
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "reference_elements": [
+            2,
+            2,
+            2
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "reference_elements": [
+            0,
+            0,
+            0
+          ],
+          "assigned_elements": [
+            0,
+            0,
+            0
+          ],
+          "coverage": [
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    }
+  ],
+  "detailed_tables": "tables.md and CSV files in the output directory; all seeds retained in comparison.json",
+  "resource_costs": [
+    {
+      "issue": "21",
+      "fits": 18,
+      "diagnostic_fits": 0,
+      "training_seconds": 469.0863868559827,
+      "steps": 29700,
+      "checkpoint_bytes": 890954997,
+      "max_gpu_tensor_bytes": 390608896,
+      "max_rss_bytes": 1733066752,
+      "groups": [
+        {
+          "family": "ae",
+          "regime": "transductive",
+          "latent": 32,
+          "runs": 3,
+          "seeds": [
+            20261101,
+            20261102,
+            20261103
+          ],
+          "parameter_counts": [
+            250513
+          ],
+          "seconds": {
+            "n": 3,
+            "available": 3,
+            "values": [
+              9.727785679002409,
+              9.584362984998734,
+              9.747337715001777
+            ],
+            "median": 9.727785679002409,
+            "minimum": 9.584362984998734,
+            "maximum": 9.747337715001777
+          },
+          "steps": 1800,
+          "max_gpu_tensor_bytes": 104854016,
+          "max_rss_bytes": 1648164864
+        },
+        {
+          "family": "ae",
+          "regime": "transfer",
+          "latent": 16,
+          "runs": 3,
+          "seeds": [
+            20261101,
+            20261102,
+            20261103
+          ],
+          "parameter_counts": [
+            150145
+          ],
+          "seconds": {
+            "n": 3,
+            "available": 3,
+            "values": [
+              29.752869488002034,
+              29.722474809997948,
+              29.546887961987522
+            ],
+            "median": 29.722474809997948,
+            "minimum": 29.546887961987522,
+            "maximum": 29.752869488002034
+          },
+          "steps": 6000,
+          "max_gpu_tensor_bytes": 103645696,
+          "max_rss_bytes": 1658994688
+        },
+        {
+          "family": "ae",
+          "regime": "transfer",
+          "latent": 32,
+          "runs": 3,
+          "seeds": [
+            20261101,
+            20261102,
+            20261103
+          ],
+          "parameter_counts": [
+            250513
+          ],
+          "seconds": {
+            "n": 3,
+            "available": 3,
+            "values": [
+              29.85722861699469,
+              33.03013542399276,
+              31.07354939400102
+            ],
+            "median": 31.07354939400102,
+            "minimum": 29.85722861699469,
+            "maximum": 33.03013542399276
+          },
+          "steps": 6000,
+          "max_gpu_tensor_bytes": 104854016,
+          "max_rss_bytes": 1659142144
+        },
+        {
+          "family": "rvae",
+          "regime": "transductive",
+          "latent": 32,
+          "runs": 3,
+          "seeds": [
+            20261101,
+            20261102,
+            20261103
+          ],
+          "parameter_counts": [
+            249351
+          ],
+          "seconds": {
+            "n": 3,
+            "available": 3,
+            "values": [
+              22.0517156769929,
+              20.94063684399589,
+              21.211103170004208
+            ],
+            "median": 21.211103170004208,
+            "minimum": 20.94063684399589,
+            "maximum": 22.0517156769929
+          },
+          "steps": 3900,
+          "max_gpu_tensor_bytes": 390608896,
+          "max_rss_bytes": 1733066752
+        },
+        {
+          "family": "rvae",
+          "regime": "transfer",
+          "latent": 16,
+          "runs": 3,
+          "seeds": [
+            20261101,
+            20261102,
+            20261103
+          ],
+          "parameter_counts": [
+            147943
+          ],
+          "seconds": {
+            "n": 3,
+            "available": 3,
+            "values": [
+              32.845172025001375,
+              30.97645295500115,
+              32.36019418500655
+            ],
+            "median": 32.36019418500655,
+            "minimum": 30.97645295500115,
+            "maximum": 32.845172025001375
+          },
+          "steps": 6000,
+          "max_gpu_tensor_bytes": 372586496,
+          "max_rss_bytes": 1696608256
+        },
+        {
+          "family": "rvae",
+          "regime": "transfer",
+          "latent": 32,
+          "runs": 3,
+          "seeds": [
+            20261101,
+            20261102,
+            20261103
+          ],
+          "parameter_counts": [
+            249351
+          ],
+          "seconds": {
+            "n": 3,
+            "available": 3,
+            "values": [
+              32.605927013995824,
+              32.461189323003055,
+              31.591363589002867
+            ],
+            "median": 32.461189323003055,
+            "minimum": 31.591363589002867,
+            "maximum": 32.605927013995824
+          },
+          "steps": 6000,
+          "max_gpu_tensor_bytes": 390608896,
+          "max_rss_bytes": 1694670848
+        }
+      ],
+      "postprocessing_cpu_seconds": 1057.587311803,
+      "note": "Sum each resource record once; cumulative/prior fields are not additional costs."
+    },
+    {
+      "issue": "21a",
+      "fits": 11,
+      "diagnostic_fits": 2,
+      "training_seconds": 336.34230928299075,
+      "steps": 22000,
+      "checkpoint_bytes": 756439396,
+      "max_gpu_tensor_bytes": 422852096,
+      "max_rss_bytes": 1696788480,
+      "groups": [
+        {
+          "family": "rvae",
+          "regime": "diagnostic",
+          "latent": 32,
+          "runs": 2,
+          "seeds": [
+            20261101,
+            20261101
+          ],
+          "parameter_counts": [
+            249351
+          ],
+          "seconds": {
+            "n": 2,
+            "available": 2,
+            "values": [
+              12.982139429004746,
+              14.74415062200569
+            ],
+            "median": 13.863145025505219,
+            "minimum": 12.982139429004746,
+            "maximum": 14.74415062200569
+          },
+          "steps": 4000,
+          "max_gpu_tensor_bytes": 390608896,
+          "max_rss_bytes": 1687572480
+        },
+        {
+          "family": "rvae_fourier",
+          "regime": "transfer",
+          "latent": 32,
+          "runs": 3,
+          "seeds": [
+            20261101,
+            20261102,
+            20261103
+          ],
+          "parameter_counts": [
+            250631
+          ],
+          "seconds": {
+            "n": 3,
+            "available": 3,
+            "values": [
+              33.622933706996264,
+              34.29202639698633,
+              32.59736052599328
+            ],
+            "median": 33.622933706996264,
+            "minimum": 32.59736052599328,
+            "maximum": 34.29202639698633
+          },
+          "steps": 6000,
+          "max_gpu_tensor_bytes": 422852096,
+          "max_rss_bytes": 1696788480
+        },
+        {
+          "family": "rvae_fourier_lowkl",
+          "regime": "transfer",
+          "latent": 32,
+          "runs": 3,
+          "seeds": [
+            20261101,
+            20261102,
+            20261103
+          ],
+          "parameter_counts": [
+            250631
+          ],
+          "seconds": {
+            "n": 3,
+            "available": 3,
+            "values": [
+              34.22812995300046,
+              41.09831267700065,
+              34.43895407499804
+            ],
+            "median": 34.43895407499804,
+            "minimum": 34.22812995300046,
+            "maximum": 41.09831267700065
+          },
+          "steps": 6000,
+          "max_gpu_tensor_bytes": 422852096,
+          "max_rss_bytes": 1696210944
+        },
+        {
+          "family": "rvae_lowkl",
+          "regime": "transfer",
+          "latent": 32,
+          "runs": 3,
+          "seeds": [
+            20261101,
+            20261102,
+            20261103
+          ],
+          "parameter_counts": [
+            249351
+          ],
+          "seconds": {
+            "n": 3,
+            "available": 3,
+            "values": [
+              33.93429606700374,
+              32.1923336720065,
+              32.211672157995054
+            ],
+            "median": 32.211672157995054,
+            "minimum": 32.1923336720065,
+            "maximum": 33.93429606700374
+          },
+          "steps": 6000,
+          "max_gpu_tensor_bytes": 390608896,
+          "max_rss_bytes": 1695825920
+        }
+      ],
+      "postprocessing_cpu_seconds": 150.53415456800002,
+      "note": "Sum each resource record once; cumulative/prior fields are not additional costs."
+    },
+    {
+      "issue": "22",
+      "fits": 9,
+      "diagnostic_fits": 0,
+      "training_seconds": 452.0445703339792,
+      "steps": 18000,
+      "checkpoint_bytes": 167606618,
+      "max_gpu_tensor_bytes": 99495936,
+      "max_rss_bytes": 1795444736,
+      "groups": [
+        {
+          "family": "local_ssl",
+          "regime": "transductive",
+          "latent": 32,
+          "runs": 3,
+          "seeds": [
+            20261101,
+            20261102,
+            20261103
+          ],
+          "parameter_counts": [
+            25376
+          ],
+          "seconds": {
+            "n": 3,
+            "available": 3,
+            "values": [
+              49.58356256199477,
+              50.23576648499875,
+              50.17734731499513
+            ],
+            "median": 50.17734731499513,
+            "minimum": 49.58356256199477,
+            "maximum": 50.23576648499875
+          },
+          "steps": 6000,
+          "max_gpu_tensor_bytes": 99495936,
+          "max_rss_bytes": 1795444736
+        },
+        {
+          "family": "local_ssl",
+          "regime": "transfer",
+          "latent": 16,
+          "runs": 3,
+          "seeds": [
+            20261101,
+            20261102,
+            20261103
+          ],
+          "parameter_counts": [
+            24336
+          ],
+          "seconds": {
+            "n": 3,
+            "available": 3,
+            "values": [
+              55.38280278799357,
+              50.02484118400025,
+              49.37804375500127
+            ],
+            "median": 50.02484118400025,
+            "minimum": 49.37804375500127,
+            "maximum": 55.38280278799357
+          },
+          "steps": 6000,
+          "max_gpu_tensor_bytes": 98613760,
+          "max_rss_bytes": 1742823424
+        },
+        {
+          "family": "local_ssl",
+          "regime": "transfer",
+          "latent": 32,
+          "runs": 3,
+          "seeds": [
+            20261101,
+            20261102,
+            20261103
+          ],
+          "parameter_counts": [
+            25376
+          ],
+          "seconds": {
+            "n": 3,
+            "available": 3,
+            "values": [
+              49.29191956498835,
+              48.91679611800646,
+              49.05349056200066
+            ],
+            "median": 49.05349056200066,
+            "minimum": 48.91679611800646,
+            "maximum": 49.29191956498835
+          },
+          "steps": 6000,
+          "max_gpu_tensor_bytes": 99495936,
+          "max_rss_bytes": 1738977280
+        }
+      ],
+      "postprocessing_cpu_seconds": 1031.077764481,
+      "note": "Sum each resource record once; cumulative/prior fields are not additional costs."
+    }
+  ],
+  "continuation": [
+    {
+      "source_issue": "21",
+      "metadata": {
+        "regime": "transductive",
+        "family": "ae",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21",
+      "metadata": {
+        "regime": "transductive",
+        "family": "ae",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21",
+      "metadata": {
+        "regime": "transductive",
+        "family": "rvae",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21",
+      "metadata": {
+        "regime": "transductive",
+        "family": "rvae",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21",
+      "metadata": {
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21",
+      "metadata": {
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21",
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21",
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21",
+      "metadata": {
+        "regime": "transfer",
+        "family": "fft",
+        "latent": null,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "stability": true,
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      }
+    },
+    {
+      "source_issue": "21",
+      "metadata": {
+        "regime": "transfer",
+        "family": "fft",
+        "latent": null,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "stability": true,
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      }
+    },
+    {
+      "source_issue": "21",
+      "metadata": {
+        "regime": "transductive",
+        "family": "fft",
+        "latent": null,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "stability": true,
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      }
+    },
+    {
+      "source_issue": "21",
+      "metadata": {
+        "regime": "transductive",
+        "family": "fft",
+        "latent": null,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "stability": true,
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      }
+    },
+    {
+      "source_issue": "22",
+      "metadata": {
+        "regime": "transductive",
+        "family": "local_ssl",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "22",
+      "metadata": {
+        "regime": "transductive",
+        "family": "local_ssl",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "22",
+      "metadata": {
+        "regime": "transductive",
+        "family": "local_ssl_untrained",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "22",
+      "metadata": {
+        "regime": "transductive",
+        "family": "local_ssl_untrained",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "22",
+      "metadata": {
+        "regime": "transfer",
+        "family": "local_ssl",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "22",
+      "metadata": {
+        "regime": "transfer",
+        "family": "local_ssl",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "22",
+      "metadata": {
+        "regime": "transfer",
+        "family": "local_ssl_untrained",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "22",
+      "metadata": {
+        "regime": "transfer",
+        "family": "local_ssl_untrained",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21a",
+      "metadata": {
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21a",
+      "metadata": {
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21a",
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21a",
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21a",
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae_fourier",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21a",
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae_fourier",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21a",
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae_fourier_lowkl",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21a",
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae_fourier_lowkl",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21a",
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae_lowkl",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21a",
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae_lowkl",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "stability": false,
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      }
+    },
+    {
+      "source_issue": "21a",
+      "metadata": {
+        "regime": "transfer",
+        "family": "fft",
+        "latent": null,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "stability": true,
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      }
+    },
+    {
+      "source_issue": "21a",
+      "metadata": {
+        "regime": "transfer",
+        "family": "fft",
+        "latent": null,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "stability": true,
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      }
+    }
+  ],
+  "artifacts_sha256": {
+    "boundaries-original21-22.csv": "288006707de71a32a5a9aa4771fa728d8eed6b476fb9a47709fea89aca11534e",
+    "boundaries-separate21a.csv": "6828d6d8d2293302acdd6161ffff034a66b782aee2077354f5a450ba1c33455b",
+    "comparison.json": "76d0f423fee520c51a1ed82a187dc9ded6ddd6b66df1e9cf8c1ea60bba779cd8",
+    "continuation.csv": "2e7f0d596aea6e1376089d2c0f01327681db28b5b227af10d529407692743c93",
+    "controls-original21-22.csv": "f4f00e0acce7e91a356895336a76e3f857d016efc0f2d84f4cc70f8fe83ebdaf",
+    "controls-separate21a.csv": "93c57701ed1c0d50f5f00a37dacd5654c3f002f1699188f71521ee292c4df89b",
+    "costs.csv": "2b1d0e8e200f4422b3340174222c6ef63f1a551cddb22e361f7857bc023caa7a",
+    "input-audit.json": "7a77ada6827975a59251103cb236344e22b29b93f450f7ef2af6a0c7eddc6f73",
+    "stability-original21-22.csv": "b20258c65d0527604e6f8d763d1b2f754a1ab2d33d1e1db3ae881df30fa137ab",
+    "stability-per-sample.json": "a7a65811a97b48e5e680a38a50a5cb3de1de02534661993e95f901460607b174",
+    "stability-separate21a.csv": "b122846135389dc6ee6740dac7965fc35d7a0ab6bccff46d0f3e7124743db793",
+    "tables.md": "49bd76d223ff256a53ad61bd8fe156cb56997dc09d3dd24dca397ffede5e13ea",
+    "ttmapp-original21-22.csv": "cbc9b6bada2eb937aed5ebb02810266df3807f4143f2022e3fa07d044d3a843d",
+    "ttmapp-separate21a.csv": "b08fc6cbd975e50ab943b01432a8bb4ae255390e4a7eb7c55e9f30b35054da7b"
+  },
+  "historical_integrity_limit": "All versioned artifact/source pins and freeze source pins checked. Original prediction archive audits are reused, not repeated. 21 summary/per-sample/matched-coverage details had no historical hash; its aggregate, stability, benefits, continuation and ablation sections match independently pinned files. Current hashes alone do not establish historical identity."
+}

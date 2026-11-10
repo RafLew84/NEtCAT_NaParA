@@ -1,0 +1,972 @@
+{
+  "schema": "stmdomains-rvae21a-evidence-v1",
+  "output": "/home/rlew/projekty/NEtCAT-domains/.scratch/rvae-21a",
+  "scope": "transfer z32, grid48; previously viewed TTMAPP plus fresh realizations of known synthetic families",
+  "plan_sha256": "e227d13f8a74dd2489014ccb2e7d1b2b12f8b8ed1e11b4d4e0a93de1542bc002",
+  "runs": [
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "rvae",
+      "seed": 20261101,
+      "diagnostic": true,
+      "completed_steps": 2000,
+      "selected_step": 2000,
+      "selected_checkpoint_sha256": "b129d81885b685e3678c5ece8b84486ea37657f256aae194a9f7bada3fb0bd13",
+      "seconds": 12.982139429004746,
+      "parameter_count": 249351,
+      "peak_rss_bytes": 1685901312,
+      "cuda_peak_allocated_bytes": 390608896,
+      "config_hash": "e56c25999f4b2f7472ac69482e99b4d1fedb07a9a3948766d385409a44088400",
+      "run_id": "diagnostic/beta-1e-3",
+      "selected_validation": {
+        "step": 2000,
+        "loss": 0.03224357217550278,
+        "mse": 0.027757231146097183,
+        "kl": 4.486340522766113,
+        "elements": 16,
+        "beta": 0.001
+      },
+      "step2000_validation": {
+        "step": 2000,
+        "loss": 0.03224357217550278,
+        "mse": 0.027757231146097183,
+        "kl": 4.486340522766113,
+        "elements": 16,
+        "beta": 0.001
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "rvae",
+      "seed": 20261101,
+      "diagnostic": true,
+      "completed_steps": 2000,
+      "selected_step": 1800,
+      "selected_checkpoint_sha256": "b2c4b91205e84d858a475a8a58221c41f4bbb59babcf30c110dd743be2cdb72a",
+      "seconds": 14.74415062200569,
+      "parameter_count": 249351,
+      "peak_rss_bytes": 1687572480,
+      "cuda_peak_allocated_bytes": 390608896,
+      "config_hash": "1eb1ae935eb78e284f75d446afc35192e80a431505ffbe5cd5b5203add7e7897",
+      "run_id": "diagnostic/beta-0",
+      "selected_validation": {
+        "step": 1800,
+        "loss": 0.019326021894812584,
+        "mse": 0.019326021894812584,
+        "kl": 216.25299072265625,
+        "elements": 16,
+        "beta": 0.0
+      },
+      "step2000_validation": {
+        "step": 2000,
+        "loss": 0.021678604185581207,
+        "mse": 0.021678604185581207,
+        "kl": 204.49267578125,
+        "elements": 16,
+        "beta": 0.0
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "rvae_lowkl",
+      "seed": 20261101,
+      "diagnostic": false,
+      "completed_steps": 2000,
+      "selected_step": 500,
+      "selected_checkpoint_sha256": "ffebc29c871ae748e6091b9a45ae4bcc660271e6cc124c9fe37dac3f7ef78893",
+      "seconds": 33.93429606700374,
+      "parameter_count": 249351,
+      "peak_rss_bytes": 1695342592,
+      "cuda_peak_allocated_bytes": 390608896,
+      "config_hash": "cbb2bc432166631b45eec6d301ac423b6c328804d0a76596ff2036fb09e05f9a",
+      "run_id": "training/transfer/rvae_lowkl/z32/seed-20261101",
+      "selected_validation": {
+        "step": 500,
+        "loss": 0.05186294684255564,
+        "mse": 0.05087789308141779,
+        "kl": 9.850526180973759,
+        "elements": 270,
+        "beta": 0.0001
+      },
+      "step2000_validation": {
+        "step": 2000,
+        "loss": 0.05336968297207797,
+        "mse": 0.05110973817882714,
+        "kl": 22.599466295595523,
+        "elements": 270,
+        "beta": 0.0001
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "rvae_lowkl",
+      "seed": 20261102,
+      "diagnostic": false,
+      "completed_steps": 2000,
+      "selected_step": 1700,
+      "selected_checkpoint_sha256": "4c5771e17fcef51dd97cc719b29d4ebd3584c2aa31a956889b1ad46a6b69517f",
+      "seconds": 32.1923336720065,
+      "parameter_count": 249351,
+      "peak_rss_bytes": 1695825920,
+      "cuda_peak_allocated_bytes": 390608896,
+      "config_hash": "d1c446c1f10c69e951a4646a9614fe58a48379cf4ed74185f2302c07a08eceee",
+      "run_id": "training/transfer/rvae_lowkl/z32/seed-20261102",
+      "selected_validation": {
+        "step": 1700,
+        "loss": 0.05031263960732354,
+        "mse": 0.04794175119863616,
+        "kl": 23.708881067346642,
+        "elements": 270,
+        "beta": 0.0001
+      },
+      "step2000_validation": {
+        "step": 2000,
+        "loss": 0.050869855643422515,
+        "mse": 0.04825234942966038,
+        "kl": 26.175074923479997,
+        "elements": 270,
+        "beta": 0.0001
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "rvae_lowkl",
+      "seed": 20261103,
+      "diagnostic": false,
+      "completed_steps": 2000,
+      "selected_step": 2000,
+      "selected_checkpoint_sha256": "19cce7cbb5466d57dc1ff7a7aaa2da8f65bc10213dbffeb8610f8e839a581ac6",
+      "seconds": 32.211672157995054,
+      "parameter_count": 249351,
+      "peak_rss_bytes": 1694588928,
+      "cuda_peak_allocated_bytes": 390608896,
+      "config_hash": "e81e126e335e701a697b5086576089b38b1aa93b2d3134768dbc962c2f429075",
+      "run_id": "training/transfer/rvae_lowkl/z32/seed-20261103",
+      "selected_validation": {
+        "step": 2000,
+        "loss": 0.048278767229230315,
+        "mse": 0.045384423655492286,
+        "kl": 28.94343874896014,
+        "elements": 270,
+        "beta": 0.0001
+      },
+      "step2000_validation": {
+        "step": 2000,
+        "loss": 0.048278767229230315,
+        "mse": 0.045384423655492286,
+        "kl": 28.94343874896014,
+        "elements": 270,
+        "beta": 0.0001
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "rvae_fourier",
+      "seed": 20261101,
+      "diagnostic": false,
+      "completed_steps": 2000,
+      "selected_step": 1600,
+      "selected_checkpoint_sha256": "8f64fc12ddd6f4ee55ae1bf13d36e239e2b976b3f72cac9d4b45871ddf9b2d77",
+      "seconds": 33.622933706996264,
+      "parameter_count": 250631,
+      "peak_rss_bytes": 1696788480,
+      "cuda_peak_allocated_bytes": 422852096,
+      "config_hash": "4b003e09b1193092d201b950a6e3c9b2490695087ddec5ee2ce23a331ccc8e61",
+      "run_id": "training/transfer/rvae_fourier/z32/seed-20261101",
+      "selected_validation": {
+        "step": 1600,
+        "loss": 0.056370528704590264,
+        "mse": 0.05264840079126535,
+        "kl": 3.722128004497952,
+        "elements": 270,
+        "beta": 0.001
+      },
+      "step2000_validation": {
+        "step": 2000,
+        "loss": 0.05793285728604705,
+        "mse": 0.05361443192318634,
+        "kl": 4.318424288431803,
+        "elements": 270,
+        "beta": 0.001
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "rvae_fourier",
+      "seed": 20261102,
+      "diagnostic": false,
+      "completed_steps": 2000,
+      "selected_step": 1300,
+      "selected_checkpoint_sha256": "7a83feb7ded4576e8174cc7cf4ff21a9b96a0d3ae7dfe36db9ecb5cdf6612814",
+      "seconds": 34.29202639698633,
+      "parameter_count": 250631,
+      "peak_rss_bytes": 1695272960,
+      "cuda_peak_allocated_bytes": 422852096,
+      "config_hash": "13de828c67d904121c4c453528621e9e81ff7fcf321a9338e40ab40afd317c2f",
+      "run_id": "training/transfer/rvae_fourier/z32/seed-20261102",
+      "selected_validation": {
+        "step": 1300,
+        "loss": 0.0548964066085992,
+        "mse": 0.05155399844602302,
+        "kl": 3.342407967426159,
+        "elements": 270,
+        "beta": 0.001
+      },
+      "step2000_validation": {
+        "step": 2000,
+        "loss": 0.056971696736635984,
+        "mse": 0.052817038115527896,
+        "kl": 4.154659695095486,
+        "elements": 270,
+        "beta": 0.001
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "rvae_fourier",
+      "seed": 20261103,
+      "diagnostic": false,
+      "completed_steps": 2000,
+      "selected_step": 1200,
+      "selected_checkpoint_sha256": "0f26dff5767c90e9898b74bfd492f108bfb2e14ebf2174e727a2760a7c9b6185",
+      "seconds": 32.59736052599328,
+      "parameter_count": 250631,
+      "peak_rss_bytes": 1695744000,
+      "cuda_peak_allocated_bytes": 422852096,
+      "config_hash": "0a69ac52d0901c85844a4d44f453e70015bd9636b50a09fa8bbc6d3ffce187bb",
+      "run_id": "training/transfer/rvae_fourier/z32/seed-20261103",
+      "selected_validation": {
+        "step": 1200,
+        "loss": 0.05572263162445139,
+        "mse": 0.05183806292436741,
+        "kl": 3.8845675353650693,
+        "elements": 270,
+        "beta": 0.001
+      },
+      "step2000_validation": {
+        "step": 2000,
+        "loss": 0.056051635797376986,
+        "mse": 0.05189284767817568,
+        "kl": 4.158786911434597,
+        "elements": 270,
+        "beta": 0.001
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "rvae_fourier_lowkl",
+      "seed": 20261101,
+      "diagnostic": false,
+      "completed_steps": 2000,
+      "selected_step": 1400,
+      "selected_checkpoint_sha256": "53ad25fca1ef59d4cf31c7e35468a2f95a6dbeac11bf001d3c2bb3daf90a7f18",
+      "seconds": 34.22812995300046,
+      "parameter_count": 250631,
+      "peak_rss_bytes": 1695703040,
+      "cuda_peak_allocated_bytes": 422852096,
+      "config_hash": "6661fc0c12ca48d33ecf4439c6c8bedc600acb5e0eb178ba796cc292fa19f205",
+      "run_id": "training/transfer/rvae_fourier_lowkl/z32/seed-20261101",
+      "selected_validation": {
+        "step": 1400,
+        "loss": 0.05138690617901308,
+        "mse": 0.048605371128629754,
+        "kl": 27.815378203215424,
+        "elements": 270,
+        "beta": 0.0001
+      },
+      "step2000_validation": {
+        "step": 2000,
+        "loss": 0.05243869779838456,
+        "mse": 0.049453948658925516,
+        "kl": 29.847487569738316,
+        "elements": 270,
+        "beta": 0.0001
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "rvae_fourier_lowkl",
+      "seed": 20261102,
+      "diagnostic": false,
+      "completed_steps": 2000,
+      "selected_step": 2000,
+      "selected_checkpoint_sha256": "570717887cdf09062ec1f19ab4367fdfe65db6e0446bc17945a3562bc4a44862",
+      "seconds": 41.09831267700065,
+      "parameter_count": 250631,
+      "peak_rss_bytes": 1696210944,
+      "cuda_peak_allocated_bytes": 422852096,
+      "config_hash": "c9d96e21cd0a7c8c9e1deb0fd5b3168a81c216bdf064775ed949f6297bf3efcf",
+      "run_id": "training/transfer/rvae_fourier_lowkl/z32/seed-20261102",
+      "selected_validation": {
+        "step": 2000,
+        "loss": 0.0512218259550907,
+        "mse": 0.048482252298681826,
+        "kl": 27.395734843501337,
+        "elements": 270,
+        "beta": 0.0001
+      },
+      "step2000_validation": {
+        "step": 2000,
+        "loss": 0.0512218259550907,
+        "mse": 0.048482252298681826,
+        "kl": 27.395734843501337,
+        "elements": 270,
+        "beta": 0.0001
+      }
+    },
+    {
+      "status": "completed",
+      "stop_reason": "fixed_step_budget",
+      "family": "rvae_fourier_lowkl",
+      "seed": 20261103,
+      "diagnostic": false,
+      "completed_steps": 2000,
+      "selected_step": 2000,
+      "selected_checkpoint_sha256": "16d3051b40acbc9880c27bcacf2a5c10ffa779f1a543c20288fd02933a06bc03",
+      "seconds": 34.43895407499804,
+      "parameter_count": 250631,
+      "peak_rss_bytes": 1695383552,
+      "cuda_peak_allocated_bytes": 422852096,
+      "config_hash": "4da74a0b37ad022784fd86258a28d1c0b04276940ac57074248e6362e4d8ac0a",
+      "run_id": "training/transfer/rvae_fourier_lowkl/z32/seed-20261103",
+      "selected_validation": {
+        "step": 2000,
+        "loss": 0.04895179475899096,
+        "mse": 0.04594882069914429,
+        "kl": 30.029747814602324,
+        "elements": 270,
+        "beta": 0.0001
+      },
+      "step2000_validation": {
+        "step": 2000,
+        "loss": 0.04895179475899096,
+        "mse": 0.04594882069914429,
+        "kl": 30.029747814602324,
+        "elements": 270,
+        "beta": 0.0001
+      }
+    }
+  ],
+  "training_seconds": 336.34230928299075,
+  "completed_steps": 22000,
+  "postprocess_cpu_seconds": 150.53415456800002,
+  "resources": {
+    "audit-training.resources.json": {
+      "cpu_seconds": 0.598483347,
+      "wall_seconds": 0.5985040899977321,
+      "max_rss_bytes": 591233024,
+      "previous_cpu_seconds": 16.764475715
+    },
+    "baseline-audit.resources.json": {
+      "cpu_seconds": 6.331272667,
+      "wall_seconds": 6.331875597999897,
+      "max_rss_bytes": 119902208,
+      "previous_cpu_seconds": 0
+    },
+    "browser-1.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 2.3600073850000003,
+      "prior_cpu_seconds": 148.174147183,
+      "cumulative_postprocess_cpu_seconds": 150.534159398,
+      "wall_seconds": 16.40299126598984,
+      "max_rss_kib": 500284
+    },
+    "cache.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 9.228998108,
+      "prior_cpu_seconds": 7.535477607000001,
+      "cumulative_postprocess_cpu_seconds": 16.764475715000003,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 9.255194058001507,
+      "max_rss_kib": 343676,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "baseline-audit.resources.json": "27e3eb78adeecd05478606a2e2b25704f78ba32441d877e7a55070994ce4ac3c",
+        "controls.resources.json": "27c5de173dceb671d21b105f1d88ab0f8977ebd827c0c03ab48c9fa886c22abf",
+        "plan.resources.json": "02187f8e83e0ba51bba1c74becd7222f39cf81ba0835600bfddb5d320c3b03e6"
+      }
+    },
+    "controls.resources.json": {
+      "cpu_seconds": 0.843095827,
+      "wall_seconds": 0.8444223970000166,
+      "max_rss_bytes": 80343040,
+      "previous_cpu_seconds": 6.692381780000001
+    },
+    "diagnostics.resources.json": {
+      "stage": "diagnostics",
+      "status": "completed",
+      "cpu_seconds": 5.831492888,
+      "prior_cpu_seconds": 135.234035207,
+      "cumulative_postprocess_cpu_seconds": 141.065528095,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 5.828042947003269,
+      "max_rss_kib": 1482444,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "audit-training.resources.json": "051cda1216bec47f7ba2431073b22422480c4c6b11efcfc98d1579c16fea7be7",
+        "baseline-audit.resources.json": "27e3eb78adeecd05478606a2e2b25704f78ba32441d877e7a55070994ce4ac3c",
+        "cache.resources.json": "3e2b56e32376fa9323f6287a30090d3783c1a0c895681cb980e6aacda8954bea",
+        "controls.resources.json": "27c5de173dceb671d21b105f1d88ab0f8977ebd827c0c03ab48c9fa886c22abf",
+        "encode.resources.json": "e40cc31271bc53d20142a893e6186416a272ab62b4f8d2adfed21803f6ed9aeb",
+        "evaluation.resources.json": "e49ba66370dc2e9f98ab277fd1b0269a5ec6ec6c1c3787a4d65d113244633b57",
+        "freeze.resources.json": "3fe3f1fb9e574d38d1083f94aabc0fd63980d10fcfdcb799ff30acaa3563e8ec",
+        "partition.resources.json": "a8700044c2bd5db5972dee8db60c5e88b487a2c806478be92246c2e662dee160",
+        "plan.resources.json": "02187f8e83e0ba51bba1c74becd7222f39cf81ba0835600bfddb5d320c3b03e6"
+      }
+    },
+    "encode.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 11.784407273000001,
+      "prior_cpu_seconds": 17.362959062,
+      "cumulative_postprocess_cpu_seconds": 29.147366335,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 11.789064473996405,
+      "max_rss_kib": 1664240,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "audit-training.resources.json": "051cda1216bec47f7ba2431073b22422480c4c6b11efcfc98d1579c16fea7be7",
+        "baseline-audit.resources.json": "27e3eb78adeecd05478606a2e2b25704f78ba32441d877e7a55070994ce4ac3c",
+        "cache.resources.json": "3e2b56e32376fa9323f6287a30090d3783c1a0c895681cb980e6aacda8954bea",
+        "controls.resources.json": "27c5de173dceb671d21b105f1d88ab0f8977ebd827c0c03ab48c9fa886c22abf",
+        "plan.resources.json": "02187f8e83e0ba51bba1c74becd7222f39cf81ba0835600bfddb5d320c3b03e6"
+      }
+    },
+    "evaluation.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 13.379669611,
+      "prior_cpu_seconds": 121.85436559600001,
+      "cumulative_postprocess_cpu_seconds": 135.234035207,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 13.380663440009812,
+      "max_rss_kib": 585764,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "audit-training.resources.json": "051cda1216bec47f7ba2431073b22422480c4c6b11efcfc98d1579c16fea7be7",
+        "baseline-audit.resources.json": "27e3eb78adeecd05478606a2e2b25704f78ba32441d877e7a55070994ce4ac3c",
+        "cache.resources.json": "3e2b56e32376fa9323f6287a30090d3783c1a0c895681cb980e6aacda8954bea",
+        "controls.resources.json": "27c5de173dceb671d21b105f1d88ab0f8977ebd827c0c03ab48c9fa886c22abf",
+        "encode.resources.json": "e40cc31271bc53d20142a893e6186416a272ab62b4f8d2adfed21803f6ed9aeb",
+        "freeze.resources.json": "3fe3f1fb9e574d38d1083f94aabc0fd63980d10fcfdcb799ff30acaa3563e8ec",
+        "partition.resources.json": "a8700044c2bd5db5972dee8db60c5e88b487a2c806478be92246c2e662dee160",
+        "plan.resources.json": "02187f8e83e0ba51bba1c74becd7222f39cf81ba0835600bfddb5d320c3b03e6"
+      }
+    },
+    "figures.resources.json": {
+      "stage": "figures",
+      "status": "completed",
+      "cpu_seconds": 2.224704086,
+      "prior_cpu_seconds": 141.065528095,
+      "cumulative_postprocess_cpu_seconds": 143.290232181,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 2.2248912200011546,
+      "max_rss_kib": 714752,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "audit-training.resources.json": "051cda1216bec47f7ba2431073b22422480c4c6b11efcfc98d1579c16fea7be7",
+        "baseline-audit.resources.json": "27e3eb78adeecd05478606a2e2b25704f78ba32441d877e7a55070994ce4ac3c",
+        "cache.resources.json": "3e2b56e32376fa9323f6287a30090d3783c1a0c895681cb980e6aacda8954bea",
+        "controls.resources.json": "27c5de173dceb671d21b105f1d88ab0f8977ebd827c0c03ab48c9fa886c22abf",
+        "diagnostics.resources.json": "8be407eac206f3c9ac0ee2f57e512dd190b2f0aca395230e47eb535bdc1a9b08",
+        "encode.resources.json": "e40cc31271bc53d20142a893e6186416a272ab62b4f8d2adfed21803f6ed9aeb",
+        "evaluation.resources.json": "e49ba66370dc2e9f98ab277fd1b0269a5ec6ec6c1c3787a4d65d113244633b57",
+        "freeze.resources.json": "3fe3f1fb9e574d38d1083f94aabc0fd63980d10fcfdcb799ff30acaa3563e8ec",
+        "partition.resources.json": "a8700044c2bd5db5972dee8db60c5e88b487a2c806478be92246c2e662dee160",
+        "plan.resources.json": "02187f8e83e0ba51bba1c74becd7222f39cf81ba0835600bfddb5d320c3b03e6"
+      }
+    },
+    "freeze.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 41.620765345,
+      "prior_cpu_seconds": 80.23360025100001,
+      "cumulative_postprocess_cpu_seconds": 121.85436559600001,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 48.63962004700443,
+      "max_rss_kib": 179976,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "audit-training.resources.json": "051cda1216bec47f7ba2431073b22422480c4c6b11efcfc98d1579c16fea7be7",
+        "baseline-audit.resources.json": "27e3eb78adeecd05478606a2e2b25704f78ba32441d877e7a55070994ce4ac3c",
+        "cache.resources.json": "3e2b56e32376fa9323f6287a30090d3783c1a0c895681cb980e6aacda8954bea",
+        "controls.resources.json": "27c5de173dceb671d21b105f1d88ab0f8977ebd827c0c03ab48c9fa886c22abf",
+        "encode.resources.json": "e40cc31271bc53d20142a893e6186416a272ab62b4f8d2adfed21803f6ed9aeb",
+        "partition.resources.json": "a8700044c2bd5db5972dee8db60c5e88b487a2c806478be92246c2e662dee160",
+        "plan.resources.json": "02187f8e83e0ba51bba1c74becd7222f39cf81ba0835600bfddb5d320c3b03e6"
+      }
+    },
+    "gallery.resources.json": {
+      "stage": "gallery",
+      "status": "completed",
+      "cpu_seconds": 4.883915002,
+      "prior_cpu_seconds": 143.290232181,
+      "cumulative_postprocess_cpu_seconds": 148.174147183,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 4.890193168001133,
+      "max_rss_kib": 770760,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "audit-training.resources.json": "051cda1216bec47f7ba2431073b22422480c4c6b11efcfc98d1579c16fea7be7",
+        "baseline-audit.resources.json": "27e3eb78adeecd05478606a2e2b25704f78ba32441d877e7a55070994ce4ac3c",
+        "cache.resources.json": "3e2b56e32376fa9323f6287a30090d3783c1a0c895681cb980e6aacda8954bea",
+        "controls.resources.json": "27c5de173dceb671d21b105f1d88ab0f8977ebd827c0c03ab48c9fa886c22abf",
+        "diagnostics.resources.json": "8be407eac206f3c9ac0ee2f57e512dd190b2f0aca395230e47eb535bdc1a9b08",
+        "encode.resources.json": "e40cc31271bc53d20142a893e6186416a272ab62b4f8d2adfed21803f6ed9aeb",
+        "evaluation.resources.json": "e49ba66370dc2e9f98ab277fd1b0269a5ec6ec6c1c3787a4d65d113244633b57",
+        "figures.resources.json": "8ee8faace7b395a01350efc666a9f24c6f1b6a041db298c0ce16f9e883ef5a07",
+        "freeze.resources.json": "3fe3f1fb9e574d38d1083f94aabc0fd63980d10fcfdcb799ff30acaa3563e8ec",
+        "partition.resources.json": "a8700044c2bd5db5972dee8db60c5e88b487a2c806478be92246c2e662dee160",
+        "plan.resources.json": "02187f8e83e0ba51bba1c74becd7222f39cf81ba0835600bfddb5d320c3b03e6"
+      }
+    },
+    "partition.resources.json": {
+      "status": "completed",
+      "cpu_seconds": 51.086233916000005,
+      "prior_cpu_seconds": 29.147366335000005,
+      "cumulative_postprocess_cpu_seconds": 80.23360025100001,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 51.14064479399531,
+      "max_rss_kib": 181140,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "audit-training.resources.json": "051cda1216bec47f7ba2431073b22422480c4c6b11efcfc98d1579c16fea7be7",
+        "baseline-audit.resources.json": "27e3eb78adeecd05478606a2e2b25704f78ba32441d877e7a55070994ce4ac3c",
+        "cache.resources.json": "3e2b56e32376fa9323f6287a30090d3783c1a0c895681cb980e6aacda8954bea",
+        "controls.resources.json": "27c5de173dceb671d21b105f1d88ab0f8977ebd827c0c03ab48c9fa886c22abf",
+        "encode.resources.json": "e40cc31271bc53d20142a893e6186416a272ab62b4f8d2adfed21803f6ed9aeb",
+        "plan.resources.json": "02187f8e83e0ba51bba1c74becd7222f39cf81ba0835600bfddb5d320c3b03e6"
+      }
+    },
+    "plan.resources.json": {
+      "cpu_seconds": 0.36110911300000004,
+      "wall_seconds": 0.3611385049880482,
+      "max_rss_bytes": 683855872,
+      "previous_cpu_seconds": 6.331272667
+    }
+  },
+  "continuation": [
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "ae",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae_fourier",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae_fourier",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae_fourier_lowkl",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae_fourier_lowkl",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae_lowkl",
+        "latent": 32,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "rvae_lowkl",
+        "latent": 32,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": true,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": false,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": false,
+          "benefit_on_ttmapp": false
+        }
+      },
+      "benefit": {
+        "synthetic": false,
+        "measurement": false
+      },
+      "stability": false,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "fft",
+        "latent": null,
+        "partition": "fh4"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      },
+      "stability": true,
+      "claim_scope": "represented transfer-test regions only"
+    },
+    {
+      "metadata": {
+        "regime": "transfer",
+        "family": "fft",
+        "latent": null,
+        "partition": "mws"
+      },
+      "continuation": {
+        "applicable": false,
+        "passed": false,
+        "qualified": false,
+        "checks": {
+          "all_synthetic_control_conditions": false,
+          "stability": true,
+          "ttmapp_coverage_all_seeds": false,
+          "benefit_on_controls": null,
+          "benefit_on_ttmapp": null
+        }
+      },
+      "benefit": {
+        "synthetic": null,
+        "measurement": null
+      },
+      "stability": true,
+      "claim_scope": "represented transfer-test regions only"
+    }
+  ],
+  "artifacts_sha256": {
+    "plan.json": "e227d13f8a74dd2489014ccb2e7d1b2b12f8b8ed1e11b4d4e0a93de1542bc002",
+    "protocol.json": "d3b06bcf170a9c31fc45c3a662f7803b630d9d770372e66a71cdfcc52f425bc9",
+    "baseline-audit.json": "100d23bc29154a64b9125c2654786f5f79f4c6757e27db18a167035c35cff628",
+    "controls/audit.json": "bdff6ff6a2440486cb5592de8a13125d68020a12f3be8aaa84e314e64bf33f90",
+    "training/training-audit.json": "6284ff901b159722b4c4ff1277115b6389ec047a5c60bd7dd1a2c2bb19900442",
+    "baseline-reuse-audit.json": "69151d8506d49ac831dc9d19210a944777f6ac02a652563a1761babb513a698e",
+    "frozen-predictions.json": "cdfd2ef916a2e5aaf17fcb7c545f5a875a3a379397d5bbefcf5245ed9ac2314b",
+    "evaluation/evaluation-evidence.json": "14da2aae7f0af0966e167af7a4ce5efbfa8596d64e4313d38ad8637e531d4bf2",
+    "evaluation/summary.json": "09ec69ab761445ee1fb527fd62443e97cd20592a4ba4a0bae536259f0dbeb2a8",
+    "evaluation/metrics.csv": "7d3e5e6d4fd6cdde7037e742104b9b5411d20226b8ad4543a1880fd166a93a13",
+    "evaluation/aggregates.json": "d85d1dd02c3bb81fec9f525383f7bd59e30cca657fad6b756158db1c6c15fbaa",
+    "evaluation/continuation.json": "784cdb2a7e57bf99d7b82584b9b61d7f78496c01d060fd1df33980629d4a29fd",
+    "evaluation/ablations.json": "ac3470bf17fb36a4d69ab5ad4d02878e70a44046b6a55cfb66b955d28e043a6e",
+    "evaluation/paired-model-comparisons.json": "8dc4f1aa65fde2802522ec5365742bf93911aec08963bbdc9b45c39dc849d682",
+    "feature-diagnostics.json": "f877d7540eb5eda3525fb2bc14ff92d6373705aa59a32fe0bf74f86becb285de",
+    "index.html": "0e46606464c85e97589717654e59800b258b9a9dafbe74ff414d28e18a6b9b64",
+    "figures/diagnostic-reconstruction.png": "18416fc49973ceb3759d00da45f8fe478776f92181e86e76533cb0dae142fcc2",
+    "figures/manifest.json": "b70df8ce9bb9242acabb2765ed4849ef88ad4b1f57d9a30179fe224055409dd7",
+    "figures/reconstruction-examples.png": "e245ef542378b2f58ae9fa016a9ea7b78e348874bf9bbe95b71b518599fd7bfb",
+    "figures/validation-curves.png": "dbdfa2a8dba2623f716ae99a2f0ce84032c2309de0f5b18601d20c24f39c5404",
+    "gallery/boundary-fourier-lowkl-fh4.png": "7e43ae6138cf2caf5d2fa663431ba9d47c22fd498128a9407cb2be5a908acaf4",
+    "gallery/boundary-transfer-rvae-mws.png": "aa42f905d9138a60046a7d92d6eaf25397e96127ac5bb203254825ec9e2cd0c1",
+    "gallery/browser-check.json": "20050085f732b3dd026d2d051a5ce3e711fe6dc948afed0ad4db747940303ba3",
+    "gallery/check_browser.py": "1baf8f89e3c6a9447b6ece0739f929395fd6f1219b1623da9ac8c0400183db84",
+    "gallery/manifest.json": "544ca4588c74819e172a3d7ffd84515cee171d86dcf055d4123e50d4cf60a590",
+    "gallery/reconstruction-figure.png": "4886e4f59d811c9b975119bafb11040ee304399c8a22329bbe9f849cfc328ceb",
+    "gallery/scenario-map.json": "bba0ffc3835f89a6bee6b7fa06907fa4d32d52d1bac3e2ddc298e7426c4cb197",
+    "gallery/scenario-source.json": "13926216756ad588079ab474fbc41ea2ce8bdca94c7c55a396fe2541bf40f76d",
+    "gallery/ttmapp-fourier-lowkl-fh4.png": "b215d601c1f23f0a7e3f01b126bae91bc80b07391e7818e20ddf191ef830d917",
+    "gallery/ttmapp-transfer-fft-heldout.png": "c8d6469939ed8e335cd4bf8e74041c5ba9313f0178c1430bc692efe92cee5baf"
+  },
+  "source_sha256": {
+    "stmdomains/experiments/training/rvae_followup/__init__.py": "92a44afe3b4691dc608825703422b36b3c3c19599287e228db9a3ccb9d58ac0b",
+    "stmdomains/experiments/training/rvae_followup/diagnostics.py": "df671aee4a48760743054063dc190bce634e00eb38dbea47d3ddb9b83ee8f6d8",
+    "stmdomains/experiments/training/rvae_followup/evaluate.py": "fc5afa706fe5c7822388bf2621a21c375b194240370d81f784276ee97254fee5",
+    "stmdomains/experiments/training/rvae_followup/figures.py": "3ed756b0afdcac6793bcc5fc3e824c6d1ba68041982272264bf133403579147a",
+    "stmdomains/experiments/training/rvae_followup/fit.py": "618c6d70d0e1a11b818182a8fe682bb1ddd7e57e5127ecc9e3d2350ca22894a9",
+    "stmdomains/experiments/training/rvae_followup/gallery.py": "a4f9c81741a5ae2dcefa1303bf4a5d012a8b8e0d716c4cb4ca228b0a6b4c066e",
+    "stmdomains/experiments/training/rvae_followup/models.py": "33e8ae349dc2bf2412426a0526b309e2d8b8432fa5e97f1909397308c3b5a913",
+    "stmdomains/experiments/training/rvae_followup/predict.py": "848fbb332a3d4fc000f5a866437d73ce6951c4c9cfbe9cc9a40bdf01dbc2b441",
+    "stmdomains/experiments/training/rvae_followup/prepare.py": "d346b86e3292b7c81c7bfc6515898d6cc4418b25f078765d135e966e19a96a02",
+    "stmdomains/experiments/training/rvae_followup/protocol.json": "d3b06bcf170a9c31fc45c3a662f7803b630d9d770372e66a71cdfcc52f425bc9",
+    "stmdomains/experiments/training/rvae_followup/run_followup.sh": "7924128bc0c629da19c2e4793f42665f1e9c461683d987eefa0dc2bfae737603",
+    "stmdomains/experiments/training/rvae_followup/summarize.py": "10021c1ae7e794ac17cdaff02f176d0117f6e75f298af2ad9f4adfea06ceddeb"
+  },
+  "evaluation": {
+    "schema": "stmdomains-post-freeze-evaluation-v1",
+    "frozen_manifest_sha256": "cdfd2ef916a2e5aaf17fcb7c545f5a875a3a379397d5bbefcf5245ed9ac2314b",
+    "verified_prediction_files": 14370,
+    "verified_external_files": 50,
+    "prediction_entries": 3360,
+    "evaluated_records": 3360,
+    "controls_manifest_sha256": "2530396dcd5125b713e85c7086b2bef9fa9804f8185bf2e1383a39533c405760",
+    "measurement_manifest_sha256": "77492b92a669377015077a607d1fe5abf1e5f0c21a2ad78be552de4a960f74fd",
+    "evaluation_code_sha256": "fc5afa706fe5c7822388bf2621a21c375b194240370d81f784276ee97254fee5",
+    "elapsed_seconds": 13.341435506998096,
+    "cpu_seconds": 13.340454175000001,
+    "peak_rss_kib": 585764,
+    "policy": "Read-only frozen predictions; no model selection, parameter changes or exact TTMAPP boundary claims",
+    "postprocessing_budget": {
+      "cpu_seconds": 13.340757576,
+      "prior_cpu_seconds": 121.85436559600001,
+      "cumulative_postprocess_cpu_seconds": 135.195123172,
+      "cpu_limit_seconds": 7200.0,
+      "wall_seconds": 13.341739216004498,
+      "max_rss_kib": 585764,
+      "rss_limit_bytes": 12884901888,
+      "prior_reports_sha256": {
+        "audit-training.resources.json": "051cda1216bec47f7ba2431073b22422480c4c6b11efcfc98d1579c16fea7be7",
+        "baseline-audit.resources.json": "27e3eb78adeecd05478606a2e2b25704f78ba32441d877e7a55070994ce4ac3c",
+        "cache.resources.json": "3e2b56e32376fa9323f6287a30090d3783c1a0c895681cb980e6aacda8954bea",
+        "controls.resources.json": "27c5de173dceb671d21b105f1d88ab0f8977ebd827c0c03ab48c9fa886c22abf",
+        "encode.resources.json": "e40cc31271bc53d20142a893e6186416a272ab62b4f8d2adfed21803f6ed9aeb",
+        "freeze.resources.json": "3fe3f1fb9e574d38d1083f94aabc0fd63980d10fcfdcb799ff30acaa3563e8ec",
+        "partition.resources.json": "a8700044c2bd5db5972dee8db60c5e88b487a2c806478be92246c2e662dee160",
+        "plan.resources.json": "02187f8e83e0ba51bba1c74becd7222f39cf81ba0835600bfddb5d320c3b03e6"
+      }
+    }
+  },
+  "original21_unchanged": {
+    "schema": "stmdomains-rvae21a-baseline-audit-v1",
+    "baseline": "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21",
+    "checked_artifacts": 100299,
+    "frozen_manifest_sha256": "9d49dd17929a1b5940509c53f4cf8a82a5e18817139aa477591ca99c07c34707",
+    "code_sha256": {
+      "/home/rlew/projekty/NEtCAT-domains/stmdomains/experiments/training/predict.py": "0b0ebb52805a46bc6c01e8da9055ce5d134220fc71ea4c343724bffc54f6b81f",
+      "/home/rlew/projekty/NEtCAT-domains/stmdomains/experiments/training/texture.py": "d543c235796c9f83dc2deafc0470c0d17775c9b7c3da35c5741a59b6fb76c075",
+      "/home/rlew/projekty/NEtCAT-domains/stmdomains/experiments/training/partition.py": "6bd03509c7c318a28aa429723a466237d25224a38760822f21918a7a55cca8b2",
+      "/home/rlew/projekty/NEtCAT-domains/stmdomains/experiments/training/models.py": "081c4db5ae0e30d3d0f5fa6f2056bbe2379c7d7025a7e5f3e0feb8618bed7cd7",
+      "/home/rlew/projekty/NEtCAT-domains/stmdomains/experiments/training/fit.py": "3a9837ac417607dc7811310acad5bb85d58392193c75f54793fcd9d528e96292",
+      "/home/rlew/projekty/NEtCAT-domains/stmdomains/experiments/training/data.py": "0958eceb8196a32e84c3e5d4f8ba6b589742396747029d28d97db3ff3161205e",
+      "/home/rlew/projekty/NEtCAT-domains/stmdomains/experiments/training/export_contract.py": "8081bf43a2b2b12a1596d365b0cc705a1c1b759fd8855844795d29737f3750b0"
+    },
+    "all_matched": true
+  },
+  "baseline_predictions": {
+    "passed": true,
+    "compared_arrays": 672,
+    "scope": "AE/rVAE/FFT transferz32 grid48, full and heldout measurement graphs",
+    "policy": "Exact equality of all stored numerical arrays; fresh controls have no prior predictions"
+  },
+  "application_detector_adopted": false
+}

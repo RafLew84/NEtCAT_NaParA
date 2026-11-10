@@ -1,0 +1,136 @@
+{
+  "schema": "stmdomains-masked-ae25-protocol-v1",
+  "date": "2026-11-01",
+  "parent_source_commit": "0347455",
+  "model": {
+    "base": "training.models.Autoencoder(32)",
+    "input_shape": [
+      1,
+      64,
+      64
+    ],
+    "new_parameters": 0,
+    "mask_value": 0,
+    "mask_block_tensor_px": 16,
+    "block_grid": [
+      4,
+      4
+    ],
+    "mask_fractions": [
+      0.25,
+      0.5
+    ],
+    "masked_block_counts": [
+      4,
+      8
+    ],
+    "primary_family": "mask50",
+    "masking": "Uniform block permutation per sample, nested first4/first8, independent NumPy RNG from crop/photometry",
+    "loss": "MSE only on masked AND measured target pixels; reject empty mask; ordinaryAE21 uses all measured pixels",
+    "inference": "Unmasked full measured crop, content32; no inferred image substituted for input",
+    "architecture_claim": "Convolutional masked reconstruction inspired by MAE; not a reproduction of asymmetric ViT MAE"
+  },
+  "training": {
+    "families": [
+      "mask25",
+      "mask50"
+    ],
+    "latent_dim": 32,
+    "seeds": [
+      20261101,
+      20261102,
+      20261103
+    ],
+    "regimes": [
+      "transfer",
+      "transductive"
+    ],
+    "transfer_steps": 2000,
+    "validation_interval": 100,
+    "transfer_selection": "Minimum fixed-mask unlabelled validation MSE, tie earlier step",
+    "transductive_steps": "Median selected step of three successful transfer fits for the same fraction; otherwise skip",
+    "batch_size": 64,
+    "optimizer": {
+      "name": "AdamW",
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "clip_norm": 1
+    },
+    "precision": "float32",
+    "max_new_fits": 12,
+    "initial_controls": "Same initialAE32 state per seed/regime; no new fit",
+    "baseline": "Exact existingAE21z32 matched capacity/context/sampler/optimizer; no repeat training"
+  },
+  "data": {
+    "prepared": ".scratch/training-20",
+    "scales_raw_px": [
+      32,
+      48,
+      64
+    ],
+    "mask_block_raw_px": [
+      8,
+      12,
+      16
+    ],
+    "stride_raw_px": 16,
+    "primary_scale_px": 48,
+    "primary_sampler": "grid",
+    "samplers": [
+      "grid",
+      "centers"
+    ],
+    "measurement_frames": 24,
+    "controls": 93,
+    "control_families": 31,
+    "control_seeds": [
+      920031,
+      920032,
+      920033
+    ],
+    "control_generator": "graph_ssl.controls.make_control; original generator unchanged",
+    "split_normalization": "Exactly issue20; 362 train windows,270 validation across scales; full measured support including augmentation/interpolation",
+    "known_measurements": true,
+    "controls_novelty": "New seeds of known families, not new STM acquisitions",
+    "annotation_perturbations": "Image/truth unchanged; exact grid invariance required, not robustness to image noise"
+  },
+  "comparison": {
+    "runs": 32,
+    "new_trained": 12,
+    "ae21_z32": 6,
+    "ssl22_z32": 6,
+    "own_initial": 6,
+    "fft": 2,
+    "partitions": [
+      "fh4",
+      "mws"
+    ],
+    "full_predictions": 44928,
+    "heldout_transfer_archives": 4608,
+    "adapters": "Fit newmasked/owninitial to allowedtrain only; exact oldAE/SSL/FFT adapters; gate/graph/normalization unchanged",
+    "baselines": [
+      "ae",
+      "local_ssl",
+      "ae_untrained",
+      "fft"
+    ],
+    "metric_protocol": "Issue20, before/after, sameIDs and matched coverage; grid axial boundaries only; centers diagnostic no grid boundary claim",
+    "criteria": "Issue20 continuation criteria applied to fixedmask50 for every training/control seed; benefit compared separately vsAE21,SSL22,owninitial,FFT; no selecting mask ratio or solver on truth",
+    "claims": "A reconstruction gain alone is not domain improvement; partialTTMAPP has no full-frame groundtruth",
+    "heldout_test_frame_archives": 3648,
+    "heldout_empty_non_test_frame_archives": 960,
+    "strong_improvement_requires": "All continuation requirements and separate benefit vs all four baselines; partial benefits reported explicitly",
+    "formal_comparisons_scope": "Primary grid48 only: matched coverage,benefit and seed stability; other scales/centers retain full diagnostic metrics"
+  },
+  "training_caps": {
+    "seconds_per_fit_including_validation_and_checkpoint": 900,
+    "max_total_fit_seconds": 10800,
+    "gpu_tensor_bytes": 8589934592,
+    "process_rss_bytes": 12884901888,
+    "all_checkpoint_bytes": 10737418240,
+    "postprocessing_cpu_seconds_total": 7200,
+    "max_total_fits": 12
+  },
+  "freeze": "Pin protocol/code/input before fits; pin all predictions before opening controls/reference truth for assessment",
+  "scope": "Separate boundedissue25 budget; no change to21,21a,22,24,24a; no ticket26 or extraMPP/STP"
+}

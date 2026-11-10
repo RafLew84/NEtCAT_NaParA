@@ -1,0 +1,455 @@
+{
+  "schema": "stmdomains.second-direction-trial.v1",
+  "date": "2026-10-26",
+  "issue": 19,
+  "status": "claimed",
+  "outcome": "Removing spectral second-direction recovers coherent rows and BLACK assignments but accepts independent row phases. ACF peak curvature rejects weak coherent rows/TTMAPP, with residual rotated-row errors. No qualified detector.",
+  "source": {
+    "prototype_branch": "prototype/stmdomains-second-direction",
+    "prototype_commit": "f648afeb1b0e79e5e04e3d2bcbd93f335252a050",
+    "prototype_base": "2ccf9ad",
+    "documentation_branch": "domains/second-direction-trial",
+    "documentation_base": "4241af9",
+    "production_changes": false
+  },
+  "artifact_root": "/home/rlew/projekty/NEtCAT-domains/.scratch/second-direction",
+  "protocol_sha256": "57472193401aac847ad192b8e1443de222196f59f834aaaab8f5c2c6d836e90f",
+  "scope": {
+    "measurement_frames": 24,
+    "known_synthetic_images": 204,
+    "new_synthetic_images": 63,
+    "total_images": 291,
+    "partial_reference_frames": 18,
+    "reference_annotations": 1678,
+    "gate_configurations": 30,
+    "old_baseline_configurations": 108,
+    "changed_detector_configurations": 384,
+    "changed_ceiling_configurations": 48,
+    "existing_set_configurations": 540,
+    "new_probe_ceiling_configurations": 60,
+    "fixed_partitions": [
+      "HDBSCAN",
+      "FH4"
+    ],
+    "radii": [
+      24,
+      36,
+      48
+    ],
+    "acf": [
+      "windowed",
+      "overlap"
+    ],
+    "variants": [
+      "original",
+      "soft10",
+      "off_fixed",
+      "off_recalibrated",
+      "peak_curvature"
+    ],
+    "training": false,
+    "refit_features_or_partitions": false,
+    "fixed_domain_count": false,
+    "reference_tuning": false,
+    "independent_experimental_validation": false,
+    "new_probe_seeds": [
+      4101,
+      4102,
+      4103
+    ]
+  },
+  "thresholds": {
+    "thresholds": {
+      "r24-windowed": {
+        "original_acf": 0.36077697348260535,
+        "recalibrated_acf": 0.3595126683210635,
+        "curvature": 0.47990347113913856,
+        "score_samples": 4536,
+        "curvature_samples": 4
+      },
+      "r24-overlap": {
+        "original_acf": 0.5124070755034353,
+        "recalibrated_acf": 0.987103286806251,
+        "curvature": 0.6493370413227467,
+        "score_samples": 4536,
+        "curvature_samples": 760
+      },
+      "r36-windowed": {
+        "original_acf": 0.312840476651615,
+        "recalibrated_acf": 0.31020864417179744,
+        "curvature": 0.4221830714176314,
+        "score_samples": 4392,
+        "curvature_samples": 4
+      },
+      "r36-overlap": {
+        "original_acf": 0.3705423589630013,
+        "recalibrated_acf": 0.9862192348825641,
+        "curvature": 0.5112522703277136,
+        "score_samples": 4392,
+        "curvature_samples": 736
+      },
+      "r48-windowed": {
+        "original_acf": 0.24813696014900552,
+        "recalibrated_acf": 0.24712633586335056,
+        "curvature": 0.2912010429178762,
+        "score_samples": 4176,
+        "curvature_samples": 4
+      },
+      "r48-overlap": {
+        "original_acf": 0.2777570415740739,
+        "recalibrated_acf": 0.9858924272203466,
+        "curvature": 0.34910467201079987,
+        "score_samples": 4176,
+        "curvature_samples": 700
+      }
+    },
+    "negative_samples": [
+      "control-0001",
+      "control-0002",
+      "control-0003",
+      "control-0004",
+      "control-0005",
+      "control-0023",
+      "control-0024",
+      "control-0025",
+      "control-0026",
+      "control-0027",
+      "control-0045",
+      "control-0046",
+      "control-0047",
+      "control-0048",
+      "control-0049",
+      "additional-0007",
+      "additional-0015",
+      "additional-0023"
+    ],
+    "probes_used": false,
+    "protocol_sha256": "57472193401aac847ad192b8e1443de222196f59f834aaaab8f5c2c6d836e90f"
+  },
+  "qualified_detectors": [],
+  "illustrative_ttmapp_results": [
+    {
+      "config": "ceiling-grid--r24-windowed-original",
+      "assigned": 98,
+      "reference": 1678,
+      "coverage": 0.058402860548271755,
+      "known_gate_pass": 165,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 98,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "ceiling-grid--r24-windowed-soft10",
+      "assigned": 592,
+      "reference": 1678,
+      "coverage": 0.3528009535160906,
+      "known_gate_pass": 671,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 592,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "ceiling-grid--r24-windowed-off_fixed",
+      "assigned": 636,
+      "reference": 1678,
+      "coverage": 0.37902264600715135,
+      "known_gate_pass": 724,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 636,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "ceiling-grid--r24-windowed-off_recalibrated",
+      "assigned": 637,
+      "reference": 1678,
+      "coverage": 0.37961859356376637,
+      "known_gate_pass": 730,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 637,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "ceiling-grid--r24-windowed-peak_curvature",
+      "assigned": 0,
+      "reference": 1678,
+      "coverage": 0.0,
+      "known_gate_pass": 0,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 0,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "ceiling-grid--r24-overlap-original",
+      "assigned": 86,
+      "reference": 1678,
+      "coverage": 0.05125148986889154,
+      "known_gate_pass": 129,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 86,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "ceiling-grid--r24-overlap-soft10",
+      "assigned": 577,
+      "reference": 1678,
+      "coverage": 0.3438617401668653,
+      "known_gate_pass": 640,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 577,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "ceiling-grid--r24-overlap-off_fixed",
+      "assigned": 617,
+      "reference": 1678,
+      "coverage": 0.367699642431466,
+      "known_gate_pass": 683,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 617,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "ceiling-grid--r24-overlap-off_recalibrated",
+      "assigned": 0,
+      "reference": 1678,
+      "coverage": 0.0,
+      "known_gate_pass": 0,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 0,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "ceiling-grid--r24-overlap-peak_curvature",
+      "assigned": 0,
+      "reference": 1678,
+      "coverage": 0.0,
+      "known_gate_pass": 0,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 0,
+        "2": 0,
+        "3": 0
+      }
+    },
+    {
+      "config": "ceiling-grid--r48-windowed-original",
+      "assigned": 430,
+      "reference": 1678,
+      "coverage": 0.2562574493444577,
+      "known_gate_pass": 510,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 301,
+        "2": 11,
+        "3": 118
+      }
+    },
+    {
+      "config": "ceiling-grid--r48-windowed-soft10",
+      "assigned": 1251,
+      "reference": 1678,
+      "coverage": 0.7455303933253874,
+      "known_gate_pass": 1399,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 1086,
+        "2": 46,
+        "3": 119
+      }
+    },
+    {
+      "config": "ceiling-grid--r48-windowed-off_fixed",
+      "assigned": 1313,
+      "reference": 1678,
+      "coverage": 0.7824791418355185,
+      "known_gate_pass": 1465,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 1132,
+        "2": 62,
+        "3": 119
+      }
+    },
+    {
+      "config": "ceiling-grid--r48-windowed-off_recalibrated",
+      "assigned": 1320,
+      "reference": 1678,
+      "coverage": 0.7866507747318237,
+      "known_gate_pass": 1474,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 1136,
+        "2": 63,
+        "3": 121
+      }
+    },
+    {
+      "config": "ceiling-grid--r48-windowed-peak_curvature",
+      "assigned": 12,
+      "reference": 1678,
+      "coverage": 0.007151370679380214,
+      "known_gate_pass": 16,
+      "known_sites": 1916,
+      "orientation_assigned": {
+        "1": 12,
+        "2": 0,
+        "3": 0
+      }
+    }
+  ],
+  "verification": {
+    "math": {
+      "quadratic_checks": 130,
+      "max_error": 6.661338147750939e-16,
+      "cases": "rotated peaks, ridges, saddles, flat and tilted planes"
+    },
+    "probe_regeneration": {
+      "cases": 21,
+      "images": 63,
+      "deterministic_replays": 63,
+      "seeds": [
+        4101,
+        4102,
+        4103
+      ],
+      "all_predictions_use_ceiling_only": true
+    },
+    "old_acf_arrays_replayed": 2736,
+    "old_acf_max_error": 0.0,
+    "baseline_results_replayed": 24624,
+    "missing_annotations": {
+      "grid_order_array_pairs": 528,
+      "grid_prediction_pairs": 6480
+    },
+    "provenance": {
+      "prediction_files_verified": 291,
+      "previous_prediction_files_verified": 228,
+      "prediction_files_replayed_without_evaluation_access": 291,
+      "configuration_results_replayed": 126900,
+      "settings_unchanged": true,
+      "main_source_matches_lock": true,
+      "seconds": 15.421236172000135,
+      "python": "3.12.12",
+      "versions": {
+        "numpy": "2.2.5",
+        "scipy": "1.15.2",
+        "scikit-learn": "1.6.1",
+        "matplotlib": "3.10.1",
+        "Pillow": "11.2.1"
+      }
+    },
+    "browser_checks": 170,
+    "browser_errors": []
+  },
+  "cost": {
+    "preparation_seconds": 440.4343353530003,
+    "prediction_seconds": 14.872464531999867,
+    "evaluation_seconds": 24.873924447001627,
+    "reference_free_replay_seconds": 15.421236172000135,
+    "max_preparation_worker_rss_kib": 115892,
+    "total_process_memory_measured": false,
+    "workers": 4,
+    "gpu": false,
+    "full_series_benchmark": false
+  },
+  "review": {
+    "frames": 79,
+    "measurement_frames": 24,
+    "old_control_cases": 34,
+    "new_control_cases": 21,
+    "display_seeds": [
+      2701,
+      4101
+    ],
+    "calculation_images": 291,
+    "existing_configurations": 540,
+    "new_probe_configurations": 60,
+    "source": "actual frozen predictions; no grouping computed for new probes"
+  },
+  "copy": {
+    "files": 732,
+    "bytes": 414795835,
+    "all_sha256_equal": true,
+    "relative_links": {
+      "previous": "../acf-scale-support",
+      "graph": "../local-feature-graph",
+      "classic": "../local-feature-graph/classic",
+      "input/analysis": "../../local-feature-graph/input/analysis"
+    }
+  },
+  "artifact_sha256": {
+    "protocol.json": "57472193401aac847ad192b8e1443de222196f59f834aaaab8f5c2c6d836e90f",
+    "source.json": "ea19eb95360e5b2a5b24f6ea6ac1aa0449b8b3cb54508a3ba85001dc884f75dc",
+    "settings.json": "32f6a5aa456aa8cb25efa4f649674466cd1149c6a91007c9987b8f9487aeb141",
+    "prediction-lock.json": "87a92c723e78b13a4435f42d80fda2550adfcd3888330fff0c2e7764efef70cb",
+    "order/manifest.json": "89923a9927bbbb5be16808a5f87673ae0d77b58fec5e9a1327f8ba0002e22d50",
+    "predictions/manifest.json": "4a1635c86658dec7889d7ba12be58c854a02e5ed53e47233489815d6e7183ced",
+    "evaluation/manifest.json": "3ac7a2ce5d07171f2f5feed3fef02ccc9c7051beffc9c52b7cf6b938ea34d158",
+    "evaluation/summary.json": "6509adbbd553aff0dfacdb0d1fb16d8f7af0e15d59625dbf9eafe53e24353d14",
+    "evaluation/qualification.json": "cf88ecab3ddde6b3239dba21fed281eca7fd02ab32e7a1defd6ea131e0dc282f",
+    "evaluation/groups.json": "738593bb1204573537f31dbc5eb67a9bdb0ae18314b00124a86599f7039e1cd1",
+    "probes/analysis/manifest.json": "bcc680e5068acc6483a6d088384f559f98a1f050d29a5be79d81d95ac0b1e966",
+    "probes/evaluation/manifest.json": "2e5e434898ce0c07b1d194fd5e50a813172631c7aafdebaf158c876453c26765",
+    "probes/generation.json": "8a3edee9f73e1ef734ec09ea9602226b6375b513ab025ea9c03a62b488d9ffbf",
+    "math-verification.json": "4b7aa9bda1a0435988b3cc35bd97a35173cbf5a3b7e453c088fc343280662629",
+    "missing-verification.json": "f1e34abb5390453b21b2dfb95b8668f282d96d459a606df0340028490b3470d4",
+    "provenance.json": "742e1fd8e66a92a1eecd7bf558d12124441bd57b8c51f1b83bd3e6936f33f6b1",
+    "browser-verification.json": "06e2578610136b6c7df46b6c7d0e16a7a4ff96a6129519e5029d620ca80dc81e",
+    "review-manifest.json": "a397b62b1cd0f4a2ab523dccfd56a6f880e6ec89a7ed02fb0678e3808cf14fae",
+    "copy-verification.json": "1da4a67668774bf3be9b64e22f9a70fa3527dd0e15f481a537d503e4b8db1e05",
+    "index.html": "65dada82f46d283389aedd531a70f766f9bba528c5c06ea1122cae94f8ad26dc",
+    "controls.csv": "07142d5fb013429df32c430553565e10c5dec1e351c53a97cb7fbbde9606ed75",
+    "second-direction-comparison.png": "e295eca76e8652edc882724aded12465e90f4e72a0f3c81472dd7cf3540c8fe2",
+    "second-direction-comparison.pdf": "d72d2da64dc090935bdd711758ba0b76b0cee4baa7d914b91e09d6c8a8ee6774",
+    "browser-preview.png": "fde4429fac2b22373f170314a1fc35d95fccfc23cc605eeefd47d117f89df323"
+  },
+  "source_sha256": {
+    "run_second_direction.sh": "2ebaeb99ef2302dcd93696f2992a661938743cbfa3ab031b15541b381870dcf1",
+    "second_direction.py": "4684dfce5df48ac285fa41b79fa93210f50e839683769ef8817111b051fa3c18",
+    "second_direction_browser.py": "14f9272aac42b066f4860edf26a14f2f1937b12cb9d37376c0e2c15998bf704c",
+    "second_direction_design.json": "57472193401aac847ad192b8e1443de222196f59f834aaaab8f5c2c6d836e90f",
+    "second_direction_evaluate.py": "79f63069e7929aa6fe96bf5168f111a8955030c208d32a588c4226eb42a288be",
+    "second_direction_probes.py": "a3f5c60c787b364d89a0b79e55fd5cb8752ac94d00e69263b449bf9e9934985c",
+    "second_direction_review.html": "65dd3a33eb24fd26e76487215150b6182a474fd26d432c2fff8efe8bdcc5e700",
+    "second_direction_review.py": "dd84c2ad6afdb0d734170da9b2147ff02b56a844a119004e021c72489660ef6f",
+    "second_direction_verify.py": "ab8651278bd9fb3e6e01e0e0f90acf64e1a0649f5dcf40f77e70f4b023ce7064"
+  },
+  "limitations": [
+    "Existing controls and TTMAPP already seen; new synthetic seeds are not independent experimental validation.",
+    "Random-phase rows are negative for a shared 2D lattice; individual rows are periodic and local chance agreements can occur.",
+    "Only four supported negative sites pass windowed ACF for each curvature threshold.",
+    "Curvature is an experimental finite-difference diagnostic with retained old peak search, lags, boundary reflection and connectivity.",
+    "Ceiling is order/connectivity only, not domain detection.",
+    "New probes do not refit appearance groups or calibrate settings.",
+    "No grid-origin rerun, structural type catalogue, material area or full268 benchmark.",
+    "Stages run separately; wrapper syntax checked; no production GUI tests."
+  ],
+  "next_study_proposed": "Test locally supported, consistent inter-row translations derived from image data without preset symmetry/K; retain weak coherent rows, independent phases, stripes and gap controls. Not started."
+}

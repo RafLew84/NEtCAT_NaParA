@@ -1,0 +1,155 @@
+{
+  "schema": "stmdomains-pretrained-ssl26-protocol-v1",
+  "date": "2026-11-01",
+  "parent_source_commit": "9232eb5",
+  "model": {
+    "name": "dinov2_vits14",
+    "upstream_commit": "7764ea0f912e53c92e82eb78a2a1631e92725fc8",
+    "weights_sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+    "backbone_parameters": 22056576,
+    "trainable_parameters": 1907392,
+    "input": "Exact training20 normalized64gray → bilinear112 align_corners=False → repeatRGB → ImageNet mean/std",
+    "imagenet_mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "imagenet_std": [
+      0.229,
+      0.224,
+      0.225
+    ],
+    "trainable": "Last transformer block and final LayerNorm; DINOHead weights except weight_g",
+    "frozen": "Patch embedding, position and CLS/mask tokens, first11 blocks; no BatchNorm/dropout/stochastic depth or train-time state changes",
+    "head": {
+      "dimensions": [
+        384,
+        256,
+        64,
+        256
+      ],
+      "hidden_activation": "GELU",
+      "bottleneck": "L2",
+      "last_layer": "weight_norm; g=1 frozen",
+      "role": "Training only; output256 is not a domain/type count"
+    },
+    "teacher": {
+      "initialization": "Exact copy of student backbone and head",
+      "update": "EMA cosine .996→1; after optimizer; frozen prefix remains original",
+      "center_momentum": 0.9,
+      "temperature": 0.04,
+      "student_temperature": 0.1
+    },
+    "objective": "Symmetric cross-view CE on36 geometrically corresponding interior patch tokens; no masking, rotations, rescaling, or different-site positives",
+    "alignment": "canonical indices1..6 in8x8; view_index=canonical−8*shift_raw/scale_raw; deterministic dense bilinear weights/bmm; full receptive context is entire crop",
+    "descriptor": "Mean of final x_norm_patchtokens:384 channels, withoutCLS/head/extraL2; identical before and after adaptation",
+    "architecture_claim": "Local self-distillation inspired by DINO on an existing DINOv2 checkpoint; neither fullDINO/DINOv2 training nor iBOT reproduction"
+  },
+  "training": {
+    "family": "dino_adapted",
+    "latent_dim": 384,
+    "seeds": [
+      20261101,
+      20261102,
+      20261103
+    ],
+    "regimes": [
+      "transfer",
+      "transductive"
+    ],
+    "steps": 1000,
+    "batch_size": 64,
+    "checkpoint_interval": 100,
+    "selection": "Final1000-step EMA teacher fixed before results; validation diagnostic only, no moving-teacherCE selection, no median-step transduction",
+    "optimizer": {
+      "name": "AdamW",
+      "backbone_lr": 2e-05,
+      "head_lr": 0.0002,
+      "weight_decay": 0.04,
+      "decay_scope": "Matrices only",
+      "warmup_steps": 50,
+      "lr_schedule": "Cosine to0.1 of baseLR",
+      "clip_norm": 1
+    },
+    "precision": "float32; no AMP/TF32",
+    "max_new_fits": 6,
+    "collapse": "Nonfinite values or maximum population STD≤1e-6 in token/mean descriptors stop; head MI≤1e-6 on two consecutive minibatches after step50 also stops; all metrics retained",
+    "checkpoint": "Strict delta state with baseweightSHA, student/EMA suffixes and heads, center,optimizer,scheduler,sampler/augmentation/global RNG; no implicit restart",
+    "failure": "Record every attempted fit; independent fixed-step transduction; missing seeds invalidate qualification, no replacement seed/model"
+  },
+  "data": {
+    "prepared": ".scratch/training-20",
+    "scales_raw_px": [
+      32,
+      48,
+      64
+    ],
+    "stride_raw_px": 16,
+    "primary_scale_px": 48,
+    "primary_sampler": "grid",
+    "samplers": [
+      "grid",
+      "centers"
+    ],
+    "measurement_frames": 24,
+    "controls": 93,
+    "control_families": 31,
+    "control_seeds": [
+      930031,
+      930032,
+      930033
+    ],
+    "training_windows": 362,
+    "validation_windows": 270,
+    "transductive_windows": 11616,
+    "split_normalization": "Unchanged20; complete measured support including translation/interpolation; scalar train-only normalization; heldout test-only graph",
+    "novelty": "KnownTTMAPP acquisition; new realizations of known synthetic families; annotations never train labels"
+  },
+  "comparison": {
+    "max_runs": 10,
+    "adapted": 6,
+    "frozen": 2,
+    "fft": 2,
+    "partitions": [
+      "fh4",
+      "mws"
+    ],
+    "max_full_predictions": 14040,
+    "max_heldout_archives": 1440,
+    "max_test_archives": 1140,
+    "max_empty_non_test_archives": 300,
+    "baselines": [
+      "dino_frozen",
+      "fft"
+    ],
+    "baseline_seeds": null,
+    "baseline_policy": "FrozenDINO freshly inferred on new commoninput20; never equate old18/19 exports. OriginalFFT measurement results/cache/adapters reused bitwise.",
+    "adapter": "Unchanged L2/PCA24/train-only edge quantiles from20; newDINO fits only permitted train, unchanged gate/graph",
+    "primary_representation_before": {
+      "cohort": [
+        "single",
+        "two_orientations",
+        "orientation_8deg",
+        "different_spacing",
+        "phase_boundary",
+        "disjoint",
+        "empty_gap"
+      ],
+      "conditions": "All positive-case20 coverage/pair/boundary criteria, BEFORE seed stability, paired BEFORE benefit vs BOTHfrozenDINO andFFT on positivecohort ANDTTMAPP; no negativezero-domain requirement before refusal"
+    },
+    "complete_detector_after": "Full20 controls/coverage/stability and paired-after benefits; known fixedgate TT upperbound0/174 transfer,4/782 transduction; this cap cannot be improved by feature adaptation",
+    "paired_benefit": "Median error reduction≥.05 at common coverage≥.20 OR coverage gain≥.10 without error increase>.02; no opposite sign across3seeds; missing/null is not pass",
+    "claims": "Before representation evidence is not acceptance of a detector; diagnostics/partial benefits retained; no exactTTMAPP boundary or fullsurface/detectionrecall"
+  },
+  "training_caps": {
+    "seconds_per_fit_including_validation_and_checkpoint": 900,
+    "max_total_fit_seconds": 5400,
+    "gpu_tensor_bytes": 8589934592,
+    "process_rss_bytes": 12884901888,
+    "all_checkpoint_bytes": 10737418240,
+    "postprocessing_cpu_seconds_total": 7200,
+    "max_total_fits": 6
+  },
+  "freeze": "Pin code/protocol/assets/input before fits; complete predictions before reference assessment",
+  "scope": "Separate selected26 budget; earlier trials immutable; no additionalMPP/STP or production integration"
+}
