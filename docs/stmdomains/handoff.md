@@ -1,3 +1,39 @@
+# STM Domains — E0 wykonane: referencje i przypadki celu
+
+2026-11-10. Worktree `/home/rlew/projekty/NEtCAT-domains`, `ml_domain`,
+baza `308b455`. Na polecenie użytkownika wykonano E0 z planu AE/rVAE.
+[Raport](ml-ae-rvae-e0.md) i [manifest](ml-ae-rvae-e0-reference-manifest.json)
+zawierają pochodzenie źródeł, przypadki domen/niepewności, role grup i 10 ROI
+do przeglądu. **E0 zakończone; E1 jest następne i nie wymaga nowych etykiet.**
+E1–E7 nie uruchomiono; nadzorowany E7 niegotowy do czasu przeglądu relacji
+oraz fizycznej rozłączności grup przy niskiej ufności rejestracji.
+
+Audyt: 24 obrazy i 6730 centrów; 18 ręcznych/czystych par PNG, brak klatki 255;
+54 konserwatywne wnętrza i 1678 centrów w tych wnętrzach. To jedna akwizycja
+rozwojowa, nie niezależny test. Nie dodano ręcznych etykiet. Przegląd 29 lokalnych
+projektów nie wykazał podstaw do przyjęcia nowej zatwierdzonej referencji
+domen; zapis w data zawiera automat, korekty .scratch są testami wykonawców.
+
+Przeglądarka: `.scratch/ml-e0-20261110-reviewed/index.html`, 34 przykłady,
+rzeczywiste centra/wnętrza, przełączniki warstw, suwak i statusy ROI.
+Moduły `stmdomains/experiments/e0_{audit,gallery,check_gallery}.py` umożliwiają
+odtworzenie z istniejących lokalnych źródeł; duże artefakty poza Git.
+Manifest wersjonowany jest kopią końcowego JSON. Dotychczasowe źródła,
+etykiety kontroli, wagi i aplikacja produkcyjna pozostały bez zmian.
+
+Sprawdzenia w netcat: 24 NPZ z hashami/geometrią, 18 dokładnych rekonstrukcji
+PNG, 18 identycznych ekstrakcji masek, osiem kontroli syntetycznych z hashami,
+sumy i pochodzenie manifestu. Kompilacja trzech modułów PASS; QtWebEngine
+**13 sprawdzeń PASS**, dwa zrzuty obejrzane, zero błędów JS. Pierwszy start
+Chromium zablokowała piaskownica; ponowienie poza nią przeszło. Bez nowej
+inferencji, treningu, pełnej regresji aplikacji i odbioru użytkownika.
+Niezależne audyty referencji, przypadków i podziału; `git diff --check`.
+Każdy nowy moduł ma mniej niż 1000 linii; brak nowych zależności i zmian wspólnych.
+Commit wskazuje historia Git i odpowiedź końcowa. UI26 nadal czeka na odbiór;
+UI19–20 odłożone. Środowisko przyszłych prób: `netcat`.
+
+---
+
 # STM Domains — przyjęte poprawki planu AE/rVAE
 
 2026-11-10. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `ml_domain`,

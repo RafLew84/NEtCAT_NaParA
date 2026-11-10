@@ -1,5 +1,12 @@
 # STM Domains — etap 1: działający szkielet
 
+**2026-11-10 — E0 wykonane; następne E1.**
+[Raport E0](ml-ae-rvae-e0.md), [manifest](ml-ae-rvae-e0-reference-manifest.json):
+przypadki celu, 24 obrazy, 54 wnętrza, role jednej grupy akwizycji i 10 ROI
+do przeglądu. Galeria ma 34 przykłady; replay 18 PNG/masek zgodny, kontrola
+QtWebEngine PASS. Nowych etykiet nie utworzono, E7 jeszcze niegotowe.
+**E1 można rozpocząć na obecnych danych.** E1–E7 niewykonane; tickety UI bez zmian.
+
 **2026-11-10 — uwagi przyjęte i włączone do planu AE/rVAE.**
 [Aktualny plan E0–E7](ml-ae-rvae-experiments.md) prowadzi przez **E0 → E1 →
 E2/E3 → E5 → mały E7 → warunkowo E4/E6**. Najbliższy etap planu: krótki

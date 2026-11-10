@@ -2,11 +2,13 @@
 
 Data: **2026-11-10**. Gałąź: `ml_domain`, baza `dfac8e5`.
 Aktualizacja: **2026-11-10**, na bazie `8ca8738`, po przyjęciu przez użytkownika
-[oceny propozycji](ml-ae-rvae-proposal-review.md). Status: **plan po korekcie**,
-bez rozpoczęcia opisanych eksperymentów i bez nowych ticketów wykonawczych.
+[oceny propozycji](ml-ae-rvae-proposal-review.md). Status: **E0 wykonane**,
+**E1–E7 niewykonane**, bez nowych ticketów wykonawczych.
 Właściciel decyzji: użytkownik. Środowisko: `netcat`.
-Przy opracowaniu wykonano wyłącznie audyt źródeł i małą kontrolę inferencji
-dwóch istniejących modeli tiny16, opisaną poniżej. Nie trenowano modeli.
+Przy pierwotnym opracowaniu wykonano audyt źródeł i małą kontrolę inferencji
+dwóch istniejących modeli tiny16, opisaną poniżej. Następnie wykonano
+[E0: audyt i przeglądarkę referencji](ml-ae-rvae-e0.md), bez nowej inferencji
+lub treningu. **Następny etap: E1**; nowe anotacje nie blokują jego startu.
 
 ## Pytanie i kolejność wykonania
 
@@ -21,7 +23,7 @@ propozycji; nie są numerami kolejności ani istniejących ticketów UI.
 
 | Kolejność | Etap | Warunek i dane |
 | --- | --- | --- |
-| 1 | E0: przypadki celu i inwentaryzacja referencji | Obecne dane i dokumentacja; oddzielić brak danych od nieporządku. |
+| 1 — wykonane | E0: przypadki celu i inwentaryzacja referencji | 24 obrazy, 54 wnętrza, 10 ROI do przeglądu; [raport](ml-ae-rvae-e0.md). |
 | 2 | E1: bramki i mechanika podziału | Obecne wagi i kontrole syntetyczne; bez nowych etykiet i treningu. |
 | 3 | E2/E3: odczyt cech i fotometria | Bez treningu enkoderów; równolegle przygotować małą referencję granic. |
 | 4 | E5: lokalność, skala i centrowanie | Zamrożone wagi; mocne wnioski o granicach dopiero z odpowiednią referencją. |
@@ -93,6 +95,12 @@ Odtwarzalny skrypt i JSON z hashami, wersjami oraz parametrami:
 To ograniczona diagnostyka istniejących wag, nie wynik E0–E7.
 
 ## E0 — przypadki celu i mała referencja rzeczywistych granic
+
+**Wykonane 2026-11-10:** [raport i obsługa galerii](ml-ae-rvae-e0.md),
+[manifest](ml-ae-rvae-e0-reference-manifest.json). Tabela przypadków, role
+grup i 10 ROI są gotowe; nowe anotacje pozostają do przeglądu.
+`independent_test=[]`, `supervised_split_ready=false`. E1 gotowe do podjęcia.
+Poniżej zachowano zakres E0 i wymagania dla dalszej pracy z referencją.
 
 Krótki audyt przed interpretacją eksperymentów, bez treningu. Oprzeć się
 na [decyzji 02](issues/02-order-types-and-domains.md) i [słowniku](GLOSSARY.md).
@@ -452,4 +460,5 @@ Metadane zweryfikowano 2026-11-10. Skille nie stanowią dowodu skuteczności
 proponowanych metod. Użytkownik przyjął uwagi do planu 2026-11-10;
 aktualizacja obejmuje E0, kolejność, układ 2×2, wcześniejszą referencję,
 mały E7 i zamrożenie dekodera. Wybór konkretnej próby do uruchomienia
-pozostaje osobnym krokiem; w tej aktualizacji wykonano tylko zmianę planu.
+pozostaje osobnym krokiem. Po aktualizacji użytkownik zlecił E0; jego wykonanie
+i ograniczenia odnotowano powyżej. E1–E7 nie zostały uruchomione.

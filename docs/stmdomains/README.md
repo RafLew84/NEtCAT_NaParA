@@ -1,5 +1,13 @@
 # STM Domains
 
+**2026-11-10 — wykonano E0: audyt referencji AE/rVAE.**
+[Raport i przeglądarka](ml-ae-rvae-e0.md): 24 klatki STM, 54 konserwatywne
+wnętrza na 18 klatkach, 10 przykładów syntetycznych i 10 ROI do przeglądu.
+Odtworzono 18 PNG i masek bez różnic; QtWebEngine 13 sprawdzeń PASS.
+Jedna akwizycja rozwojowa, bez niezależnego testu; E7 nadal wymaga etykiet
+i audytu podziału. **Następne E1 może ruszyć bez nowych anotacji.**
+E1–E7 pozostają niewykonane. Poniżej wcześniejsze etapy planowania.
+
 **2026-11-10 — przyjęte poprawki w planie AE/rVAE.**
 [Aktualny plan E0–E7](ml-ae-rvae-experiments.md): **E0 → E1 → E2/E3 →
 E5 → mały E7 → warunkowo E4/E6**. Dodano układ idealnych wejść 2×2,
