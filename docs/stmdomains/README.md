@@ -1,5 +1,13 @@
 # STM Domains
 
+**2026-11-10 — przyjęte poprawki w planie AE/rVAE.**
+[Aktualny plan E0–E7](ml-ae-rvae-experiments.md): **E0 → E1 → E2/E3 →
+E5 → mały E7 → warunkowo E4/E6**. Dodano układ idealnych wejść 2×2,
+wcześniejszą referencję granic, uczony odczyt mimo słabych dystansów
+i zamrożenie skutecznego dekodera. E0 to krótki audyt; nowe etykiety nie
+blokują E1. Próby pozostają niewykonane, bez nowych ticketów i zmian kodu.
+Poniższe wpisy opisują wcześniejsze etapy przygotowania.
+
 **2026-11-10 — ocena uwag do planu AE/rVAE.**
 [Przegląd propozycji zmian](ml-ae-rvae-proposal-review.md): rekomendowane
 idealne wejścia 2×2, mała referencja granic wcześniej, prosty uczony odczyt

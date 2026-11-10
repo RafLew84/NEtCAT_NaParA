@@ -1,5 +1,10 @@
 # Ocena uwag do propozycji AE/rVAE
 
+**Aktualizacja statusu 2026-11-10:** użytkownik przyjął ocenę i zlecił
+włączenie poprawek do [planu E0–E7](ml-ae-rvae-experiments.md).
+Poniższa ocena zachowuje opis stanu sprzed aktualizacji; nie jest już
+oczekującą propozycją zmian. Eksperymentów nadal nie uruchomiono.
+
 2026-11-10. Gałąź `ml_domain`, oceniany stan repozytorium `0e71fb1`.
 Źródło uwag: przekazany przez użytkownika plik `Pasted text.txt`, zaczynający
 się od „Oceniam ten plan pozytywnie”, załącznik

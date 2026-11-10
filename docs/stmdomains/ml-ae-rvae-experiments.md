@@ -1,22 +1,39 @@
-# AE/rVAE — propozycja kolejnych eksperymentów
+# AE/rVAE — plan kolejnych eksperymentów
 
 Data: **2026-11-10**. Gałąź: `ml_domain`, baza `dfac8e5`.
-Status: **propozycja**, bez rozpoczęcia opisanych eksperymentów i bez nowych
-ticketów wykonawczych. Właściciel decyzji: użytkownik. Środowisko: `netcat`.
+Aktualizacja: **2026-11-10**, na bazie `8ca8738`, po przyjęciu przez użytkownika
+[oceny propozycji](ml-ae-rvae-proposal-review.md). Status: **plan po korekcie**,
+bez rozpoczęcia opisanych eksperymentów i bez nowych ticketów wykonawczych.
+Właściciel decyzji: użytkownik. Środowisko: `netcat`.
 Przy opracowaniu wykonano wyłącznie audyt źródeł i małą kontrolę inferencji
 dwóch istniejących modeli tiny16, opisaną poniżej. Nie trenowano modeli.
 
-## Pytanie i proponowana kolejność
+## Pytanie i kolejność wykonania
 
 Co ogranicza wynik AE/rVAE: informacja w wycinku, sposób jej kodowania,
 odczyt podobieństwa, podział grafu czy odmowy po podziale? Najpierw chcemy
 wyznaczać przestrzenne instancje domen; przypisywanie całych domen do klas
 jest późniejszym zadaniem i nie wymaga teraz ustalenia K.
 
-Rekomendacja: **E1 → E2 → E3**, czyli trzy próby bez nowego treningu.
-Następnie **E4**, jeśli nadal chcemy rozwijać rVAE; **E5** sprawdza lokalność
-i skalę informacji. **E6–E7 są warunkowe**, zależnie od diagnozy. Nie jest to
-zlecenie wykonania całej macierzy ani wybór gotowego detektora.
+Kolejność dla celu wykrywania domen: **E0 → E1 → E2/E3 → E5 → mały E7 →
+warunkowo E4/E6**. Identyfikatory E1–E7 zachowują znaczenie z pierwszej
+propozycji; nie są numerami kolejności ani istniejących ticketów UI.
+
+| Kolejność | Etap | Warunek i dane |
+| --- | --- | --- |
+| 1 | E0: przypadki celu i inwentaryzacja referencji | Obecne dane i dokumentacja; oddzielić brak danych od nieporządku. |
+| 2 | E1: bramki i mechanika podziału | Obecne wagi i kontrole syntetyczne; bez nowych etykiet i treningu. |
+| 3 | E2/E3: odczyt cech i fotometria | Bez treningu enkoderów; równolegle przygotować małą referencję granic. |
+| 4 | E5: lokalność, skala i centrowanie | Zamrożone wagi; mocne wnioski o granicach dopiero z odpowiednią referencją. |
+| 5 | Mały E7: uczony odczyt relacji | Również przy słabych dystansach E2/E5, jeśli są etykiety i bezpieczny podział danych. |
+| 6 | Warunkowo E4 i E6 | E4: diagnostyka rVAE na tiny16; E6: jeden kontrast treningowy uzasadniony diagnozą. |
+| Później | Rozszerzony E7: krzywa ilości danych | Po obiecującym odczycie i przygotowaniu dodatkowych grup MPP/STP. |
+
+E4 można wcześniej wydzielić jako krótką gałąź, jeśli pytaniem jest sama
+słaba rekonstrukcja rVAE. Nie jest obowiązkowym poprzednikiem E5/E7 ani
+każdego wariantu E6. Mała referencja nie blokuje E1 lub eksploracji E2/E5;
+blokuje mocne wnioski o rzeczywistych granicach i nadzorowany E7 na STM.
+Plan nie oznacza uruchomienia całej macierzy ani wyboru gotowego detektora.
 
 Priorytety dobrano jakościowo według: zdolności rozróżnienia konkurencyjnych
 wyjaśnień, kosztu, możliwości użycia istniejących danych oraz znaczenia
@@ -29,9 +46,14 @@ wyniku negatywnego. Nie stosowano punktowego rankingu hipotez.
   MWS i FH różnią się również interpretacją relacji; ich różnica nie izoluje
   samego solvera. Wynik 0/174 dotyczy częściowej referencji miejsc siatki,
   nie skuteczności wykrywania molekuł na całym obrazie.
+  Sam mały udział dopuszczonych okien nie dowodzi błędu bramki bez wiedzy,
+  które odrzucone miejsca rzeczywiście należą do domen.
 - [21a](rvae-decoder-kl-trial.md): zmniejszenie KL i Fourier w dekoderze
   poprawiają część miar reprezentacji, ale nie końcowe domeny. Kąt pozostaje
   niewiarygodny. Rekonstrukcja nie jest miarą poprawności domen.
+  Sprawdzono już różnice orientacji 27° i 8° oraz obroty ±90° bez interpolacji;
+  są punktem odniesienia, nie nową próbą. Powtórzenie wymaga zmiany modelu
+  lub nowego kontrastu. Symetrii realnej sieci nie ustalono.
 - Dekoder AE z32 ma 126 833 parametrów, a pierwotny dekoder rVAE tylko
   6465 (Fourier: 7745). Zbliżona liczba parametrów całych modeli maskuje
   różnicę ich rozkładu między enkoderem i dekoderem. To kandydat na
@@ -68,7 +90,50 @@ odtworzenia molekuł lub granic. Oceniono tylko 16 wycinków, nie cały korpus.
 Odtwarzalny skrypt i JSON z hashami, wersjami oraz parametrami:
 `.scratch/ae-rvae-proposal-20261110/checkpoint_readout.py` i
 `.scratch/ae-rvae-proposal-20261110/checkpoint-readout.json`.
-To ograniczona diagnostyka istniejących wag, nie wynik E1–E7.
+To ograniczona diagnostyka istniejących wag, nie wynik E0–E7.
+
+## E0 — przypadki celu i mała referencja rzeczywistych granic
+
+Krótki audyt przed interpretacją eksperymentów, bez treningu. Oprzeć się
+na [decyzji 02](issues/02-order-types-and-domains.md) i [słowniku](GLOSSARY.md).
+W tabeli przykładów oddzielić: spójną sieć 2D, jej wąski fragment, wiele
+rzędów o niespójnych fazach, lokalne dwa rzędy o niepewnej interpretacji,
+przerwę, rzeczywistą granicę niedopasowania i globalne przesunięcie obrazu.
+Każdy przykład ma wskazywać oczekiwane domeny albo jawny brak dostatecznych
+danych. Próg ACF jest badanym pomiarem, nie pełną definicją domeny.
+
+Wąski fragment znanej sieci i kontrola `independent_rows` to różne przypadki.
+Dotychczasowe etykiety negatywnych kontroli pozostają zachowane. Dwa rzędy
+mogą pasować do skośnej sieci bez dowodu powtarzalności w drugim kierunku;
+nie wymuszać etykiety nieporządku na niejednoznacznym wycinku.
+Nie przyjmować nowej reguły „dwa rzędy = domena” ani „kontrast = taras”.
+Ewentualne rozszerzenie celu wymaga jawnej decyzji i nowej wersji benchmarku,
+z raportowaniem także wcześniejszych kontroli.
+
+Przesunięcie całego wzoru zachowuje tożsamość domen; maska przesuwa się
+wraz z obrazem. Porównywać członkostwo na wspólnym wsparciu. Skok fazy tylko
+części wzoru z widoczną linią niedopasowania oznacza osobne domeny zgodnie
+z decyzją 02; `phase_boundary` i `crop` sprawdzają różne sytuacje.
+
+Zinwentaryzować obecne referencje: zatwierdzone wnętrza, lokalne sąsiedztwa
+„ta sama / inna domena”, krótkie odcinki granic i miejsca niepewne.
+28 par różnych referencji i jedna lokalna krawędź transferowa nie wystarczają
+do mocnej oceny granic. Mały zestaw przejrzanych ROI przygotować równolegle
+do E1–E3, **przed rozstrzygającą oceną E2/E5 i uczeniem relacji E7**.
+Nie są potrzebne pełne maski całej serii. Zakres anotacji ustalić według
+brakujących rodzajów granic, nie arbitralnej liczby par.
+
+Zapisać źródło, klatkę, współrzędne, status pewności, sposób zatwierdzenia
+i grupę train/validation/test każdego ROI. Rozdzielić grupy przed wycinaniem
+okien i tworzeniem par; uwzględnić wspólne molekuły, nakładające się okna
+i kolejne obserwacje tego samego miejsca. Na jednej akwizycji użyć bloków
+przestrzennych z buforem dla okien, z jawnym zakresem eksploracyjnym.
+Znane trudne klatki pozostają rozwojowe po nowej anotacji. Nieoznaczone
+miejsca nie są negatywami; odcinki granic nie pozwalają wyliczyć globalnego IoU.
+
+**Wynik E0:** tabela przypadków i braków referencji, ustalone role danych
+oraz lista ROI do przeglądu, z przykładami widocznymi na obrazie.
+Niedokończone anotacje ograniczają wnioski dalszych prób, ale nie blokują E1.
 
 ## E1 — gdzie znika domena: bramka i mechanika podziału
 
@@ -85,25 +150,38 @@ odmowy. **Alternatywa:** odrzucany podział już wcześniej jest błędny.
   energia i kompletne wsparcie pozostają wymagane we wszystkich kombinacjach.
   Przeliczenie komponentów po usunięciu węzłów zachować jawnie i jednakowo.
   Raportować również interakcje: utrata węzłów zmienia wielkość komponentów.
-- Osobno, tylko na syntetykach, zastąpić relacje grafu relacjami wynikającymi
-  z prawdy generatora; osobno zastąpić maskę dopuszczenia maską miejsc
-  należących do prawdziwych domen według generatora. Obecność materiału
-  i support to odrębne informacje: niezależne rzędy zawierają materiał,
-  lecz nie stanowią domeny 2D. To test mechaniki przy idealnym wejściu,
-  **nie detektor**.
-  Przypadki pozbawione odpowiednich krawędzi grafu raportować jako brak
-  możliwości rozdzielenia tego efektu, nie naprawiać ukradkiem grafu.
-  Tło kontroli bez domen nie może otrzymać jednej wspólnej „idealnej
-  domeny”; obecność domeny to osobna maska od relacji między domenami.
+- Osobno od ośmiu kombinacji bramek, tylko na syntetykach, wykonać pełne
+  **2×2: relacje programu/generatora × maska programu/generatora**,
+  według tabeli poniżej. To test mechaniki przy idealnym wejściu,
+  **nie detektor**. Maska generatora oznacza miejsca prawdziwych domen,
+  nie sam materiał; support i ważność danych pozostają osobnymi warunkami.
+  Tło nie może otrzymać jednej wspólnej idealnej domeny. Zachować ten sam
+  graf; brak połączeń potrzebnych do odtworzenia prawdziwej domeny jawnie
+  ogranicza interpretację, bez ukrytej naprawy grafu.
 - Uwzględnić jedną domenę, dwie orientacje, granicę przesunięcia, przerwę,
   szum, pasy i niezależne rzędy. Obecne GUI geometrii ma inne bramki;
   jego parametrów nie utożsamiać z bramką eksperymentu AE/rVAE.
 
+| Relacje | Maska programu | Maska prawdziwych domen |
+| --- | --- | --- |
+| Z programu | Punkt odniesienia | Podmiana maski |
+| Z prawdy generatora | Podmiana relacji | Obie podmiany jednocześnie |
+
+Idealne relacje zakodować zgodnie z solverem i sprawdzić na małym grafie
+o znanym podziale. Dla FH odległości 0/1 przy `k=4` nie gwarantują zakazu
+scalania; dla MWS istotne są znaki i siły relacji. Zapisać kodowanie przed
+próbą. Każdą z czterech konfiguracji ocenić przed i po minimum komponentu
+(obecnie cztery węzły), przy jednakowym przeliczaniu spójności.
+
 **Odczyt:** pokrycie znanych wnętrz, błędne scalenia/podziały i domeny na
 negatywnych kontrolach; oddzielnie przed odmowami, po bramce i po minimum.
-Jeśli idealne relacje zawodzą, priorytetem jest graf/odczyt wyniku. Jeśli
-pomaga tylko idealna maska, badać pomiar porządku. Jeśli wyłączenie bramki
-jedynie zwiększa błędne przypisania, nie traktować go jako poprawy.
+Idealne relacje przy błędnej masce nie rozstrzygają przyczyny porażki.
+Jeśli pomagają dopiero obie podmiany, badać współdziałanie maski i relacji.
+Jeśli pomaga tylko maska, priorytetem jest pomiar porządku; jeśli tylko
+relacje, ich odczyt. Porażka obu idealnych wejść kieruje do mechaniki
+dopiero po sprawdzeniu kodowania, reprezentowalności prawdy w grafie
+i minimum wielkości. Domena mniejsza niż jawne minimum nie dowodzi błędu
+solvera. Wyłączenie bramki zwiększające błędne przypisania nie jest poprawą.
 Koszt: **niski**, cache/CPU, bez treningu i nowych etykiet.
 
 ## E2 — czy użyteczna informacja jest w treści, kącie i odległościach
@@ -114,7 +192,11 @@ sygnał treści. **Alternatywa:** cechy nie rozróżniają rzeczywistych granic.
 Porównać na tych samych wycinkach: AE, treść rVAE, obecne treść+kąt,
 sam kąt jako diagnostykę oraz FFT. Zachować trening enkoderów zamrożony.
 Dodać prostą bazę samych cech jasności/kontrastu, żeby mierzyć informację
-wykraczającą poza te zmienne.
+wykraczającą poza te zmienne, oraz istniejące miary geometryczne: kierunek
+rzędów, rozstaw i pewność okresowości. Nie otwierać osobnego dużego projektu
+geometrii. Kąt interpretować według mierzonego obiektu: oś rzędów,
+orientacja molekuły lub sieć; nie zakładać automatycznie równoważności
+θ i θ+180° ani zamiany sin/cos na sin/cos podwojonego kąta.
 Dla zmienionego odczytu dopasować normalizację/adapter wyłącznie na dawnym
 treningu; pokazać dystanse również przed adapterem. Kontrolę z tasowaniem
 cech wykonywać wewnątrz jednorodnych grup testowych jako bazę braku sygnału,
@@ -129,8 +211,10 @@ którą wcześniej już oceniono.
 
 Jeśli treść rVAE pomaga bez kąta, rozwijać ten odczyt bez deklaracji
 fizycznego pomiaru orientacji. Jeśli AE pomaga bardziej, może pozostać
-główną bazą. Brak sygnału na relacjach uzasadnia zmianę reprezentacji,
-a nie szersze strojenie solvera. Koszt: **niski**, bez nowego treningu.
+główną bazą. Słabe odległości nie dowodzą braku informacji w reprezentacji:
+dopuścić ograniczony, uczony odczyt E7 także po takim wyniku. Bez dostatecznej
+referencji rzeczywistych granic wnioski pozostają diagnostyczne.
+Koszt E2: **niski**, bez nowego treningu; trening klasyfikatora należy do E7.
 
 ## E3 — czy model opisuje strukturę, czy warunki obrazowania
 
@@ -169,7 +253,11 @@ drabina ma najwyżej pięć konfiguracji, uruchamianych etapami:
 4. Warunkowo jeden wariant Fouriera w większym dekoderze, jeśli surowe
    współrzędne nie pozwolą odtworzyć szczegółów. Bez przeszukiwania pasm.
 5. Jeśli któryś dekoder działa, dołączyć enkoder przy tej samej stałej
-   pozie, bez KL i losowania. To sprawdzian uczenia kodu.
+   pozie, bez KL i losowania. Zachować checkpoint skutecznego dekodera
+   i **zamrozić jego wagi**; uczyć tylko enkoder przez stratę rekonstrukcji
+   z tego dekodera. Osobno zoptymalizowane kody pozostają odniesieniem,
+   ale nie wymagać identyczności kodów przy tej samej rekonstrukcji.
+   Wspólne dostrajanie obu części byłoby oddzielnym, późniejszym kontrastem.
 
 Limit: do 5 konfiguracji × 2 ziarna × 2000 kroków = **20 000 kroków**.
 Te same batche, optimizer i jawna liczba parametrów. Samo deterministyczne
@@ -183,13 +271,19 @@ przestrzennych gradientów, przy jednej skali jasności wejścia i rekonstrukcji
 Wykresy całej trajektorii, bez dobierania kroku według wyglądu domen.
 To celowe zapamiętywanie, bez wniosku o transferze lub fizycznym kącie.
 
-Jeśli sam dekoder odtwarza szczegóły, a cały model nie, szukać ograniczenia
-enkodera/uczenia. Jeśli AE odtwarza, a oba dekodery współrzędnych nie,
+Jeśli sam dekoder odtwarza szczegóły, a enkoder z tym zamrożonym dekoderem
+nie, badać uczenie mapy obraz→kod w tym budżecie. Nie jest to samodzielny
+dowód zbyt małego enkodera lub braku informacji w obrazie.
+Jeśli AE odtwarza, a oba dekodery współrzędnych nie,
 ma sens przebudowa tej części. Niepowodzenie w skończonym budżecie nie
 dowodzi matematycznej niemożliwości; nie zwiększać automatycznie budżetu.
 Koszt: **kilka mikrotreningów**, bez dodatkowych obrazów i etykiet.
 
 ## E5 — lokalność, skala i położenie wycinka
+
+W głównej kolejności przed E4, ponieważ bez nowego treningu bezpośrednio
+sprawdza użyteczność cech przy granicach. Do mocnej oceny realnych granic
+wykorzystać małą referencję z E0; bez niej raportować ograniczoną diagnostykę.
 
 **Hipoteza:** pojedynczy kod całego okna miesza dwie domeny i gubi miejsce
 granicy. **Alternatywa:** cechy w ogóle nie opisują potrzebnej struktury.
@@ -216,8 +310,10 @@ Koszt: **średni**, inferencja/przygotowanie odczytu bez treningu enkodera.
 
 ## E6 — jeden nowy cel lub sposób przygotowania obrazu
 
-Etap tylko po E3/E4. Nie uruchamiać szerokiej macierzy KL × z × decoder ×
-loss. Wybrać jedną przyczynę do testu i zapisać ją przed treningiem:
+Etap warunkowy po diagnozie z odpowiedniej próby E2–E5 lub małego E7;
+E4 nie jest wymagane dla kontrastu fotometrii uzasadnionego przez E3.
+Nie uruchamiać szerokiej macierzy KL × z × decoder × loss. Wybrać jedną
+przyczynę do testu i zapisać ją przed treningiem:
 
 - Jeśli E3 wykazuje dominację tła: dotychczasowa normalizacja kontra
   usuwanie lokalnej płaszczyzny, z zachowaniem jej parametrów i raw obrazu
@@ -243,11 +339,25 @@ równocześnie dekoder, wariacyjność, KL i pozę; nie izoluje wpływu obrotu.
 
 ## E7 — mały uczony odczyt relacji i późniejsza krzywa ilości danych
 
-Warunkowo, jeśli E2/E5 pokazuje sygnał przy granicy. Przy tym samym grafie
-i algorytmie podziału porównać ten sam mały klasyfikator otrzymujący:
+Mała próba jest dopuszczona **również po słabych dystansach E2/E5**,
+jeśli istnieją zatwierdzone relacje i grupy do uczenia oraz walidacji.
+Sygnał w zwykłych odległościach nie jest warunkiem wejścia. Ograniczyć się
+do jednej, z góry określonej regularizowanej rodziny klasyfikatora, bez
+poszukiwania wielu modeli. Przy tym samym grafie i algorytmie podziału
+porównać ten sam mały klasyfikator otrzymujący:
 **geometrię**, **geometrię+AE**, **geometrię+rVAE**. Enkodery pozostają
 zamrożone; złożoność klasyfikatora i dobór parametrów mają ten sam budżet.
 Osobno porównać klasyfikator z dotychczasową regułą odległości.
+Zachować bazę fotometrii z E2, aby nie utożsamić korzyści jasności/kontrastu
+z informacją strukturalną. Skalowanie, adaptery i dobór parametrów mają
+korzystać tylko z odpowiedniej części treningowej; sprawdzić także, jakie
+dane widziały istniejące enkodery, i ujawnić ewentualny charakter transdukcyjny.
+
+Dobry wynik na oddzielonych grupach przy słabych dystansach uzasadnia
+rozwój odczytu. Słabe dystanse i słaby mały klasyfikator oznaczają brak
+użytecznego odczytu w tym zakresie danych/metody; przemawiają praktycznie
+za zmianą reprezentacji, ale nie dowodzą matematycznej nieobecności informacji.
+Korzyść na parach potwierdzić na domenach po niezmienionym podziale grafu.
 
 To uczenie nadzorowane relacją, bez konieczności nazw klas domen. Dodatnie
 pary pochodzą z zatwierdzonych wnętrz, ujemne z zatwierdzonych styków;
@@ -255,10 +365,15 @@ niepewne i nieprzejrzane obszary są pomijane. Możliwe źródła: małe ręczne
 korekty albo osobna próba synthetic→real. Prawda generatora w treningu
 oznacza nadzór syntetyczny; nie przedstawiać jej jako uczenia bez etykiet.
 
-Na początek przygotować niewielki, rozdzielony zbiór przejrzanych ROI;
-liczbę i udział granic ustalić na podstawie inwentaryzacji, nie arbitralnego
-minimum par. Dawne 174 miejsca nie tworzą nowego niezależnego testu.
-Większą pulę MPP/STP dołączać po sprawdzeniu odczytu, skali i grup pomiarów.
+Referencję przygotować wcześniej w E0 i równolegle do E1–E3; E7 korzysta
+z ustalonych grup i przejrzanych ROI. Podział poprzedza tworzenie par:
+wspólne molekuły, nakładające się wycinki i to samo miejsce w kolejnych
+klatkach nie mogą przeciekać między train i validation. Dawne 174 miejsca
+nie tworzą nowego niezależnego testu. Bez właściwej referencji odroczyć
+nadzorowaną próbę STM; synthetic→real pozostaje osobnym kontrastem.
+
+**Późniejszy etap ilości danych:** po obiecującym małym odczycie większą
+pulę MPP/STP dołączać po sprawdzeniu odczytu, skali i grup pomiarów.
 Porównanie 25/50/100% grup train przy stałej walidacji pozwoli oszacować,
 czy kolejne pomiary pomagają. Test końcowy pozostaje poza doborem danych.
 [Walidacja grupowa](https://scikit-learn.org/stable/modules/cross_validation.html#cross-validation-iterators-for-grouped-data),
@@ -269,6 +384,9 @@ czy kolejne pomiary pomagają. Test końcowy pozostaje poza doborem danych.
 - Zachować wagi, dane i raporty 21/21a; nowe artefakty w osobnym katalogu.
   Przed próbą sprawdzić hashe, identyfikatory wejść i netcat; adaptery,
   normalizację i progi dopasowywać tylko do odpowiedniego train.
+  Zapisywać nm/piksel, fizyczny rozmiar wycinka, liczbę widocznych okresów
+  oraz układ odniesienia orientacji obrazu/próbki. Brak skali lub orientacji
+  pozostaje jawny; nie przeliczać jednostek na podstawie założenia.
 - Jednostka oceny to pole/akwizycja i rodzaj kontrolowanej granicy. Okna,
   pary, sąsiednie klatki i ziarna modeli nie są niezależnymi akwizycjami.
   Całe grupy pomiarowe rozdzielać przed wycinaniem okien. Obecne TTMAPP
@@ -282,6 +400,10 @@ czy kolejne pomiary pomagają. Test końcowy pozostaje poza doborem danych.
   osobno. Błąd liczony tylko na zachowanych łatwych parach nie wystarcza.
   Kontury oceniać liczbowo na syntetykach lub dokładnych maskach; obecne
   przybliżone ramki nie umożliwiają pełnego boundary F1/IoU na STM.
+  Ten sam procent pokrycia może dotyczyć innych, łatwiejszych miejsc.
+  Pokazywać błędy i odmowy na całym ocenialnym zbiorze, wynik na wspólnej
+  części i liczebności; poważne błędne scalenia raportować osobno.
+  Progów nie dopasowywać do referencji testowej w celu wyrównania pokrycia.
 - Kandydat do dalszej pracy: poprawa podziału przy zachowaniu pokrycia lub
   lepsze pokrycie bez wzrostu błędów; bez pogorszenia wcześniej zaliczonych
   negatywnych kontroli. Wyniki mieszane pozostają kompromisem do oceny,
@@ -316,6 +438,9 @@ ani ustalenie nowości metod. Nie przesyłano obrazów lub wag na zewnątrz.
   obecny rVAE musi zawieść.
 - [Vincent i in., ICML 2008](https://doi.org/10.1145/1390156.1390294): podstawa
   uczenia odszumiania; ten ogólny mechanizm już występuje w naszym treningu.
+- [Alain i Bengio, linear classifier probes](https://arxiv.org/abs/1610.01644):
+  prosty niezależnie uczony odczyt jako diagnostyka reprezentacji. Motywacja
+  do małego E7 mimo słabych dystansów; nie dowód skuteczności na naszych danych.
 
 Zastosowano `scientific-brainstorming`, `hypothesis-generation`,
 `experimental-design`, `scientific-critical-thinking`: niezależne propozycje
@@ -324,4 +449,7 @@ To wsparcie AI, nie konsensus niezależnych eksperymentów. Przygotowanie
 wykorzystuje procedury opisane przez Kassis, Agarwal, He, Patel i Brueckner
 (2026), [Scientific Agent Skills: A Library of Procedural Knowledge for Research Agents](https://doi.org/10.48550/arXiv.2609.00065).
 Metadane zweryfikowano 2026-11-10. Skille nie stanowią dowodu skuteczności
-proponowanych metod. Ostateczny wybór prób pozostaje po stronie użytkownika.
+proponowanych metod. Użytkownik przyjął uwagi do planu 2026-11-10;
+aktualizacja obejmuje E0, kolejność, układ 2×2, wcześniejszą referencję,
+mały E7 i zamrożenie dekodera. Wybór konkretnej próby do uruchomienia
+pozostaje osobnym krokiem; w tej aktualizacji wykonano tylko zmianę planu.

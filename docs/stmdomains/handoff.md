@@ -1,3 +1,29 @@
+# STM Domains — przyjęte poprawki planu AE/rVAE
+
+2026-11-10. Worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `ml_domain`,
+baza `8ca8738`. Użytkownik zlecił włączenie ocenionych uwag do planu.
+Zaktualizowano [plan E0–E7](ml-ae-rvae-experiments.md): krótki E0, pełne
+idealne wejścia 2×2 z warunkami dla grafu/FH/MWS/minimum, mała referencja
+przed mocnymi wnioskami o granicach, prosty E7 także po słabych dystansach,
+E5 przed E4 i zachowanie zamrożonego dekodera przy pierwszym uczeniu enkodera.
+Dodano rozdział grup przed parami, kontrolę fotometrii, skalę fizyczną
+i ocenę wspólnej części danych obok całego ocenialnego zbioru.
+
+Kolejność: **E0 → E1 → E2/E3 → E5 → mały E7 → warunkowo E4/E6**.
+Najbliższy etap w planie to E0; E1 może ruszyć bez ukończenia nowych anotacji.
+E4 może być wcześniejszą osobną diagnostyką rVAE. Zachowano oznaczenia
+E1–E7, dotychczasowe definicje i etykiety kontroli oraz budżety treningu.
+**Aktualizacja planu, bez wykonania E0–E7 i bez nowych ticketów.**
+
+Sprawdzenia: niezależny przegląd zgodności z zaakceptowaną oceną, lokalne
+odnośniki zmienionych dokumentów, `git diff --check`. Bez nowych badań,
+inferencji, treningu, testów aplikacji lub GUI; zmiany wyłącznie dokumentacji.
+Brak instalacji i potrzeb zmian wspólnych. Commit aktualizacji wskazuje
+historia Git i odpowiedź końcowa. UI26 nadal czeka na odbiór użytkownika;
+UI19–20 pozostają odłożone. Do przyszłych prób nadal używać `netcat`.
+
+---
+
 # STM Domains — ocena uwag do propozycji AE/rVAE
 
 2026-11-10. Gałąź `ml_domain`, oceniana baza `0e71fb1`. Na prośbę użytkownika

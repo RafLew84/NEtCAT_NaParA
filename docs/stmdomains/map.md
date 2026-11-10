@@ -1,5 +1,14 @@
 # STM Domains — etap 1: działający szkielet
 
+**2026-11-10 — uwagi przyjęte i włączone do planu AE/rVAE.**
+[Aktualny plan E0–E7](ml-ae-rvae-experiments.md) prowadzi przez **E0 → E1 →
+E2/E3 → E5 → mały E7 → warunkowo E4/E6**. Najbliższy etap planu: krótki
+audyt przypadków i referencji E0, następnie E1 na obecnych danych.
+Małe ROI powstają przed mocną oceną granic i uczonym odczytem; nie blokują E1.
+Zachowano identyfikatory E1–E7 oraz warunkowe budżety treningu. Nie utworzono
+ticketów wykonawczych i nie uruchomiono prób; statusy ticketów UI bez zmian.
+Poniżej historia przygotowania planu i wcześniejszych prac.
+
 **2026-11-10 — ocena przekazanych uwag do E1–E7.**
 [Ocena metodologiczna](ml-ae-rvae-proposal-review.md) rekomenduje korekty
 idealnych wejść, warunków małego uczonego odczytu, terminu referencji granic
