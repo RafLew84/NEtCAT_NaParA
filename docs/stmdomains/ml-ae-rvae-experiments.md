@@ -2,15 +2,17 @@
 
 Data: **2026-11-10**. Gałąź: `ml_domain`, baza `dfac8e5`.
 Aktualizacja: **2026-11-10**, na bazie `8ca8738`, po przyjęciu przez użytkownika
-[oceny propozycji](ml-ae-rvae-proposal-review.md). Status: **E0 i E1 wykonane**,
-**E2–E7 niewykonane**, bez nowych ticketów wykonawczych.
+[oceny propozycji](ml-ae-rvae-proposal-review.md). Status po wykonaniu E2
+**2026-11-11: E0–E2 wykonane, E3–E7 niewykonane**, bez nowych ticketów wykonawczych.
 Właściciel decyzji: użytkownik. Środowisko: `netcat`.
 Przy pierwotnym opracowaniu wykonano audyt źródeł i małą kontrolę inferencji
 dwóch istniejących modeli tiny16, opisaną poniżej. Następnie wykonano
 [E0: audyt i przeglądarkę referencji](ml-ae-rvae-e0.md), bez nowej inferencji
 lub treningu. [E1: bramka i mechanika](ml-ae-rvae-e1.md) wykazało utratę
-przypisań przez bramkę oraz błędy relacji przed odmowami. **Następny etap: E2**,
-potem E3. Nie wybrano nowych parametrów detektora ani nowego treningu.
+przypisań przez bramkę oraz błędy relacji przed odmowami.
+[E2: treść, kąt i odległości](ml-ae-rvae-e2.md) wykazało wybiórczy zysk
+treści bez kąta, koszty normalizacji oraz nadal błędny podział domen.
+**Następny etap: E3.** Nie wybrano nowych parametrów detektora ani nowego treningu.
 
 ## Pytanie i kolejność wykonania
 
@@ -27,10 +29,11 @@ propozycji; nie są numerami kolejności ani istniejących ticketów UI.
 | --- | --- | --- |
 | 1 — wykonane | E0: przypadki celu i inwentaryzacja referencji | 24 obrazy, 54 wnętrza, 10 ROI do przeglądu; [raport](ml-ae-rvae-e0.md). |
 | 2 — wykonane | E1: bramki i mechanika podziału | 8 bramek i oracle 2×2; oba ograniczenia potwierdzone, [raport](ml-ae-rvae-e1.md). |
-| 3 | E2/E3: odczyt cech i fotometria | Bez treningu enkoderów; równolegle przygotować małą referencję granic. |
-| 4 | E5: lokalność, skala i centrowanie | Zamrożone wagi; mocne wnioski o granicach dopiero z odpowiednią referencją. |
-| 5 | Mały E7: uczony odczyt relacji | Również przy słabych dystansach E2/E5, jeśli są etykiety i bezpieczny podział danych. |
-| 6 | Warunkowo E4 i E6 | E4: diagnostyka rVAE na tiny16; E6: jeden kontrast treningowy uzasadniony diagnozą. |
+| 3 — wykonane | E2: odczyt cech i odległości | 15 odczytów na reżim, trzy przestrzenie, pięć tasowań; [raport](ml-ae-rvae-e2.md). |
+| 4 — następne | E3: fotometria | Bez treningu enkoderów; równolegle przygotować małą referencję granic. |
+| 5 | E5: lokalność, skala i centrowanie | Zamrożone wagi; mocne wnioski o granicach dopiero z odpowiednią referencją. |
+| 6 | Mały E7: uczony odczyt relacji | Również przy słabych dystansach E2/E5, jeśli są etykiety i bezpieczny podział danych. |
+| 7 | Warunkowo E4 i E6 | E4: diagnostyka rVAE na tiny16; E6: jeden kontrast treningowy uzasadniony diagnozą. |
 | Później | Rozszerzony E7: krzywa ilości danych | Po obiecującym odczycie i przygotowaniu dodatkowych grup MPP/STP. |
 
 E4 można wcześniej wydzielić jako krótką gałąź, jeśli pytaniem jest sama
@@ -203,6 +206,15 @@ solvera. Wyłączenie bramki zwiększające błędne przypisania nie jest popraw
 Koszt: **niski**, cache/CPU, bez treningu i nowych etykiet.
 
 ## E2 — czy użyteczna informacja jest w treści, kącie i odległościach
+
+**Wykonane 2026-11-11.** [Raport i przeglądarka](ml-ae-rvae-e2.md),
+[protokół](ml-ae-rvae-e2-protocol.md), [manifest](ml-ae-rvae-e2-manifest.json).
+Treść pomaga na dwóch orientacjach, pogarsza relacje przesunięcia i nie
+naprawia rzeczywistych domen. L2 zmienia wyniki bardziej niż PCA rVAE;
+FFT ma osobny przypadek utraty po PCA. Fotometria uzasadnia następne E3.
+Zachować odczyty treści i treści+kąta, bez globalnego wyłączenia kąta/bramki.
+25 nowych testów PASS; galeria 303 PASS / 105 obrazów / 112 figur / 0 błędów JS.
+Bez nowego treningu, inferencji lub zmiany aplikacji. Poniżej pierwotny zakres E2.
 
 **Hipoteza:** niestabilny kąt lub sposób porównania cech osłabia przydatny
 sygnał treści. **Alternatywa:** cechy nie rozróżniają rzeczywistych granic.
@@ -471,4 +483,5 @@ proponowanych metod. Użytkownik przyjął uwagi do planu 2026-11-10;
 aktualizacja obejmuje E0, kolejność, układ 2×2, wcześniejszą referencję,
 mały E7 i zamrożenie dekodera. Wybór konkretnej próby do uruchomienia
 pozostaje osobnym krokiem. Po aktualizacji użytkownik zlecił E0; jego wykonanie
-i ograniczenia odnotowano powyżej. Następnie wykonano E1; E2–E7 nie zostały uruchomione.
+i ograniczenia odnotowano powyżej. Następnie wykonano E1 i E2;
+E3–E7 nie zostały uruchomione.

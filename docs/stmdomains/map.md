@@ -1,5 +1,16 @@
 # STM Domains — etap 1: działający szkielet
 
+**2026-11-11 — E2 wykonane; następne E3.**
+[Raport i przeglądarka](ml-ae-rvae-e2.md), [manifest](ml-ae-rvae-e2-manifest.json):
+AE, trzy odczyty rVAE, FFT, fotometria i geometria na tych samych danych.
+Treść bez kąta pomaga wybiórczo przy orientacji, ale pogarsza przesunięcie;
+na STM zmienia rodzaj błędów, nie naprawia domen. L2 ma większy wpływ niż
+PCA rVAE, a fotometria uzasadnia E3. Bez nowego treningu i wyboru detektora.
+5880 dawnych wyników identycznych; 25 nowych testów PASS, galeria 303 PASS /
+105 obrazów / 112 figur / 0 błędów JS. Odbiór użytkownika galerii otwarty.
+**Dalej E3 → E5 → mały E7 (po etykietach i audycie grup).**
+UI26 nadal czeka na odbiór, UI19–20 odłożone. Poniżej historia etapów.
+
 **2026-11-10 — E1 wykonane; następne E2.**
 [Raport i przeglądarka](ml-ae-rvae-e1.md), [manifest](ml-ae-rvae-e1-manifest.json):
 8 kombinacji bramek i pełne idealne wejścia 2×2 na istniejących AE/rVAE/FFT.

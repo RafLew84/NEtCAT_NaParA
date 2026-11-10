@@ -1,3 +1,56 @@
+# STM Domains — E2 wykonane: treść, kąt i odległości
+
+2026-11-11, worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `ml_domain`,
+baza `6742e13`. Użytkownik zlecił E2; wykonano je według zamrożonego
+[protokołu](ml-ae-rvae-e2-protocol.md). [Raport](ml-ae-rvae-e2.md),
+[manifest](ml-ae-rvae-e2-manifest.json). **Następne E3, bez nowego treningu.**
+
+Treść rVAE bez kąta pomaga wybiórczo przy orientacji, ale pogarsza relacje
+przesunięcia. Dwie orientacje na centrach w transferze: FH poprawny w 2/3 ziaren treści,
+0/3 pełnego rVAE; MWS nadal scala. Rzeczywiste centra/transdukcja/FH/H_M1:
+pokrycie pełne→treść 93.50→88.63%, błędne scalenia 31.36→15.98%, błędne
+podziały 48.07→58.80%. To zmiana kompromisu, bez ogólnej poprawy detektora.
+Pełna bramka nadal daje 0% pokrycia znanych wnętrz centrów. To nie jest
+procent wykrytych molekuł. Realne relacje graniczne są zbyt nieliczne
+(transfer 1, transdukcja centrów 4), a akwizycja jest rozwojowa.
+Normalizacja L2 zmienia wyniki bardziej niż PCA rVAE; FFT ma osobny
+przypadek straty po PCA. Fotometria uzasadnia następne E3. Zachować zarówno
+treść, jak i pełne rVAE; nie wyłączać globalnie kąta ani bramki.
+
+W netcat: 105 obrazów, 15 odczytów na reżim, native/L2/adapted, pięć wspólnych
+permutacji, niezmienione grafy FH/MWS i cztery warianty bramki. 60 adapterów:
+28 historycznych, 32 dopasowane na dawnych fit ID. Bez treningu/inferencji
+enkoderów, nowych etykiet lub strojenia solverów. 5880 dawnych podziałów
+bitowo identycznych; 6272 agregaty zgodne z E1. 226800 ocen relacji,
+100800 ocen domen; nie są to niezależne pomiary. 9097 plików źródeł oraz
+420 deskryptorów E1 sprawdzonych, bez zmian. Wagi i produkcyjna aplikacja
+pozostały bez zmian; nie trzeba instalować zależności.
+
+Przeglądarka `.scratch/ml-e2-20261110/index.html` pokazuje obrazy, centra
+molekuł/siatkę, kolorowe domeny, odmowy i różne odczyty. Domyślnie centra
+TTMAPP259, treść rVAE, transdukcja, FH i H_M1 (diagnostycznie bez ACF/widma).
+Wykresy `.scratch/ml-e2-20261110/plots.html`: 112 figur, każdy PNG i SVG.
+CSV zawierają komplet agregatów; NPZ pełne odległości i permutacje.
+Wyniki/modelowe cache pozostają lokalne poza Git. Numeryczny manifest
+zachowany; późniejsze opisy UI i figury mają osobne manifesty i snapshoty.
+
+Sprawdzenia: **25 nowych testów E2 PASS** w netcat. 400 porównań ROC/AP
+ze scikit-learn: maksymalny błąd 2.22e−16; 60480 agregatów bez liczbowej
+miary przy brakującej klasie. Niezależne przeglądy pochodzenia, metod,
+mechaniki i liczb raportu. QtWebEngine **303 PASS, 105/105 obrazów,
+112/112 figur, 0 błędów JS**, zrzuty obejrzane. To kontrola techniczna,
+**odbiór ręczny użytkownika jest otwarty**; kroki i oczekiwane zachowanie
+w raporcie. Bez pełnej regresji aplikacji, zmiany izolowane w eksperymencie.
+Każdy nowy plik kodu/testów ma <1000 linii (największy 297). Brak zmian wspólnych.
+Przebieg numeryczny: 222.56 s wall, 222.94 s CPU, 927.7 MiB RSS;
+poniżej budżetu 60 min CPU / 8 GiB RAM / 8 GiB artefaktów.
+
+**E0–E2 zakończone; E3–E7 nie uruchomiono.** E7 nadal wymaga przeglądu
+relacji i podziału grup. UI26 czeka na odbiór; UI19–20 odłożone.
+Commit wskazuje historia Git i odpowiedź końcowa. Nie wykonano push.
+
+---
+
 # STM Domains — E1 wykonane: bramka i relacje
 
 2026-11-10, worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `ml_domain`,
