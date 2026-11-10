@@ -1,5 +1,12 @@
 # STM Domains
 
+**2026-11-10 — propozycja powrotu do AE/rVAE.**
+[Siedem warunkowych eksperymentów](ml-ae-rvae-experiments.md): najpierw
+bramka, odczyt cech i wpływ fotometrii bez nowego treningu; następnie
+diagnostyka dekodera i dalsze warianty zależnie od wyników. Zapisano również
+mały odczyt dwóch istniejących checkpointów tiny16. To propozycja, bez
+nowych ticketów i bez uruchomienia pełnego eksperymentu.
+
 **2026-11-10 — kolejny etap: uczenie maszynowe, gałąź `ml_domain`.**
 Na polecenie użytkownika dotychczasowa gałąź `domains/interactive-v04-ui`
 trafia do lokalnego `main`; dalsza praca odbywa się na `ml_domain` w tym samym

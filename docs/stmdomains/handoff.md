@@ -1,3 +1,32 @@
+# STM Domains — propozycja eksperymentów AE/rVAE
+
+2026-11-10. Gałąź `ml_domain`, baza `dfac8e5`. Na prośbę użytkownika
+przygotowano [propozycję E1–E7](ml-ae-rvae-experiments.md), z hipotezami,
+konkurencyjnymi wyjaśnieniami, kontrolami, zakresem obliczeń i decyzjami
+warunkowymi. E1–E3: odmowy, odczyt cech i fotometria, bez nowego treningu.
+E4: drabina zdolności odtwarzania tiny16; E5: lokalność i skala; E6–E7:
+warunkowa zmiana celu uczenia lub mały nadzorowany klasyfikator relacji.
+**To propozycja; nie wybrano ticketu wykonawczego i nie rozpoczęto E1–E7.**
+
+Audyt kodu/raportów oraz źródeł pierwotnych uzupełniono odczytem dwóch
+zachowanych checkpointów tiny16/krok2000 w netcat/CPU. Przy beta=0 MSE
+średniej posteriora i średnie MSE ośmiu losowań różnią się o około 0,13%:
+losowanie w końcowym modelu nie wyjaśnia głównej części rozmycia. Nie jest
+to dowód o całej trajektorii treningu. JSON zapisuje hashe i wersje;
+stare dane/wagi są niezmienione. Artefakty wyłącznie lokalne:
+`.scratch/ae-rvae-proposal-20261110/`.
+
+Zastosowano scientific-brainstorming, hypothesis-generation,
+experimental-design i scientific-critical-thinking; w notatce podano
+pochodzenie procedur i źródła. Wykonano niezależną ocenę propozycji,
+kontrolę odwołań dokumentacji i formatowania. Nie trenowano modeli,
+nie uruchamiano testów aplikacji ani GUI; kod aplikacji bez zmian.
+Commit dokumentacji wskazuje historia Git i wiadomość końcowa.
+Odbiór użytkownika UI26 nadal otwarty; UI19–20 odłożone.
+Brak nowych potrzeb zmian współdzielonych lub instalacji zależności.
+
+---
+
 # STM Domains — scalenie UI i przejście do metod ML
 
 2026-11-10. Na bezpośrednie polecenie użytkownika połączono lokalny `main`

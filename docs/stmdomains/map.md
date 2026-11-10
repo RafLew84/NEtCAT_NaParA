@@ -1,5 +1,12 @@
 # STM Domains — etap 1: działający szkielet
 
+**2026-11-10 — kandydaci na kolejne próby AE/rVAE.**
+[Propozycja E1–E7](ml-ae-rvae-experiments.md) oddziela bramkę, informację
+w cechach, fotometrię, zdolność dekodera i dalsze uczenie. Rekomendowane
+pierwsze E1–E3 nie wymagają retreningu. Nie utworzono nowych ticketów ani
+nie uruchomiono tych prób; wykonano jedynie kontrolę dwóch zachowanych
+checkpointów. Statusy dotychczasowych ticketów pozostają bez zmian.
+
 **2026-11-10 — kolejny etap: uczenie maszynowe, gałąź `ml_domain`.**
 Użytkownik zlecił scalenie `domains/interactive-v04-ui` do lokalnego `main`
 i utworzenie z połączonego stanu gałęzi `ml_domain`. Worktree pozostaje
