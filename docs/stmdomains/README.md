@@ -1,5 +1,16 @@
 # STM Domains
 
+**2026-11-10 — E1 wykonane; następne E2.**
+[Raport i przeglądarka](ml-ae-rvae-e1.md), [manifest](ml-ae-rvae-e1-manifest.json):
+8 kombinacji bramek i pełne idealne wejścia 2×2 na istniejących AE/rVAE/FFT.
+5880 baz odtworzonych dokładnie; 83 328 ocen. Bramka usuwa większość miejsc,
+ale jej wyłączenie nie naprawia błędnych relacji. Oracle potwierdza mechanikę
+na niezmienionych grafach, z jawnymi ograniczeniami braków centrów.
+**Dalej E2 → E3, bez nowego treningu i bez wyboru detektora.**
+68 różnych testów PASS, przeglądarka 162 PASS / 105 obrazów / 0 błędów JS.
+Odbiór ręczny użytkownika galerii otwarty. UI26 nadal otwarty, UI19–20 odłożone.
+Poniżej historia wcześniejszych etapów.
+
 **2026-11-10 — wykonano E0: audyt referencji AE/rVAE.**
 [Raport i przeglądarka](ml-ae-rvae-e0.md): 24 klatki STM, 54 konserwatywne
 wnętrza na 18 klatkach, 10 przykładów syntetycznych i 10 ROI do przeglądu.

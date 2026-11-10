@@ -1,3 +1,49 @@
+# STM Domains — E1 wykonane: bramka i relacje
+
+2026-11-10, worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `ml_domain`,
+baza `bbfa417`. Na polecenie użytkownika wykonano E1 według zamrożonego
+[protokołu](ml-ae-rvae-e1-protocol.md). [Raport](ml-ae-rvae-e1.md),
+[manifest](ml-ae-rvae-e1-manifest.json). **Następne E2 → E3.**
+
+Bramka silnie usuwa miejsca: transdukcja centrów H=4629, ACF=739, widmo=3667,
+oba=74. Bez dodatkowego widma pokrycie znanych wnętrz rVAE/FH wraca do
+mediany 26.96%, ale pomija grupy mniejszościowe. Bez ACF/widma 93.50%,
+przy medianach błędów scaleń31.36%/podziałów48.07%. To pokrycie referencji,
+nie skuteczność wykrycia molekuł. Nie wybrano nowych ustawień produkcyjnych.
+Oracle: faza wymaga relacji, dwie orientacje obu podmian, przerwa maski.
+4536/4536 odtworzeń spójnych części prawdy na niezmienionych grafach;
+braki centrów ograniczają spójność nawet przy prawdzie. Jedna akwizycja
+rozwojowa; E7 nadal wymaga przejrzanych relacji i audytu grup.
+
+Wykonanie w netcat: 105 obrazów, 14 zestawów cech, dwa grafy i dwa solvery,
+47 040 ocen bramek + 36 288 oracle. 5880/5880 baz bitowo identycznych,
+420/420 deskryptorów z różnicą ACF/FFT=0. Odtworzenie tylko native48;
+bez treningu/inferencji/refitu/kalibracji. Minimum zachowane4grid/8centers.
+Źródła zweryfikowane hashami przed/po; nowe artefakty poza Git.
+105.27s wall,106.07s CPU,602MiB RSS; limit45minCPU/8GiB nieprzekroczony.
+
+Lokalna przeglądarka `.scratch/ml-e1-20261110/index.html`: rzeczywiste centra
+lub jawna siatka, wybór obrazu/modelu/bramek/oracle, kolorowe domeny i pełne
+powody odmów po kliknięciu. Zapisane dane ładowane lokalnie bez serwera.
+CSV: `measurement.csv`, `summary.csv`; pełne metryki i readiness jako gzip.
+Polecenia odtworzenia i odbiór ręczny w raporcie. Aktualizacja opisów UI
+po numerycznym przebiegu ma osobny `gallery-render.json` i `render-code/`;
+pierwotny manifest/snapshot zachowane, bez ponawiania obliczeń.
+
+Sprawdzenia: 20 testów E1 +14 partition +24 evaluation +10 texture =
+**68 różnych testów PASS** w netcat. QtWebEngine **162 PASS,105/105 obrazów,
+0 błędów JS**, trzy zrzuty obejrzane. Kontrola Chromium wykonana poza
+piaskownicą procesu, która blokowała go wcześniej. Niezależne przeglądy
+mechaniki, protokołu, pochodzenia i wyników oracle. Bez pełnej regresji
+aplikacji; zmiany izolowane w narzędziach eksperymentu. Wszystkie nowe
+moduły <1000 linii. Brak nowych zależności i zmian wspólnych.
+
+**E1 zakończone; E2–E7 nie uruchomiono. Odbiór galerii przez użytkownika
+pozostaje otwarty.** UI26 nadal czeka na odbiór; UI19–20 odłożone.
+Commit wskazuje historia Git i odpowiedź końcowa. Nie wykonano push.
+
+---
+
 # STM Domains — E0 wykonane: referencje i przypadki celu
 
 2026-11-10. Worktree `/home/rlew/projekty/NEtCAT-domains`, `ml_domain`,

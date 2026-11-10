@@ -2,13 +2,15 @@
 
 Data: **2026-11-10**. Gałąź: `ml_domain`, baza `dfac8e5`.
 Aktualizacja: **2026-11-10**, na bazie `8ca8738`, po przyjęciu przez użytkownika
-[oceny propozycji](ml-ae-rvae-proposal-review.md). Status: **E0 wykonane**,
-**E1–E7 niewykonane**, bez nowych ticketów wykonawczych.
+[oceny propozycji](ml-ae-rvae-proposal-review.md). Status: **E0 i E1 wykonane**,
+**E2–E7 niewykonane**, bez nowych ticketów wykonawczych.
 Właściciel decyzji: użytkownik. Środowisko: `netcat`.
 Przy pierwotnym opracowaniu wykonano audyt źródeł i małą kontrolę inferencji
 dwóch istniejących modeli tiny16, opisaną poniżej. Następnie wykonano
 [E0: audyt i przeglądarkę referencji](ml-ae-rvae-e0.md), bez nowej inferencji
-lub treningu. **Następny etap: E1**; nowe anotacje nie blokują jego startu.
+lub treningu. [E1: bramka i mechanika](ml-ae-rvae-e1.md) wykazało utratę
+przypisań przez bramkę oraz błędy relacji przed odmowami. **Następny etap: E2**,
+potem E3. Nie wybrano nowych parametrów detektora ani nowego treningu.
 
 ## Pytanie i kolejność wykonania
 
@@ -24,7 +26,7 @@ propozycji; nie są numerami kolejności ani istniejących ticketów UI.
 | Kolejność | Etap | Warunek i dane |
 | --- | --- | --- |
 | 1 — wykonane | E0: przypadki celu i inwentaryzacja referencji | 24 obrazy, 54 wnętrza, 10 ROI do przeglądu; [raport](ml-ae-rvae-e0.md). |
-| 2 | E1: bramki i mechanika podziału | Obecne wagi i kontrole syntetyczne; bez nowych etykiet i treningu. |
+| 2 — wykonane | E1: bramki i mechanika podziału | 8 bramek i oracle 2×2; oba ograniczenia potwierdzone, [raport](ml-ae-rvae-e1.md). |
 | 3 | E2/E3: odczyt cech i fotometria | Bez treningu enkoderów; równolegle przygotować małą referencję granic. |
 | 4 | E5: lokalność, skala i centrowanie | Zamrożone wagi; mocne wnioski o granicach dopiero z odpowiednią referencją. |
 | 5 | Mały E7: uczony odczyt relacji | Również przy słabych dystansach E2/E5, jeśli są etykiety i bezpieczny podział danych. |
@@ -99,7 +101,7 @@ To ograniczona diagnostyka istniejących wag, nie wynik E0–E7.
 **Wykonane 2026-11-10:** [raport i obsługa galerii](ml-ae-rvae-e0.md),
 [manifest](ml-ae-rvae-e0-reference-manifest.json). Tabela przypadków, role
 grup i 10 ROI są gotowe; nowe anotacje pozostają do przeglądu.
-`independent_test=[]`, `supervised_split_ready=false`. E1 gotowe do podjęcia.
+`independent_test=[]`, `supervised_split_ready=false`. E1 wykonane na obecnej referencji.
 Poniżej zachowano zakres E0 i wymagania dla dalszej pracy z referencją.
 
 Krótki audyt przed interpretacją eksperymentów, bez treningu. Oprzeć się
@@ -145,6 +147,14 @@ Niedokończone anotacje ograniczają wnioski dalszych prób, ale nie blokują E1
 
 ## E1 — gdzie znika domena: bramka i mechanika podziału
 
+**Wykonane 2026-11-10:** [wyniki i przeglądarka](ml-ae-rvae-e1.md),
+[protokół](ml-ae-rvae-e1-protocol.md), [manifest](ml-ae-rvae-e1-manifest.json).
+5880 dokładnie odtworzonych baz, 83 328 ocen, 4536 kontroli mechaniki oracle.
+Bramka usuwa większość miejsc, ale jej wyłączenie odsłania błędne relacje.
+Idealne wejścia odtwarzają spójne części prawdy; graf centrów z brakami ma
+jawne ograniczenia. Dalszy priorytet E2/E3, bez zmiany metody aplikacji.
+Poniżej zachowany zakres z doprecyzowaniem rzeczywistego minimum z pilota.
+
 **Hipoteza:** znaczną część użytecznych przypisań usuwa konkretna składowa
 odmowy. **Alternatywa:** odrzucany podział już wcześniej jest błędny.
 
@@ -179,7 +189,7 @@ Idealne relacje zakodować zgodnie z solverem i sprawdzić na małym grafie
 o znanym podziale. Dla FH odległości 0/1 przy `k=4` nie gwarantują zakazu
 scalania; dla MWS istotne są znaki i siły relacji. Zapisać kodowanie przed
 próbą. Każdą z czterech konfiguracji ocenić przed i po minimum komponentu
-(obecnie cztery węzły), przy jednakowym przeliczaniu spójności.
+(cztery węzły siatki / osiem centrów), przy jednakowym przeliczaniu spójności.
 
 **Odczyt:** pokrycie znanych wnętrz, błędne scalenia/podziały i domeny na
 negatywnych kontrolach; oddzielnie przed odmowami, po bramce i po minimum.
@@ -461,4 +471,4 @@ proponowanych metod. Użytkownik przyjął uwagi do planu 2026-11-10;
 aktualizacja obejmuje E0, kolejność, układ 2×2, wcześniejszą referencję,
 mały E7 i zamrożenie dekodera. Wybór konkretnej próby do uruchomienia
 pozostaje osobnym krokiem. Po aktualizacji użytkownik zlecił E0; jego wykonanie
-i ograniczenia odnotowano powyżej. E1–E7 nie zostały uruchomione.
+i ograniczenia odnotowano powyżej. Następnie wykonano E1; E2–E7 nie zostały uruchomione.
