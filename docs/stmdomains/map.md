@@ -1,5 +1,12 @@
 # STM Domains — etap 1: działający szkielet
 
+**2026-11-10 — ocena przekazanych uwag do E1–E7.**
+[Ocena metodologiczna](ml-ae-rvae-proposal-review.md) rekomenduje korekty
+idealnych wejść, warunków małego uczonego odczytu, terminu referencji granic
+i diagnostyki dekodera. Zalecana kolejność stawia E5 przed pełnym E4 dla
+celu detekcji. To rekomendacje, bez zmiany pierwotnego planu i definicji
+domen, bez wyboru lub uruchomienia nowych ticketów.
+
 **2026-11-10 — kandydaci na kolejne próby AE/rVAE.**
 [Propozycja E1–E7](ml-ae-rvae-experiments.md) oddziela bramkę, informację
 w cechach, fotometrię, zdolność dekodera i dalsze uczenie. Rekomendowane

@@ -1,5 +1,12 @@
 # STM Domains
 
+**2026-11-10 — ocena uwag do planu AE/rVAE.**
+[Przegląd propozycji zmian](ml-ae-rvae-proposal-review.md): rekomendowane
+idealne wejścia 2×2, mała referencja granic wcześniej, prosty uczony odczyt
+również przy słabych dystansach i zamrożenie dekodera w diagnostyce E4.
+Zastrzeżenia dotyczą definicji dwóch rzędów i prób już wykonanych w 21a.
+To ocena; pierwotnego planu, ticketów i kodu nie zmieniono.
+
 **2026-11-10 — propozycja powrotu do AE/rVAE.**
 [Siedem warunkowych eksperymentów](ml-ae-rvae-experiments.md): najpierw
 bramka, odczyt cech i wpływ fotometrii bez nowego treningu; następnie

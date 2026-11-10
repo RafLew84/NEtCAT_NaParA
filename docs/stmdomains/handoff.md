@@ -1,3 +1,25 @@
+# STM Domains — ocena uwag do propozycji AE/rVAE
+
+2026-11-10. Gałąź `ml_domain`, oceniana baza `0e71fb1`. Na prośbę użytkownika
+oceniono załącznik `f3913d53-025c-4799-bc48-00de77344e4b/Pasted text.txt`.
+[Osobna notatka](ml-ae-rvae-proposal-review.md) rekomenduje pełny układ
+idealne relacje × maska 2×2, wcześniejszą małą referencję realnych granic,
+prosty uczony odczyt także przy słabych dystansach i początkowe zamrożenie
+sprawdzonego dekodera. E5 przed pełnym E4 jest preferencją dla celu domen.
+Nie potwierdzono deklarowanego precedensu o dwóch rzędach i tarasie;
+rozróżnienie granicy niedopasowania i globalnego przesunięcia oraz próby
+obrotów już istnieją. **Nie zmieniono pierwotnego E1–E7, definicji domen
+ani ticketów; nie rozpoczęto nowych eksperymentów.**
+
+Zastosowano scientific-critical-thinking i experimental-design; notatka
+podaje źródło procedur. Dwa niezależne audyty, kontrola kodu/raportów
+i źródeł pierwotnych, odwołań lokalnych oraz `git diff --check`.
+Bez inferencji, treningu, testów aplikacji i GUI w tym zadaniu; brak zmian
+kodu, zależności lub potrzeb zmian wspólnych. Commit oceny wskazuje historia
+Git i odpowiedź końcowa. Odbiór UI26 pozostaje otwarty, UI19–20 odłożone.
+
+---
+
 # STM Domains — propozycja eksperymentów AE/rVAE
 
 2026-11-10. Gałąź `ml_domain`, baza `dfac8e5`. Na prośbę użytkownika
