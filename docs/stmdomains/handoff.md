@@ -1,3 +1,56 @@
+# STM Domains — E3 wykonane: fotometria i stabilność odczytu
+
+2026-11-11, worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `ml_domain`,
+baza `ed4762b`. Użytkownik zlecił E3; wykonano je według zamrożonego
+[protokołu](ml-ae-rvae-e3-protocol.md). [Raport](ml-ae-rvae-e3.md),
+[manifest](ml-ae-rvae-e3-manifest.json). **Następne E5 zgodnie z przyjętą
+kolejnością; mały E7 po referencji i audycie grup, E4/E6 warunkowe.**
+
+Zmiana fotometrii przekłada się na relacje i podziały rVAE. Offset ±0,1
+zmienia medianowo 52–68% relacji treści po adapterze, zależnie od reżimu
+i samplera. Dla offset+ transdukcja/siatka ranking odległości treści ma
+Spearmana native 0,977 → L2 0,112 → adapted 0,114: ważny mechanizm pojawia
+się przed PCA. Wynik uzasadnia ostrożne rozdzielenie normalizacji i odczytu
+przed rozważaniem retreningu; nie ustanawia nowego etapu ani gotowej metody.
+
+Offset− nie jest poprawką detektora. Dla treści/transdukcji/centrów/FH/H_M1
+poprawia mediany STM, lecz ziarno 20261103 zwiększa merge z 5,46 do 19,28%.
+`two_orientations` ma po tej perturbacji 100% merge we wszystkich trzech
+ziarnach, a `independent_rows` nadal 100% fałszywych przypisań. MWS w tym
+samym odczycie ma na STM 100% merge we wszystkich ziarnach. Błędy są
+warunkowe na zachowanych przypisaniach i wymagają równoczesnego pokrycia
+oraz liczebności; pełna bramka nadal niemal wszystko odrzuca. Relacje
+graniczne STM pozostają nieliczne, dane rozwojowe, bez niezależnego testu.
+
+W netcat: 105 obrazów, s48, oba samplery/reżimy, 12 istniejących modeli,
+15 odczytów na reżim i 60 zamrożonych adapterów E2. Dziesięć warunków
+fotometrii wraz z identity; osobna próba trzech zmian strukturalnych na
+dziewięciu realizacjach. Bez nowego treningu, refitu, etykiet i zmian
+produkcyjnej aplikacji. 37 800 historycznych podziałów odtworzonych exact;
+świeża inferencja CPU zmienia 4/37 800 (3 MWS przed odmowami, 1 H_M1),
+maksymalna różnica cech 8,11×10⁻⁶. Efekty perturbacji liczone względem
+świeżej bazy CPU; wagi i wcześniejsze artefakty pozostają niezmienione.
+
+Lokalna przeglądarka: `.scratch/ml-e3-20261111/index.html`. Pełne wyniki,
+`readout.json`, 11 CSV, predykcje NPZ i audyty pozostają w tym katalogu poza
+Git. Późniejszy odczyt ma własny `readout-manifest.json`, hash kodu i eksportów,
+ponieważ powstał po snapshotcie przebiegu. Metryki zachowują osobne ziarna,
+maski common/own i mianowniki; mediany klatek nie są poolingiem ziaren.
+
+Sprawdzenia w netcat: **20 testów E3 PASS**, niezależne przeglądy kontraktów,
+agregacji, liczb i ograniczeń. QtWebEngine **186 PASS, 0 błędów JS**; kontrola
+techniczna nie zastępuje odbioru użytkownika. **Odbiór ręczny galerii otwarty.**
+Przebieg: **21 min 16,2 s wall / 21 min 16,6 s CPU**, około 2,20 GiB RSS;
+budżet 60 min CPU / 8 GiB RAM / 8 GiB artefaktów zachowany. Największy nowy
+moduł ma 300 linii; wszystkie <1000.
+Bez pełnej regresji aplikacji; zmiany izolowane w eksperymencie.
+
+**E0–E3 wykonane; E4–E7 nie uruchomiono.** UI26 czeka na odbiór;
+UI19–20 odłożone. Commit wskazuje historia Git i odpowiedź końcowa.
+Nie wykonano push.
+
+---
+
 # STM Domains — E2 wykonane: treść, kąt i odległości
 
 2026-11-11, worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `ml_domain`,

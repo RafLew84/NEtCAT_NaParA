@@ -2,8 +2,8 @@
 
 Data: **2026-11-10**. Gałąź: `ml_domain`, baza `dfac8e5`.
 Aktualizacja: **2026-11-10**, na bazie `8ca8738`, po przyjęciu przez użytkownika
-[oceny propozycji](ml-ae-rvae-proposal-review.md). Status po wykonaniu E2
-**2026-11-11: E0–E2 wykonane, E3–E7 niewykonane**, bez nowych ticketów wykonawczych.
+[oceny propozycji](ml-ae-rvae-proposal-review.md). Status po wykonaniu E3
+**2026-11-11: E0–E3 wykonane, E4–E7 niewykonane**, bez nowych ticketów wykonawczych.
 Właściciel decyzji: użytkownik. Środowisko: `netcat`.
 Przy pierwotnym opracowaniu wykonano audyt źródeł i małą kontrolę inferencji
 dwóch istniejących modeli tiny16, opisaną poniżej. Następnie wykonano
@@ -12,7 +12,10 @@ lub treningu. [E1: bramka i mechanika](ml-ae-rvae-e1.md) wykazało utratę
 przypisań przez bramkę oraz błędy relacji przed odmowami.
 [E2: treść, kąt i odległości](ml-ae-rvae-e2.md) wykazało wybiórczy zysk
 treści bez kąta, koszty normalizacji oraz nadal błędny podział domen.
-**Następny etap: E3.** Nie wybrano nowych parametrów detektora ani nowego treningu.
+[E3: fotometria i stabilność](ml-ae-rvae-e3.md) wykazało zmiany relacji oraz
+domen po perturbacji jasności, z ważnym udziałem normalizacji L2.
+**Następny etap: E5.** E4/E6 pozostają warunkowe, mały E7 wymaga referencji
+i audytu grup. Nie wybrano nowych parametrów detektora ani nowego treningu.
 
 ## Pytanie i kolejność wykonania
 
@@ -30,8 +33,8 @@ propozycji; nie są numerami kolejności ani istniejących ticketów UI.
 | 1 — wykonane | E0: przypadki celu i inwentaryzacja referencji | 24 obrazy, 54 wnętrza, 10 ROI do przeglądu; [raport](ml-ae-rvae-e0.md). |
 | 2 — wykonane | E1: bramki i mechanika podziału | 8 bramek i oracle 2×2; oba ograniczenia potwierdzone, [raport](ml-ae-rvae-e1.md). |
 | 3 — wykonane | E2: odczyt cech i odległości | 15 odczytów na reżim, trzy przestrzenie, pięć tasowań; [raport](ml-ae-rvae-e2.md). |
-| 4 — następne | E3: fotometria | Bez treningu enkoderów; równolegle przygotować małą referencję granic. |
-| 5 | E5: lokalność, skala i centrowanie | Zamrożone wagi; mocne wnioski o granicach dopiero z odpowiednią referencją. |
+| 4 — wykonane | E3: fotometria | Istniejące wagi i adaptery; zmiany relacji/domen oraz wpływ L2, [raport](ml-ae-rvae-e3.md). |
+| 5 — następne | E5: lokalność, skala i centrowanie | Zamrożone wagi; mocne wnioski o granicach dopiero z odpowiednią referencją. |
 | 6 | Mały E7: uczony odczyt relacji | Również przy słabych dystansach E2/E5, jeśli są etykiety i bezpieczny podział danych. |
 | 7 | Warunkowo E4 i E6 | E4: diagnostyka rVAE na tiny16; E6: jeden kontrast treningowy uzasadniony diagnozą. |
 | Później | Rozszerzony E7: krzywa ilości danych | Po obiecującym odczycie i przygotowaniu dodatkowych grup MPP/STP. |
@@ -155,7 +158,7 @@ Niedokończone anotacje ograniczają wnioski dalszych prób, ale nie blokują E1
 5880 dokładnie odtworzonych baz, 83 328 ocen, 4536 kontroli mechaniki oracle.
 Bramka usuwa większość miejsc, ale jej wyłączenie odsłania błędne relacje.
 Idealne wejścia odtwarzają spójne części prawdy; graf centrów z brakami ma
-jawne ograniczenia. Dalszy priorytet E2/E3, bez zmiany metody aplikacji.
+jawne ograniczenia. Wynik uzasadnił wykonane później E2/E3, bez zmiany metody aplikacji.
 Poniżej zachowany zakres z doprecyzowaniem rzeczywistego minimum z pilota.
 
 **Hipoteza:** znaczną część użytecznych przypisań usuwa konkretna składowa
@@ -211,7 +214,7 @@ Koszt: **niski**, cache/CPU, bez treningu i nowych etykiet.
 [protokół](ml-ae-rvae-e2-protocol.md), [manifest](ml-ae-rvae-e2-manifest.json).
 Treść pomaga na dwóch orientacjach, pogarsza relacje przesunięcia i nie
 naprawia rzeczywistych domen. L2 zmienia wyniki bardziej niż PCA rVAE;
-FFT ma osobny przypadek utraty po PCA. Fotometria uzasadnia następne E3.
+FFT ma osobny przypadek utraty po PCA. Fotometria uzasadniła wykonane później E3.
 Zachować odczyty treści i treści+kąta, bez globalnego wyłączenia kąta/bramki.
 25 nowych testów PASS; galeria 303 PASS / 105 obrazów / 112 figur / 0 błędów JS.
 Bez nowego treningu, inferencji lub zmiany aplikacji. Poniżej pierwotny zakres E2.
@@ -247,6 +250,28 @@ referencji rzeczywistych granic wnioski pozostają diagnostyczne.
 Koszt E2: **niski**, bez nowego treningu; trening klasyfikatora należy do E7.
 
 ## E3 — czy model opisuje strukturę, czy warunki obrazowania
+
+**Wykonane 2026-11-11.** [Raport i przeglądarka](ml-ae-rvae-e3.md),
+[protokół](ml-ae-rvae-e3-protocol.md), [manifest](ml-ae-rvae-e3-manifest.json).
+105 obrazów, oba reżimy/samplery, trzy ziarna AE/rVAE, zamrożone adaptery E2;
+bez treningu. Fotometria zmienia relacje i przypisania, a duża zmiana rankingu
+odległości treści pojawia się już po L2, przed PCA. Osobna próba struktury
+potwierdza wrażliwość na zadane perturbacje, bez zrównania ich fizycznej dawki.
+
+Offset− nie stanowi gotowej poprawki. Dla treści/transdukcji/centrów/FH/H_M1
+poprawia mediany STM, ale merge ziarna 20261103 rośnie 5,46→19,28%;
+`two_orientations` ma 100% merge we wszystkich ziarnach, a `independent_rows`
+nadal 100% fałszywych przypisań. MWS ma w tym odczycie na STM 100% merge.
+Pokrycie i warunkowe błędy trzeba oceniać razem; pełna bramka niemal wszystko
+odrzuca. To diagnoza ograniczeń, bez wyboru detektora lub parametrów.
+
+Wniosek do dalszej interpretacji: ostrożnie rozdzielić normalizację L2,
+odczyt i ewentualne przygotowanie obrazu przed decyzją o retreningu.
+E3 nie dowodzi, że dowolne usuwanie tła poprawi domeny ani że PCA jest
+główną przyczyną. **Kolejność pozostaje E5 → mały E7 po referencji i audycie
+grup; E4/E6 warunkowo.** Nie utworzono ani nie uruchomiono nowego etapu.
+20 testów PASS, QtWebEngine 186 PASS / 0 błędów JS; odbiór użytkownika
+otwarty. Poniżej zachowano pierwotny zakres E3.
 
 **Hipoteza:** niewielka zmiana tła/kontrastu zmienia cechy mocniej niż
 zmiana struktury. **Alternatywa:** korelacja z jasnością nie odpowiada
@@ -483,5 +508,5 @@ proponowanych metod. Użytkownik przyjął uwagi do planu 2026-11-10;
 aktualizacja obejmuje E0, kolejność, układ 2×2, wcześniejszą referencję,
 mały E7 i zamrożenie dekodera. Wybór konkretnej próby do uruchomienia
 pozostaje osobnym krokiem. Po aktualizacji użytkownik zlecił E0; jego wykonanie
-i ograniczenia odnotowano powyżej. Następnie wykonano E1 i E2;
-E3–E7 nie zostały uruchomione.
+i ograniczenia odnotowano powyżej. Następnie wykonano E1, E2 i E3;
+E4–E7 nie zostały uruchomione. Następne w przyjętej kolejności jest E5.

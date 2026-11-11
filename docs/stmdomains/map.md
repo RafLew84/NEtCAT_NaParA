@@ -1,5 +1,16 @@
 # STM Domains — etap 1: działający szkielet
 
+**2026-11-11 — E3 wykonane; następne E5.**
+[Raport i przeglądarka](ml-ae-rvae-e3.md), [manifest](ml-ae-rvae-e3-manifest.json):
+fotometria zmienia relacje i domeny rVAE; dużą część zmiany rankingu
+odległości treści wprowadza już L2, przed PCA. Offset nie jest gotową poprawką:
+zysk median na STM nie utrzymuje się we wszystkich ziarnach i kontrolach.
+37 800 historycznych podziałów exact; świeży CPU zmienia 4/37 800.
+20 testów PASS, QtWebEngine 186 PASS / 0 błędów JS; około 21 min 16 s CPU/wall.
+Odbiór ręczny użytkownika galerii otwarty. **Dalej E5 → mały E7 po referencji
+i audycie grup; E4/E6 warunkowe.** Nie rozpoczęto następnego etapu ani treningu.
+UI26 nadal czeka na odbiór, UI19–20 odłożone. Poniżej historia etapów.
+
 **2026-11-11 — E2 wykonane; następne E3.**
 [Raport i przeglądarka](ml-ae-rvae-e2.md), [manifest](ml-ae-rvae-e2-manifest.json):
 AE, trzy odczyty rVAE, FFT, fotometria i geometria na tych samych danych.

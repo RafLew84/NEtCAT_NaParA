@@ -1,0 +1,266 @@
+{
+  "schema": "stmdomains-e3-summary-v1",
+  "status": "completed",
+  "date": "2026-11-11",
+  "branch": "ml_domain",
+  "local_artifacts": ".scratch/ml-e3-20261111",
+  "report": "ml-ae-rvae-e3.md",
+  "protocol": "ml-ae-rvae-e3-protocol.md",
+  "numerical_execution": {
+    "schema": "stmdomains-e3-run-v1",
+    "status": "completed",
+    "base_commit": "ed4762b",
+    "source": "/home/rlew/projekty/NEtCAT-domains/.scratch/autoencoder-21",
+    "e1": "/home/rlew/projekty/NEtCAT-domains/.scratch/ml-e1-20261110",
+    "e2": "/home/rlew/projekty/NEtCAT-domains/.scratch/ml-e2-20261110",
+    "output": "/home/rlew/projekty/NEtCAT-domains/.scratch/ml-e3-20261111",
+    "python": "/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python",
+    "numpy": "2.2.5",
+    "torch": "2.9.1+cu128",
+    "device": "cpu",
+    "threads": 1,
+    "cuda_available": false,
+    "started_utc": "2026-11-11T00:17:56.067316+00:00",
+    "protocol_sha256": "9d79ef533d7c18ba9b6c7433cb59f8be2dac062c3a285d4ffecf7fd88c6c84b5",
+    "code_sha256": {
+      "stmdomains/experiments/e3_run.py": "8bea328864d00a5762cc2660e9921dc403acc7e06ea0f421c350a83500e67d9c",
+      "stmdomains/experiments/e3_transforms.py": "e7734d5fc8b739d514b9543daf08f5da9007c5b713735627d20cfbf4da9ebc05",
+      "stmdomains/experiments/e3_structures.py": "80e17e4dc976ad7bf0d3b3d4b5c338a5422de3d9b8fef7beb209e3dbbbf6e6a6",
+      "stmdomains/experiments/e3_metrics.py": "04ff169f6918a34d8b0502711e108463b8613acda3248f4cd16127dfb80af5eb",
+      "stmdomains/experiments/e3_gallery.py": "90de46814f72e98ab8ae8c026e8acdf2ddc13b02f8519d52b490721ac03764a3",
+      "stmdomains/experiments/e3_pipeline.py": "d78e3be0cc5a483416aa927781aa23e0bafdcf0d9d73f7a5435b083962e8a1fe",
+      "stmdomains/experiments/e3_probe.py": "2d74d87d103fb3c34e3ec461b14f9c10f910e8189d59e335d2aa226be2e5149e",
+      "stmdomains/experiments/e3_evaluate.py": "defda22fd5eedcf1e6ce20ab5525017b5abb4358188804f8784f0ccb00b6f9e7",
+      "stmdomains/experiments/e3_inference.py": "7f5111687566011f4f860b8ab96802f9148710fa9ba9dfac86990ec1b8b4590c",
+      "stmdomains/experiments/e2_features.py": "95ca8d83d596e4b777fd8e7a3faa3dd3bb7ae56aa6f589369ce1534502ef7f1d",
+      "stmdomains/experiments/e2_pipeline.py": "d4a08a79e24f52a44fbb44645714c836b92233ac29c34618dfd4968d025de762",
+      "stmdomains/experiments/e2_metrics.py": "f7e0ed71229d7c26db9f3100530faa653ded10cbbb86c8b29991d7cd107bcdb7",
+      "stmdomains/experiments/training/models.py": "081c4db5ae0e30d3d0f5fa6f2056bbe2379c7d7025a7e5f3e0feb8618bed7cd7",
+      "stmdomains/experiments/training/data.py": "0958eceb8196a32e84c3e5d4f8ba6b589742396747029d28d97db3ff3161205e",
+      "stmdomains/experiments/training/checkpoint.py": "e19068623d963dac64215fdc8fb43f9988960d5cb4508a27c03429c1e097a58e",
+      "stmdomains/experiments/training/texture.py": "d543c235796c9f83dc2deafc0470c0d17775c9b7c3da35c5741a59b6fb76c075",
+      "stmdomains/experiments/training/partition.py": "6bd03509c7c318a28aa429723a466237d25224a38760822f21918a7a55cca8b2",
+      "stmdomains/experiments/training/evaluate.py": "70df041537b87996246a6bcd96cf5d06720a3049b6dec37e3eea73dc1c022261"
+    },
+    "e2_freeze_sha256": "358cb36bd2a27b1fe061e4f97291c9beb447a42599ab9b32065ec07854433b99",
+    "encoder_training": false,
+    "encoder_inference": true,
+    "adapter_refit": false,
+    "source_writes": false,
+    "sources_unchanged": true,
+    "groups": 6300,
+    "artifact_bytes": 6817288886,
+    "paired_sample_evaluations": 378000,
+    "domain_sample_evaluations": 378000,
+    "edge_aggregates": 100800,
+    "domain_aggregates": 100800,
+    "gallery_runs": 12600,
+    "samples": 105,
+    "wall_seconds": 1276.2148106739623,
+    "cpu_seconds": 1276.593402705,
+    "peak_rss_kib": 2309564
+  },
+  "postprocessing": {
+    "manifest": "readout-manifest.json",
+    "code_sha256": {
+      "/home/rlew/projekty/NEtCAT-domains/stmdomains/experiments/e3_readout.py": "eb55c8d4dd0aebf48d5b9ebc1ada50d4b840cef16468295397398c7b98396402"
+    },
+    "wall_seconds": 8.90426211094018,
+    "encoder_training": false,
+    "encoder_inference": false,
+    "adapter_refit": false
+  },
+  "gallery": {
+    "schema": "stmdomains-e3-gallery-render-v1",
+    "rendered_utc": "2026-11-11T00:39:55.001673+00:00",
+    "note": "Render-only update after the numerical E3 run. Final paired viewer, patch64 labels and prepared stability display. Original code snapshot and numerical manifest preserved; current renderer/checker snapshot in render-code/. No inference or numerical rerun.",
+    "python": "/home/rlew/projekty/conda-migration-ubuntu-20261008/envs/netcat/bin/python",
+    "numerical_manifest_sha256": "d32db39dfc5a5cc0fd0057049b259af81c47f0bc5ebe05d44fad1f630563a5f9",
+    "initial_code_sha256": {
+      "stmdomains/experiments/e3_gallery.py": "90de46814f72e98ab8ae8c026e8acdf2ddc13b02f8519d52b490721ac03764a3",
+      "stmdomains/experiments/e3_check_gallery.py": null
+    },
+    "render_code_sha256": {
+      "stmdomains/experiments/e3_gallery.py": "553ad1593c03b58dd5fc5b2dbc4db72c961f219c5cccfd514905a2935980e996",
+      "stmdomains/experiments/e3_check_gallery.py": "9886bd4d4ab7803b8d69c933bbd50fd7dab3865a78a6318658e9d5d378a6593b"
+    },
+    "gallery_index_sha256": "a3c0c6f019c15dd4b63bc7b57f4aed2c8fa0780dfa82b17d621d9190a5a06fae",
+    "html_sha256": "81df97ee6b3892413bb9d53a87d115da534a5c8e1ab6775ed28d917c7fa81cff",
+    "encoder_inference": false,
+    "numerical_rerun": false,
+    "browser_check": {
+      "path": "browser-check/browser-check.json",
+      "sha256": "b70602fa40792db9c346c04beca383ef18631ae09917e98f4746c5aa829f2a1b",
+      "checks": 186,
+      "passed": 186,
+      "javascript_errors": 0,
+      "wall_seconds": 6.0077420140150934,
+      "sample_count": 105,
+      "run_count": 12600,
+      "fixture": false,
+      "screenshots": [
+        {
+          "path": "browser-check/paired-ttmapp259.png",
+          "sha256": "ef27a0a0e3e33fe6f5239c4ae1eadea8f60c1bfd29eca6a81e5050d2a3571ee2"
+        },
+        {
+          "path": "browser-check/point-measurements-preview.png",
+          "sha256": "2b49bf3278554a9b864d4cd671d522565b6ecd0c12568f84491b0a475cfdabe0"
+        },
+        {
+          "path": "browser-check/noise-without-centers.png",
+          "sha256": "19e24ef56fbf5f5225eedceaf5c3665c3f763f9ac5cfcbc4b04b4b52e4ff4345"
+        }
+      ],
+      "screenshots_visually_reviewed": true,
+      "visual_review_note": "Reviewed all three real screenshots: paired TTMAPP259, selected point with fixed-scale input64 previews, and synthetic noise with zero detected centers. No rendering issues observed.",
+      "reviewed_utc": "2026-11-11T00:42:05.039479+00:00"
+    }
+  },
+  "independent_audit": {
+    "provenance": {
+      "script": "independent-audit.py",
+      "script_sha256": "4118d462d4e2433d7187efae67cad18a02ea65322e2d39338fafeac330b2a08f",
+      "result": "independent-audit.json",
+      "result_sha256": "85fd383e1721546453e033d867eff2bc2ec4491d258bf9c2d05ea466316b4b8d",
+      "inputs_verified": 247,
+      "read_only_audit": true
+    },
+    "backend": {
+      "entries": 6300,
+      "historical_exact": 37800,
+      "max_feature_error": 8.106231689453125e-06,
+      "fresh_changed": {
+        "fh4_before": 0,
+        "fh4_H_M1": 0,
+        "fh4_A_fixed_M1": 0,
+        "mws_before": 3,
+        "mws_H_M1": 1,
+        "mws_A_fixed_M1": 0
+      },
+      "changed_entries": 3
+    },
+    "edge_aggregates": 100800,
+    "edge_errors": [],
+    "auc_ap_null_aggregates": 86400
+  },
+  "verification": {
+    "unit_tests": {
+      "result": "20 passed",
+      "environment": "netcat",
+      "files": [
+        "tests/stmdomains/test_e3_inference.py",
+        "tests/stmdomains/test_e3_metrics.py",
+        "tests/stmdomains/test_e3_structures.py",
+        "tests/stmdomains/test_e3_transforms.py"
+      ]
+    },
+    "compileall": "passed",
+    "qt_final_checks": 186,
+    "qt_final_failure": null,
+    "qt_javascript_errors": 0,
+    "fixture_checks_passed": 80,
+    "screenshots_visually_reviewed": 3,
+    "user_acceptance": "pending",
+    "application_full_regression": "not run; no existing application module changed",
+    "integrity": {
+      "schema": "stmdomains-e3-final-integrity-v1",
+      "checked_utc": "2026-11-11T00:47:28.816225+00:00",
+      "status": "pass",
+      "checks": {
+        "frozen_files": 10648,
+        "numerical_code": 17,
+        "final_renderer_code": 2,
+        "postprocessing_code": 1,
+        "postprocessing_inputs": 9,
+        "postprocessing_outputs": 12,
+        "independent_audit_inputs": 247,
+        "screenshots": 3
+      },
+      "protocol_sha256": "9d79ef533d7c18ba9b6c7433cb59f8be2dac062c3a285d4ffecf7fd88c6c84b5",
+      "max_code_lines": 300,
+      "wall_seconds": 1.1400530589744449,
+      "note": "Post-run verification; original execution manifest remains unchanged."
+    },
+    "code_line_counts": {
+      "stmdomains/experiments/e3_run.py": 97,
+      "stmdomains/experiments/e3_transforms.py": 105,
+      "stmdomains/experiments/e3_structures.py": 63,
+      "stmdomains/experiments/e3_metrics.py": 154,
+      "stmdomains/experiments/e3_gallery.py": 197,
+      "stmdomains/experiments/e3_pipeline.py": 270,
+      "stmdomains/experiments/e3_probe.py": 145,
+      "stmdomains/experiments/e3_evaluate.py": 178,
+      "stmdomains/experiments/e3_check_gallery.py": 290,
+      "stmdomains/experiments/e3_inference.py": 57,
+      "stmdomains/experiments/e3_readout.py": 300,
+      "tests/stmdomains/test_e3_metrics.py": 98,
+      "tests/stmdomains/test_e3_inference.py": 76,
+      "tests/stmdomains/test_e3_structures.py": 48,
+      "tests/stmdomains/test_e3_transforms.py": 72
+    }
+  },
+  "artifact_bytes_after_postprocessing_audit": 6924231122,
+  "artifact_sha256": {
+    "backend-drift.json": "a8060966260226c5ab0088b11e123da5999a4ae5a4287fc7133ec2caa1bd8554",
+    "browser-check/browser-check.json": "b70602fa40792db9c346c04beca383ef18631ae09917e98f4746c5aa829f2a1b",
+    "browser-check/noise-without-centers.png": "19e24ef56fbf5f5225eedceaf5c3665c3f763f9ac5cfcbc4b04b4b52e4ff4345",
+    "browser-check/paired-ttmapp259.png": "ef27a0a0e3e33fe6f5239c4ae1eadea8f60c1bfd29eca6a81e5050d2a3571ee2",
+    "browser-check/point-measurements-preview.png": "2b49bf3278554a9b864d4cd671d522565b6ecd0c12568f84491b0a475cfdabe0",
+    "dependency-audit.json": "3932d154375ee825dd613cf9a152643da805b51a469e057eada11a576482a7ea",
+    "domain-summary.json.gz": "403da444b57bec1ed4e662a8b141eed409644e313f2d29a7f01835a5e2164aad",
+    "edge-summary.jsonl.gz": "4169c4145004c85242896455f851bce8c750d17d864b8c0fd07ccc8442ba2a2a",
+    "final-integrity.json": "ad7951f1b0aec56ab0ced555619ea9b419f53b201bbf4540da0ccace9289e283",
+    "gallery-data.js": "a3c0c6f019c15dd4b63bc7b57f4aed2c8fa0780dfa82b17d621d9190a5a06fae",
+    "gallery-render.json": "dbccb323083c013345ac0d91f0c95bda8ad6c01e5d693b820da3557e1d2ab288",
+    "gate-change-audit.json": "f7e3e4918be027be2a7a0562c531e56cc56153de9ef8e6bd6070c8e7b1fcf125",
+    "gradient-calibration.json": "ca00e1b86e75e42d28ff1f4633929eba79bdf543713ab08a093f325f9aab3e2c",
+    "independent-audit-provenance.json": "dfacf2654f10e80251c44dd12ca97a93c22d7e9ac49c536bb8db2d6c248d99db",
+    "independent-audit.json": "85fd383e1721546453e033d867eff2bc2ec4491d258bf9c2d05ea466316b4b8d",
+    "independent-audit.py": "4118d462d4e2433d7187efae67cad18a02ea65322e2d39338fafeac330b2a08f",
+    "index.html": "81df97ee6b3892413bb9d53a87d115da534a5c8e1ab6775ed28d917c7fa81cff",
+    "manifest.json": "d32db39dfc5a5cc0fd0057049b259af81c47f0bc5ebe05d44fad1f630563a5f9",
+    "paired-metrics.csv": "9137cde5c16b18d432ce6ee9192f50a58babf26b9b75cea30aaebbe06c66cca5",
+    "prediction-freeze.json": "8a4f4afaf5b0b5d3375ce3d9e7fa07ab17c79d3dc3eae65acf49ad4086e5fc13",
+    "prediction-index.json": "1e7baf51bac6be7e46c6f89989103c35bf1ef06f68252820dbd4644fc720590c",
+    "probe-inputs.npz": "939ec75aedbdf1d5877f57b243ccd7ace8e0c6c420880ca91454e29d87a99bb8",
+    "probe-metadata.json": "a0fd38cfd68cb230f11bbada315365e895814ca21dbf0c78c0700b1861729c32",
+    "probe-metrics.csv": "dbaa985c175bca154a6ade0e44fb2d02d6a7be00ecf37ae156ff0061abc69427",
+    "protocol.md": "9d79ef533d7c18ba9b6c7433cb59f8be2dac062c3a285d4ffecf7fd88c6c84b5",
+    "readout-domain-all.csv": "531b580aabeca5fc3d8ba4eb05c1929812c096d988aea4662849a47edc03ea1f",
+    "readout-domain-seeds.csv": "e1bedc2c5ed19f15848e6fd3b489306ae59c0b2d5b34df6c685123bb1e1fafd6",
+    "readout-domain-summary.csv": "36a28d62ee49edda5208024ba864218aa3649d7ef4864deeed8c03dbe14f6ed0",
+    "readout-edge-quality-seeds.csv": "529d3fd488dbcfd0f2e9e4a648d1bd9a92f8a11813ae901c8c0252dd448ae4aa",
+    "readout-edge-quality-summary.csv": "8306d82dbe1c5eb691a75c444a26db956b161120328bc241ade063ffd30a30b3",
+    "readout-manifest.json": "632ae2a1fc2c5cb2d7c2cf71e5475f56009e80e1bcc43038a1870de3c6c6b5fa",
+    "readout-paired-frame-medians.csv": "0ea57a382e810e88574d665363fbe85004df95b89f2d3e56fc897ee25f018cf0",
+    "readout-paired-seed-summary.csv": "20082beebabe5839e1d14cdaa63ffcf23a1fc240cfb6d67e7fd9a80a9d1d0771",
+    "readout-probe-comparisons-seeds.csv": "6d079c6e5c2b7e02c9f6da25647e16638c5ac7d0dd8a8d293f4ea52e5ba8b4bf",
+    "readout-probe-comparisons-summary.csv": "f23387f6ec39784a2f95cae7c42a08e0701408d2072ffcaee986a746b52ced15",
+    "readout-probe-seeds.csv": "d2cd831ef8360bd1a57df0bd52ea43807de26c6c0f0006436a2a0eb1fe5805a2",
+    "readout-probe-summary.csv": "1697499af6824b43348960b3e6d30f37ebc140774ec586d87b98f43ce15907ad",
+    "readout.json": "a051bb4787aac2210b6e64826c349469efd6afbe12806aa2165b1a1c2b38b0a5",
+    "schedule.json": "a38369edfa46f2b7af91302edda532ba11051c92f035a75431ff17d32fda6f8f",
+    "source-reader-audit.json": "4e561cd2c2f224404ea1988f4dc42a0b33a0d73f0a7f5bfcee957f8555e3a90b",
+    "truth-audit.json": "cd2df8be7488c3e3bf9f48fd6243edda134a4a4cd91df919a23eb7b57b5b8307"
+  },
+  "conclusions": {
+    "photometric_sensitivity_changes_relations_and_domains": true,
+    "l2_amplifies_sensitivity": true,
+    "offset_minus_is_validated_fix": false,
+    "detector_selected": false,
+    "application_changed": false,
+    "new_training": false,
+    "next_experiment": "E5",
+    "E6": "conditional paired normalization/readout contrast; not started",
+    "E7": "requires reviewed labels and grouping audit"
+  },
+  "limitations": [
+    "One known acquisition; no independent STM test",
+    "Partial reference; very few different-domain real edges",
+    "Predefined photometric and structural doses are not physically equated",
+    "Native48 baselines and encoder64 use separate inputs/noise fields",
+    "Quality and stability have different, explicit denominators",
+    "Four fresh CPU MWS partition changes versus historical backend; E3 pairs use fresh identity"
+  ]
+}
