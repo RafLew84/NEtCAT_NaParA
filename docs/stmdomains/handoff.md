@@ -1,3 +1,53 @@
+# STM Domains — E7 syntetyki → STM wykonane
+
+2026-11-11, worktree `/home/rlew/projekty/NEtCAT-domains`, `ml_domain`,
+baza `630f29d`. Użytkownik zlecił E7 i wybrał „Wykonaj próbę syntetyki → STM”.
+[Raport](ml-ae-rvae-e7.md), [protokół](ml-ae-rvae-e7-protocol.md),
+[manifest](ml-ae-rvae-e7-manifest.json). **Ta osobna gałąź E7 jest wykonana;
+nadzorowany E7 na rzeczywistych etykietach i krzywa danych odroczone.**
+E4/E6 warunkowe, nie uruchomiono dalszego treningu.
+
+81 syntetyków train +81 validation (3 grupy po 27 przypadków na rolę),
+24 znane pełne klatki STM. Osiem ważonych regresji logistycznych na sześciu
+zamrożonych transferowych enkoderach AE32/rVAE34. Train ma 18 840 par tej samej domeny i 45 różnych,
+validation 18 920/45; pary różnych domen tylko z dwóch zmian orientacji. Większość
+struktur generatora wspólna między ziarnami: nowe realizacje, nie niezależne
+akwizycje. STM: 2722 pary tej samej domeny i 4 różne lokalne krawędzie, referencja częściowa.
+Scaler/fit/kalibracja tylko train, predykcje zamrożone przed oceną referencją.
+Bez zmiany enkoderów, produkcyjnej aplikacji, źródeł lub anotacji A/B.
+
+Brak stabilnego detektora. Syntetyczne AP rVAE = 1, lecz błędne podziały FH/H_M1
+5.37–6.84% wobec 3.77% geometrii. Na STM rVAE pokrycie 42.47–90.47%, scalenia 9.96–96.57%,
+zależnie od ziarna. Mianowniki błędów warunkowe na przypisaniu; pokrycie
+ma 1354 znane miejsca z pełnym wsparciem. Pełna bramka nadal 0% pokrycia. Kontrole rzędów
+nadal fałszywie przypisywane. Kwantyle MWS odpowiadają p_same blisko 1,
+nie progowi 0.5 klasyfikatora; FH używa d/mediana i k=4.
+Dalszy kierunek: przejrzane rzeczywiste relacje
+oraz osobny kontrast podziału grafu; nie wybrano ani nie uruchomiono go.
+
+Artefakty lokalne `.scratch/ml-e7-20261111/`, galeria `index.html`,
+8 modeli JSON w `probes/`. 105 obrazów/1680 zestawów galerii,
+6720 ocen domen i 2520 par. `readout-manifest.json` obejmuje późniejsze tabele.
+Pierwszy preflight nie wygenerował danych/fitów: błędny klucz odwołania do
+hasha indeksu E2 poprawiono na repo→freeze→index, zachowany snapshot/log
+`.scratch/ml-e7-20261111-preflight-failed*`. Udany przebieg bez późniejszych
+zmian obliczeń, HTML lub protokołu. Pole `regime=transductive` w scorerze
+opisuje pełny zakres oceny; wszystkie enkodery pozostają transferowe.
+
+Netcat: **19 testów PASS; Qt 167 PASS / 0 JS, 105 obrazów, 4 zrzuty obejrzane**.
+Audyt: 1588 zamrożonych plików, 18 482 źródła, 6 checkpointów; 192 bloki STM bitowo zgodne;
+840 odtworzeń, 8 kalibracji dokładnych; 2520 ocen par i 7296 agregatów domen zgodne.
+Przebieg: 32.92 s wall / 32.91 s CPU, szczyt RSS 1.00 GiB, 222.3 MB przed postprocessingiem.
+Budżety zachowane. Największy nowy moduł: 292 linie, wszystkie <1000.
+Brak pełnej regresji aplikacji; zmiana izolowana. Brak potrzeb zmian wspólnych.
+**Odbiór ręczny galerii użytkownika otwarty**; instrukcja w raporcie.
+
+E0–E3, E5 i osobne E7 wykonane. UI26 czeka na odbiór, UI19–20 odłożone.
+Commit wskazuje historia Git i odpowiedź końcowa; bez push.
+Poniżej historyczne przekazania.
+
+---
+
 # STM Domains — E5 wykonane: lokalność, skala i centrowanie
 
 2026-11-11, worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `ml_domain`,

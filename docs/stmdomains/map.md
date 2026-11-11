@@ -1,5 +1,18 @@
 # STM Domains — etap 1: działający szkielet
 
+**2026-11-11 — E7: syntetyki → STM wykonane.**
+[Raport i przeglądarka](ml-ae-rvae-e7.md), [manifest](ml-ae-rvae-e7-manifest.json):
+osiem uczonych odczytów na sześciu zamrożonych enkoderach. Dobre relacje
+syntetyczne nie dały stabilnej poprawy domen STM. Train ma tylko 45 różnych
+par, STM cztery; nie wybrano detektora. Stara kalibracja grafu nie odpowiada
+progowi klasyfikatora. 19 testów PASS, Qt 167 PASS / 0 JS, audyt PASS.
+Przeglądarka: `.scratch/ml-e7-20261111/index.html`; odbiór użytkownika otwarty.
+**E0–E3, E5 i osobna gałąź E7 wykonane; nadzorowany E7 na etykietach STM
+oraz krzywa danych odroczone, E4/E6 warunkowe.** Dalszy kierunek to rzeczywista
+referencja relacji oraz diagnoza zamiany relacji na domeny, bez automatycznego
+uruchamiania nowych prób. UI26 czeka na odbiór, UI19–20 odłożone.
+Poniżej historia etapów.
+
 **2026-11-11 — E5 wykonane; dalej mały E7 po referencji.**
 [Raport i przeglądarka](ml-ae-rvae-e5.md), [manifest](ml-ae-rvae-e5-manifest.json):
 mapa AE, skale 32/48/64 oraz centrowanie zmieniają kompromis pokrycia,

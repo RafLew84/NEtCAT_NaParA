@@ -2,8 +2,10 @@
 
 Data: **2026-11-10**. Gałąź: `ml_domain`, baza `dfac8e5`.
 Aktualizacja: **2026-11-10**, na bazie `8ca8738`, po przyjęciu przez użytkownika
-[oceny propozycji](ml-ae-rvae-proposal-review.md). Status po wykonaniu E5
-**2026-11-11: E0–E3 i E5 wykonane, E4/E6/E7 niewykonane**, bez nowych ticketów wykonawczych.
+[oceny propozycji](ml-ae-rvae-proposal-review.md). Status po wykonaniu E7:
+**2026-11-11: E0–E3, E5 oraz osobna próba E7 syntetyki → STM wykonane**.
+E7 na nadzorowanych etykietach STM i krzywa ilości danych pozostają odroczone;
+E4/E6 niewykonane, warunkowe. Bez nowych ticketów wykonawczych.
 Właściciel decyzji: użytkownik. Środowisko: `netcat`.
 Przy pierwotnym opracowaniu wykonano audyt źródeł i małą kontrolę inferencji
 dwóch istniejących modeli tiny16, opisaną poniżej. Następnie wykonano
@@ -16,8 +18,12 @@ treści bez kąta, koszty normalizacji oraz nadal błędny podział domen.
 domen po perturbacji jasności, z ważnym udziałem normalizacji L2.
 [E5: lokalność, skala i centrowanie](ml-ae-rvae-e5.md) wykazało zmiany
 kompromisu pokrycia/scalania/podziałów, bez ogólnej poprawy i wyboru detektora.
-**Następny kierunek: mały E7 po referencji i audycie grup.** E4/E6 pozostają
-warunkowe. Nie wybrano nowych parametrów detektora ani nowego treningu.
+[E7: syntetyki → STM](ml-ae-rvae-e7.md) wykazało dobrą separację wąskiej
+puli par syntetycznych, bez stabilnej poprawy domen na STM. Osiem małych
+klasyfikatorów na zamrożonych enkoderach; tylko 45 różnych lokalnych par
+train i cztery STM. **Dalszy kierunek: przejrzana referencja rzeczywistych
+relacji oraz osobna diagnoza zamiany uczonych relacji na podział grafu.**
+Nie uruchomiono tego kontrastu ani E4/E6, nie wybrano parametrów detektora.
 
 ## Pytanie i kolejność wykonania
 
@@ -37,7 +43,7 @@ propozycji; nie są numerami kolejności ani istniejących ticketów UI.
 | 3 — wykonane | E2: odczyt cech i odległości | 15 odczytów na reżim, trzy przestrzenie, pięć tasowań; [raport](ml-ae-rvae-e2.md). |
 | 4 — wykonane | E3: fotometria | Istniejące wagi i adaptery; zmiany relacji/domen oraz wpływ L2, [raport](ml-ae-rvae-e3.md). |
 | 5 — wykonane | E5: lokalność, skala i centrowanie | Zamrożone wagi, 304 nowe adaptery; częściowe korzyści i błędy kontroli, bez wyboru detektora; [raport](ml-ae-rvae-e5.md). |
-| 6 | Mały E7: uczony odczyt relacji | Również przy słabych dystansach E2/E5, jeśli są etykiety i bezpieczny podział danych. |
+| 6 — osobna próba wykonana | Mały E7: uczony odczyt relacji | Syntetyki → znane STM, 8 fitów bez retreningu enkoderów; [raport](ml-ae-rvae-e7.md). Nadzór na etykietach STM nadal wymaga referencji i podziału grup. |
 | 7 | Warunkowo E4 i E6 | E4: diagnostyka rVAE na tiny16; E6: jeden kontrast treningowy uzasadniony diagnozą. |
 | Później | Rozszerzony E7: krzywa ilości danych | Po obiecującym odczycie i przygotowaniu dodatkowych grup MPP/STP. |
 
@@ -404,6 +410,18 @@ równocześnie dekoder, wariacyjność, KL i pozę; nie izoluje wpływu obrotu.
 
 ## E7 — mały uczony odczyt relacji i późniejsza krzywa ilości danych
 
+**2026-11-11 — wykonano osobny wariant syntetyki → STM na wyraźny wybór
+użytkownika.** [Raport i przeglądarka](ml-ae-rvae-e7.md),
+[protokół](ml-ae-rvae-e7-protocol.md), [manifest](ml-ae-rvae-e7-manifest.json).
+81 nowych syntetyków train, 81 validation, 24 znane obrazy STM; osiem
+regularizowanych odczytów. AP rVAE=1 na wąskiej referencji syntetycznej,
+bez stabilnej poprawy domen nad geometrią. Na STM silna zależność od ziarna,
+pełna bramka nadal 0% pokrycia znanych wnętrz. Reguła skali FH oraz progi
+kwantyli MWS nie odpowiadają progowi klasyfikatora 0.5. Brak treningu enkoderów.
+19 testów i 167 kontroli Qt PASS; odbiór użytkownika galerii otwarty.
+Nadzorowany E7 na rzeczywistych etykietach oraz krzywa ilości danych
+**nie zostały wykonane**. Poniżej zachowane warunki tych etapów.
+
 Mała próba jest dopuszczona **również po słabych dystansach E2/E5**,
 jeśli istnieją zatwierdzone relacje i grupy do uczenia oraz walidacji.
 Sygnał w zwykłych odległościach nie jest warunkiem wejścia. Ograniczyć się
@@ -518,5 +536,6 @@ proponowanych metod. Użytkownik przyjął uwagi do planu 2026-11-10;
 aktualizacja obejmuje E0, kolejność, układ 2×2, wcześniejszą referencję,
 mały E7 i zamrożenie dekodera. Wybór konkretnej próby do uruchomienia
 pozostaje osobnym krokiem. Po aktualizacji użytkownik zlecił E0; jego wykonanie
-i ograniczenia odnotowano powyżej. Następnie wykonano E1, E2 i E3;
-E4–E7 nie zostały uruchomione. Następne w przyjętej kolejności jest E5.
+i ograniczenia odnotowano powyżej. Następnie wykonano E1, E2, E3, E5
+oraz wybraną osobno próbę E7 syntetyki → STM. E4/E6 pozostają warunkowe;
+nadzorowany E7 na etykietach STM oraz krzywa danych są odroczone.
