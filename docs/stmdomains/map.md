@@ -1,5 +1,20 @@
 # STM Domains — etap 1: działający szkielet
 
+**2026-11-11 — E7a wykonane: te same relacje, inne reguły domen.**
+[Raport](ml-ae-rvae-e7a.md), [protokół](ml-ae-rvae-e7a-protocol.md),
+[manifest](ml-ae-rvae-e7a-manifest.json),
+[przeglądarka](../../.scratch/ml-e7a-20261111/index.html).
+Sześć reguł na niezmienionych predykcjach E7; bez treningu i nowych etykiet.
+Bezpośredni próg MWS zwiększa pokrycie, lecz kosztuje błędne scalenia
+oraz przypisania kontroli rzędów. Geometria+rVAE przy t=0.5 rozdziela
+oceniane zmiany orientacji, ale scala granice fazy i okresu we wszystkich
+trzech ziarnach. **Nie wybrano detektora.** Pełna bramka nadal 0% pokrycia
+znanych wnętrz STM. 13 testów i 430 kontroli Qt PASS, audyt numeryczny PASS;
+odbiór użytkownika galerii otwarty. Dalej rekomendowane przygotowanie E7b:
+przejrzane relacje rzeczywistych granic i kontrole bez domeny, od 10 ROI E0.
+E7b nie uruchomiono; nadzorowany E7/krzywa danych odroczone, E4/E6 warunkowe.
+Poniżej historyczne aktualizacje.
+
 **2026-11-11 — E7: syntetyki → STM wykonane.**
 [Raport i przeglądarka](ml-ae-rvae-e7.md), [manifest](ml-ae-rvae-e7-manifest.json):
 osiem uczonych odczytów na sześciu zamrożonych enkoderach. Dobre relacje

@@ -2,10 +2,10 @@
 
 Data: **2026-11-10**. Gałąź: `ml_domain`, baza `dfac8e5`.
 Aktualizacja: **2026-11-10**, na bazie `8ca8738`, po przyjęciu przez użytkownika
-[oceny propozycji](ml-ae-rvae-proposal-review.md). Status po wykonaniu E7:
-**2026-11-11: E0–E3, E5 oraz osobna próba E7 syntetyki → STM wykonane**.
+[oceny propozycji](ml-ae-rvae-proposal-review.md). Status po wykonaniu E7a:
+**2026-11-11: E0–E3, E5, osobna próba E7 syntetyki → STM oraz E7a wykonane**.
 E7 na nadzorowanych etykietach STM i krzywa ilości danych pozostają odroczone;
-E4/E6 niewykonane, warunkowe. Bez nowych ticketów wykonawczych.
+E4/E6 niewykonane, warunkowe. E7b — przygotowanie referencji — rekomendowane, niewykonane.
 Właściciel decyzji: użytkownik. Środowisko: `netcat`.
 Przy pierwotnym opracowaniu wykonano audyt źródeł i małą kontrolę inferencji
 dwóch istniejących modeli tiny16, opisaną poniżej. Następnie wykonano
@@ -21,9 +21,11 @@ kompromisu pokrycia/scalania/podziałów, bez ogólnej poprawy i wyboru detektor
 [E7: syntetyki → STM](ml-ae-rvae-e7.md) wykazało dobrą separację wąskiej
 puli par syntetycznych, bez stabilnej poprawy domen na STM. Osiem małych
 klasyfikatorów na zamrożonych enkoderach; tylko 45 różnych lokalnych par
-train i cztery STM. **Dalszy kierunek: przejrzana referencja rzeczywistych
-relacji oraz osobna diagnoza zamiany uczonych relacji na podział grafu.**
-Nie uruchomiono tego kontrastu ani E4/E6, nie wybrano parametrów detektora.
+train i cztery STM. [E7a: zamiana relacji na domeny](ml-ae-rvae-e7a.md) porównuje sześć reguł
+bez zmiany predykcji. Bezpośredni próg MWS zwiększa pokrycie, ale kosztem
+scaleń oraz fałszywych domen na kontrolach. Nie wybrano detektora.
+**Dalszy kierunek E7b: przejrzana referencja rzeczywistych relacji granic
+oraz przykładów bez domeny.** Nie uruchomiono E7b ani E4/E6.
 
 ## Pytanie i kolejność wykonania
 
@@ -44,6 +46,8 @@ propozycji; nie są numerami kolejności ani istniejących ticketów UI.
 | 4 — wykonane | E3: fotometria | Istniejące wagi i adaptery; zmiany relacji/domen oraz wpływ L2, [raport](ml-ae-rvae-e3.md). |
 | 5 — wykonane | E5: lokalność, skala i centrowanie | Zamrożone wagi, 304 nowe adaptery; częściowe korzyści i błędy kontroli, bez wyboru detektora; [raport](ml-ae-rvae-e5.md). |
 | 6 — osobna próba wykonana | Mały E7: uczony odczyt relacji | Syntetyki → znane STM, 8 fitów bez retreningu enkoderów; [raport](ml-ae-rvae-e7.md). Nadzór na etykietach STM nadal wymaga referencji i podziału grup. |
+| 6a — wykonane | E7a: reguła tworzenia domen | Te same relacje E7, sześć reguł FH/MWS; [raport](ml-ae-rvae-e7a.md). Większe pokrycie z kosztami, bez wyboru detektora. |
+| 6b — rekomendowane | E7b: przygotowanie rzeczywistej referencji | Przejrzeć 10 ROI E0: wnętrza, różne granice, brak domen; określić niepewność i grupy fizycznych miejsc przed treningiem. Jedna akwizycja nie daje niezależnego testu. |
 | 7 | Warunkowo E4 i E6 | E4: diagnostyka rVAE na tiny16; E6: jeden kontrast treningowy uzasadniony diagnozą. |
 | Później | Rozszerzony E7: krzywa ilości danych | Po obiecującym odczycie i przygotowaniu dodatkowych grup MPP/STP. |
 
@@ -537,5 +541,6 @@ aktualizacja obejmuje E0, kolejność, układ 2×2, wcześniejszą referencję,
 mały E7 i zamrożenie dekodera. Wybór konkretnej próby do uruchomienia
 pozostaje osobnym krokiem. Po aktualizacji użytkownik zlecił E0; jego wykonanie
 i ograniczenia odnotowano powyżej. Następnie wykonano E1, E2, E3, E5
-oraz wybraną osobno próbę E7 syntetyki → STM. E4/E6 pozostają warunkowe;
+oraz wybraną osobno próbę E7 syntetyki → STM i E7a podziału grafu.
+E7b jest rekomendacją przygotowania referencji; E4/E6 pozostają warunkowe;
 nadzorowany E7 na etykietach STM oraz krzywa danych są odroczone.

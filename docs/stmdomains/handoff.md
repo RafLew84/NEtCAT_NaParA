@@ -1,3 +1,42 @@
+# STM Domains — E7a wykonane
+
+2026-11-11, worktree `/home/rlew/projekty/NEtCAT-domains`, `ml_domain`,
+baza `f807216`. Zlecenie użytkownika: „wykonaj e7a”.
+[Raport](ml-ae-rvae-e7a.md), [protokół](ml-ae-rvae-e7a-protocol.md),
+[manifest](ml-ae-rvae-e7a-manifest.json). Artefakty lokalne:
+`.scratch/ml-e7a-20261111/`, przeglądarka `index.html`.
+
+E7a porównuje sześć reguł na 840 zamrożonych predykcjach E7 / 105 obrazach:
+stare FH/MWS, surowe FH i bezpośrednie MWS t=0.25/0.5/0.75.
+Bez treningu, inferencji enkoderów, refitu, nowych danych i etykiet.
+Przed oceną zamrożono predykcje; zachowano wszystkie źródła i checkpointy.
+Nie zmieniano aplikacji produkcyjnej ani wspólnych modułów.
+
+Brak ogólnego detektora. Geometria+rVAE/MWS0.5/H_M1 rozdziela kontrolowane
+zmiany orientacji, ale scala fazę/okres: 100% błędnych scaleń we wszystkich
+trzech ziarnach na ocenianych wnętrzach. Kontrola niezależnych rzędów ma
+96.86–100% błędnych przypisań. Pokrycie STM rośnie, lecz ziarna nadal
+różnią się silnie; porównania mają zmienne mianowniki przypisanych par.
+Pełna bramka: nadal 0% pokrycia znanych wnętrz STM. Nie wybierano progu
+według znanej referencji. Rekomendacja: przygotować E7b, przejrzeć relacje
+rzeczywistych granic i kontrolę braku domeny (start: 10 ROI E0).
+Nie rozpoczęto E7b, E4/E6 ani nadzorowanego treningu na STM.
+
+Netcat: 13 testów PASS, Qt 430 kontroli PASS / zero JS; cztery zrzuty
+obejrzane. Pierwszy start Chromium zatrzymany przez piaskownicę; ponowny
+start tego samego checkera na hoście przeszedł. Audyt ponownie wyliczył
+10 080 ocen domen i 109 440 pól agregatów, sprawdził spójność i minimum8.
+Dokładne odtworzenie 5040 tablic bazowych, 840 kontroli skali FH,
+3360 bazowych ocen jakości. Audyt ma inną implementację liczenia par;
+nie był osobną recenzją agenta. 30.37 s wall / 30.37 s CPU, RSS0.99 GiB,
+199 MB przed postprocessingiem; budżety zachowane. Nowy kod <1000 linii/plik.
+Bez pełnej regresji aplikacji: izolowana próba. **Odbiór ręczny użytkownika
+galerii otwarty**, instrukcja w raporcie. Brak potrzeb zmian wspólnych.
+Commit wskazuje historia Git i odpowiedź końcowa; bez push.
+UI26 czeka na odbiór, UI19–20 odłożone. Poniżej historyczne przekazania.
+
+---
+
 # STM Domains — E7 syntetyki → STM wykonane
 
 2026-11-11, worktree `/home/rlew/projekty/NEtCAT-domains`, `ml_domain`,
