@@ -2,8 +2,8 @@
 
 Data: **2026-11-10**. Gałąź: `ml_domain`, baza `dfac8e5`.
 Aktualizacja: **2026-11-10**, na bazie `8ca8738`, po przyjęciu przez użytkownika
-[oceny propozycji](ml-ae-rvae-proposal-review.md). Status po wykonaniu E3
-**2026-11-11: E0–E3 wykonane, E4–E7 niewykonane**, bez nowych ticketów wykonawczych.
+[oceny propozycji](ml-ae-rvae-proposal-review.md). Status po wykonaniu E5
+**2026-11-11: E0–E3 i E5 wykonane, E4/E6/E7 niewykonane**, bez nowych ticketów wykonawczych.
 Właściciel decyzji: użytkownik. Środowisko: `netcat`.
 Przy pierwotnym opracowaniu wykonano audyt źródeł i małą kontrolę inferencji
 dwóch istniejących modeli tiny16, opisaną poniżej. Następnie wykonano
@@ -14,8 +14,10 @@ przypisań przez bramkę oraz błędy relacji przed odmowami.
 treści bez kąta, koszty normalizacji oraz nadal błędny podział domen.
 [E3: fotometria i stabilność](ml-ae-rvae-e3.md) wykazało zmiany relacji oraz
 domen po perturbacji jasności, z ważnym udziałem normalizacji L2.
-**Następny etap: E5.** E4/E6 pozostają warunkowe, mały E7 wymaga referencji
-i audytu grup. Nie wybrano nowych parametrów detektora ani nowego treningu.
+[E5: lokalność, skala i centrowanie](ml-ae-rvae-e5.md) wykazało zmiany
+kompromisu pokrycia/scalania/podziałów, bez ogólnej poprawy i wyboru detektora.
+**Następny kierunek: mały E7 po referencji i audycie grup.** E4/E6 pozostają
+warunkowe. Nie wybrano nowych parametrów detektora ani nowego treningu.
 
 ## Pytanie i kolejność wykonania
 
@@ -34,7 +36,7 @@ propozycji; nie są numerami kolejności ani istniejących ticketów UI.
 | 2 — wykonane | E1: bramki i mechanika podziału | 8 bramek i oracle 2×2; oba ograniczenia potwierdzone, [raport](ml-ae-rvae-e1.md). |
 | 3 — wykonane | E2: odczyt cech i odległości | 15 odczytów na reżim, trzy przestrzenie, pięć tasowań; [raport](ml-ae-rvae-e2.md). |
 | 4 — wykonane | E3: fotometria | Istniejące wagi i adaptery; zmiany relacji/domen oraz wpływ L2, [raport](ml-ae-rvae-e3.md). |
-| 5 — następne | E5: lokalność, skala i centrowanie | Zamrożone wagi; mocne wnioski o granicach dopiero z odpowiednią referencją. |
+| 5 — wykonane | E5: lokalność, skala i centrowanie | Zamrożone wagi, 304 nowe adaptery; częściowe korzyści i błędy kontroli, bez wyboru detektora; [raport](ml-ae-rvae-e5.md). |
 | 6 | Mały E7: uczony odczyt relacji | Również przy słabych dystansach E2/E5, jeśli są etykiety i bezpieczny podział danych. |
 | 7 | Warunkowo E4 i E6 | E4: diagnostyka rVAE na tiny16; E6: jeden kontrast treningowy uzasadniony diagnozą. |
 | Później | Rozszerzony E7: krzywa ilości danych | Po obiecującym odczycie i przygotowaniu dodatkowych grup MPP/STP. |
@@ -335,6 +337,14 @@ dowodzi matematycznej niemożliwości; nie zwiększać automatycznie budżetu.
 Koszt: **kilka mikrotreningów**, bez dodatkowych obrazów i etykiet.
 
 ## E5 — lokalność, skala i położenie wycinka
+
+**Wykonane 2026-11-11:** [raport i przeglądarka](ml-ae-rvae-e5.md),
+[protokół](ml-ae-rvae-e5-protocol.md), [manifest](ml-ae-rvae-e5-manifest.json).
+Mapa AE, pojedyncze i połączone skale oraz izolowane centrowanie: 255360 ocen,
+oba samplery/reżimy, trzy ziarna. Nie uzyskano ogólnej poprawy detektora;
+większe pokrycie bywa okupione scalaniem, snap niszczy część granic przesunięcia.
+Brak treningu enkoderów lub nowych etykiet. E7 nadal wymaga przejrzanej referencji i grup.
+Poniżej zachowano zakres zatwierdzony przed próbą.
 
 W głównej kolejności przed E4, ponieważ bez nowego treningu bezpośrednio
 sprawdza użyteczność cech przy granicach. Do mocnej oceny realnych granic

@@ -1,5 +1,17 @@
 # STM Domains — etap 1: działający szkielet
 
+**2026-11-11 — E5 wykonane; dalej mały E7 po referencji.**
+[Raport i przeglądarka](ml-ae-rvae-e5.md), [manifest](ml-ae-rvae-e5-manifest.json):
+mapa AE, skale 32/48/64 oraz centrowanie zmieniają kompromis pokrycia,
+scalania i podziałów. Nie wybrano detektora. Snap rVAE pogarsza kontrole
+przesunięcia; pełna bramka nadal daje 0% pokrycia znanych wnętrz na centrach.
+12 zamrożonych enkoderów, 304 nowe adaptery, 255360 ocen na 105 obrazach.
+36 testów PASS, galeria Qt 177 PASS / 0 błędów JS; niezależny audyt PASS.
+Przeglądarka: `.scratch/ml-e5-20261111/index.html`; odbiór użytkownika otwarty.
+**E0–E3 i E5 wykonane; E7 wymaga przejrzanych etykiet i audytu grup;
+E4/E6 warunkowe.** Bez treningu enkoderów, nowych etykiet lub zmian aplikacji.
+UI26 nadal czeka na odbiór, UI19–20 odłożone. Poniżej historia etapów.
+
 **2026-11-11 — E3 wykonane; następne E5.**
 [Raport i przeglądarka](ml-ae-rvae-e3.md), [manifest](ml-ae-rvae-e3-manifest.json):
 fotometria zmienia relacje i domeny rVAE; dużą część zmiany rankingu

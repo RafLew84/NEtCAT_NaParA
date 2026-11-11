@@ -1,3 +1,59 @@
+# STM Domains — E5 wykonane: lokalność, skala i centrowanie
+
+2026-11-11, worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `ml_domain`,
+baza `8168349`. Zlecenie: „wykonaj e5”. [Raport](ml-ae-rvae-e5.md),
+[zamrożony protokół](ml-ae-rvae-e5-protocol.md),
+[manifest](ml-ae-rvae-e5-manifest.json). **Dalej mały E7 po przejrzanej
+referencji i audycie grup; E4/E6 warunkowe.** Nie rozpoczęto tych etapów.
+
+E5 nie wyłoniło detektora. AE mapa/transdukcja/centra/FH/H_M1 zmniejsza
+medianę błędnych podziałów 14.53→10.92%, ale zwiększa scalenia 91.20→93.40%.
+Wiele skal pełnego rVAE zwiększa pokrycie 94.26→95.84%, lecz scalenia
+31.97→68.96%. To wspólne miejsca danego kontrastu; mianowniki par są
+warunkowe na przypisaniu. Snap na siatkę niszczy granicę przesunięcia
+rVAE: scalenia 0→100% we wszystkich trzech ziarnach obu odczytów.
+H_M1 nadal fałszywie przypisuje niezależne rzędy. Pełna bramka ma 0%
+pokrycia znanych wnętrz na centrach, nie 0% wykrywania molekuł.
+
+Zamrożone 12 enkoderów z32, 304 nowe adaptery, 105 obrazów, oba reżimy
+oraz samplery. Osobne kontrasty: pełna mapa AE, skale 32/48/64 i połączenie,
+centrowanie na molekule/siatce/przesuniętej siatce. Oryginalne punkty i graf
+pozostają stałe. Nowe wsparcie przelicza split/guard; adaptery mają wspólne
+ID tylko wewnątrz kontrastu. Common geometry nie zależy od poprawności cech.
+Graf pełnej klatki pochodzi z FFT transdukcji i jest użyty także w transferze:
+nie deklarować replay dawnych transferowych podziałów. Full gates są z 48;
+own 32 bez gate 48 ma jawną odmowę, nie dowód nieporządku.
+
+Skale, siatka i margines są w px odniesienia; resample 2x ma odpowiednio
+większe raw okna. Globalne `map_geometry` zachowuje nazwy pól `*_raw_px`
+dla spacing=1; raport wyjaśnia przeliczenie dla innych obrazów. Geometria
+obliczeń i UI jest poprawna. A/B z `data/temp` nie stały się etykietami.
+W B wsparcie 32/48/64 daje 65/27/9 centrów, żadnego okna zawartego w ROI.
+Referencja rzeczywistych granic pozostaje niewystarczająca (3–4 krawędzie
+różnych domen na centrach transdukcji, zależnie od kontrastu).
+
+Artefakty lokalne: `.scratch/ml-e5-20261111/`, przeglądarka `index.html`.
+10 eksportów CSV, readout JSON, NPZ cech/predykcji, adaptery i audyty.
+Oryginalny kod/protokół i predykcje zamrożone przed oceną referencją.
+Późniejszy checker rozpoznaje prawdziwe `resample_2x`; zachowane snapshoty,
+`gallery-render.json`, raporty browser-check i browser-check-final.
+HTML i wyniki obliczeń nie wymagały poprawki. Dane i wagi poza Git.
+
+W netcat: **36 testów E5 PASS, Qt 177 PASS/0JS, 105 obrazów, pięć obejrzanych
+zrzutów**. Fixture 78 PASS. Niezależny audyt: 9131 frozen plików, 304 adaptery,
+2100 geometrii, 4200 baseline w tolerancji (max 8.11e−6), tożsamość grid:
+2100 cech/42000 tablic predykcji. Źródła i 12 checkpointów niezmienione.
+Przebieg główny 921.55 s wall/922.16 s CPU, RSS 2.10 GiB. Budżet zachowany.
+Największy nowy moduł 418 linii; wszystkie <1000. Brak pełnej regresji
+aplikacji, zmiana izolowana w eksperymencie. Brak potrzebnych zmian wspólnych.
+**Odbiór ręczny galerii przez użytkownika otwarty**; instrukcja w raporcie.
+
+**E0–E3 i E5 wykonane; E4/E6/E7 niewykonane.** UI26 czeka na odbiór,
+UI19–20 odłożone. Commit wskazuje historia Git i odpowiedź końcowa.
+Bez push. Poniżej historyczne przekazania.
+
+---
+
 # STM Domains — E3 wykonane: fotometria i stabilność odczytu
 
 2026-11-11, worktree `/home/rlew/projekty/NEtCAT-domains`, gałąź `ml_domain`,
